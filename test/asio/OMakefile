@@ -1,0 +1,1 @@
+.DEFAULT: $(CProgram test_simple_server, test_simple_server)
