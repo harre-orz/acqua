@@ -9,3 +9,5 @@ INCLUDES += ../../include/
 .DEFAULT: build
 .SUBDIRS: test
 
+clean:
+	rm -rf doc/ *.omc

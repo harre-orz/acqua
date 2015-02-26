@@ -36,12 +36,33 @@ public:
 public:
     explicit simple_server(boost::asio::io_service & io_service, endpoint_type const & endpoint, bool volatile & marked_alive, size_type max_count = 100, Traits traits = Traits(), bool reuse_addr = true)
         : traits_type(std::move(traits))
-        , base_type(io_service, marked_alive, max_count, count_)
+        , base_type(io_service, marked_alive, count_)
         , count_(0)
+        , max_count_(max_count)
     {
         boost::system::error_code ec;
-        auto & acc = base_type::acceptor();
+        if (max_count_ < 1)
+            ec = boost::system::errc::make_error_code(boost::system::errc::invalid_argument);
+        boost::asio::detail::throw_error(ec, "max_count");
+        listen(base_type::acceptor(), endpoint, ec, reuse_addr);
+    }
 
+    using base_type::start;
+    using base_type::stop;
+
+    size_type use_count() const noexcept
+    {
+        return count_;
+    }
+
+    size_type max_count() const noexcept
+    {
+        return max_count_;
+    }
+
+private:
+    void listen(acceptor_type & acc, endpoint_type const & endpoint, boost::system::error_code & ec, bool reuse_addr)
+    {
         acc.open(endpoint.protocol(), ec);
         boost::asio::detail::throw_error(ec, "open");
         if (reuse_addr) {
@@ -51,14 +72,10 @@ public:
         static_cast<traits_type *>(this)->set_option(acc, ec);
         acc.bind(endpoint, ec);
         boost::asio::detail::throw_error(ec, "bind");
+        acc.listen(boost::asio::socket_base::max_connections, ec);
+        boost::asio::detail::throw_error(ec, "listen");
     }
 
-    using base_type::start;
-    using base_type::stop;
-    using base_type::use_count;
-    using base_type::max_count;
-
-private:
     Connector * construct(boost::asio::io_service & io_service)
     {
         return static_cast<Traits *>(this)->construct(io_service);
@@ -66,6 +83,7 @@ private:
 
 private:
     std::atomic<size_type> count_;
+    std::size_t max_count_;
 };
 
 } }

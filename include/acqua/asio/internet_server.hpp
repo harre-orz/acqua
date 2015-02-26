@@ -10,8 +10,6 @@ namespace acqua { namespace asio {
 
 /*!
   IPv4/v6 のどちらか/両方で Listen するサーバークラス
-
-  最大接続数が
  */
 template <
     typename Connector,
@@ -47,7 +45,6 @@ public:
             set_max_count(max_count, 2, ec);
             listen_v4(base_v4_type::acceptor(), endpoint_type(boost::asio::ip::address_v4::any(), port), ec, reuse_addr);
             listen_v6(base_v6_type::acceptor(), endpoint_type(boost::asio::ip::address_v6::any(), port), ec, reuse_addr);
-            if (max_count_ < 2) max_count_ = 2;  //!< v4/v6両方を listen すると、最大接続数は最低でも2を確保する必要がある
         } else if (address->is_v4()) {
             set_max_count(max_count, 1, ec);
             listen_v4(base_v4_type::acceptor(), endpoint_type(*address, port), ec, reuse_addr);
@@ -97,12 +94,12 @@ public:
         base_v6_type::stop();
     }
 
-    size_type use_count() const
+    size_type use_count() const noexcept
     {
         return count_;
     }
 
-    size_type max_count() const
+    size_type max_count() const noexcept
     {
         return max_count_;
     }

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <boost/system/error_code.hpp>
+#include <boost/asio/io_service.hpp>
+
 namespace acqua { namespace asio {
 
 /*!

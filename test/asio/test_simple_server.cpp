@@ -20,14 +20,14 @@ public:
 
     void start()
     {
+        boost::system::error_code ec;
         boost::asio::streambuf buf;
-        for(;;) {
-            std::size_t size = boost::asio::read(socket_, buf.prepare(10));
-            std::cout << "read size:" << size << std::endl;
 
-            buf.commit(size);
-            size = boost::asio::write(socket_, buf);
-            std::cout << "write size:" << size << std::endl;
+        std::cout << "connected from " << socket_.remote_endpoint(ec) << std::endl;
+        for(;;) {
+            boost::asio::read_until(socket_, buf, "\r\n");
+            std::cout << "bytes-transferred " << buf.size() << std::endl;
+            boost::asio::write(socket_, buf);
         }
     }
 

@@ -37,7 +37,7 @@ protected:
     typedef typename Protocol::acceptor acceptor_type;
     typedef typename Protocol::endpoint endpoint_type;
 
-    ~simple_server_base()
+    ~simple_server_base() noexcept
     {
         marked_alive_ = false;
     }
@@ -47,10 +47,15 @@ protected:
         return acceptor_;
     }
 
+    //! 最大接続数を返す.
+    size_type max_count() const noexcept
+    {
+        return static_cast<Derived const *>(this)->max_count();
+    }
+
 public:
-    explicit simple_server_base(boost::asio::io_service & io_service, bool volatile & marked_alive, size_type max_count, std::atomic<size_type> & count)
+    explicit simple_server_base(boost::asio::io_service & io_service, bool volatile & marked_alive, std::atomic<size_type> & count)
         : acceptor_(io_service)
-        , max_count_(max_count)
         , count_(count)
         , is_running_(false)
         , is_waiting_(false)
@@ -75,18 +80,6 @@ public:
         is_running_ = false;
     }
 
-    //! 現在の接続数を返す.
-    size_type use_count() noexcept
-    {
-        return count_;
-    }
-
-    //! 最大接続数を返す.
-    size_type max_count() noexcept
-    {
-        return max_count_;
-    }
-
 private:
     void on_disconnect(Connector * conn, bool volatile & marked_alive)
     {
@@ -103,10 +96,10 @@ private:
     {
         // async_accept と on_disconnect が並列に呼び出されると、
         // レースコンディションになるので、十分に注意して実装すること。
-        if (count_ < max_count_) {
+        if (count_ < max_count()) {
             ++count_;
             // count_ はここでしか加算していないので、
-            // count_ < max_count_ の条件を満たせなくなることはない
+            // count_ < max_count() の条件を満たせなくなることはない
 
             std::shared_ptr<Connector> conn(
                 static_cast<Derived *>(this)->construct(acceptor_.get_io_service()),
@@ -151,9 +144,8 @@ private:
         return socket.lowest_layer();
     }
 
-protected:
+private:
     acceptor_type acceptor_;
-    size_type max_count_;
     std::atomic<size_type> & count_;
     std::atomic<bool> is_running_;
     std::atomic<bool> is_waiting_;
