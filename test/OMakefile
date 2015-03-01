@@ -1,4 +1,4 @@
-.SUBDIRS: asio
+.SUBDIRS: exception network asio 
 
 clean:
 	rm -f *.omc	

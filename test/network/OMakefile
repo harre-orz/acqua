@@ -1,0 +1,6 @@
+.DEFAULT: $(CXXProgram test_linklayer_address, test_linklayer_address) \
+	      $(CXXProgram test_internet4_address, test_internet4_address) \
+          $(CXXProgram test_internet6_address, test_internet6_address)
+
+clean:
+        rm -rf $(filter-proper-targets $(ls R, .)) *.omc

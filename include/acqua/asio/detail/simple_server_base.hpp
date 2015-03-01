@@ -31,11 +31,10 @@ class simple_server_base<
     > : boost::noncopyable
 {
 protected:
-    typedef std::size_t size_type;
-    typedef Protocol protocol_type;
-    typedef typename Protocol::socket socket_type;
-    typedef typename Protocol::acceptor acceptor_type;
-    typedef typename Protocol::endpoint endpoint_type;
+    using protocol_type = Protocol;
+    using socket_type = typename Protocol::socket;
+    using acceptor_type = typename Protocol::acceptor;
+    using endpoint_type = typename Protocol::endpoint;
 
     ~simple_server_base() noexcept
     {
@@ -47,14 +46,8 @@ protected:
         return acceptor_;
     }
 
-    //! 最大接続数を返す.
-    size_type max_count() const noexcept
-    {
-        return static_cast<Derived const *>(this)->max_count();
-    }
-
 public:
-    explicit simple_server_base(boost::asio::io_service & io_service, bool volatile & marked_alive, std::atomic<size_type> & count)
+    explicit simple_server_base(boost::asio::io_service & io_service, bool volatile & marked_alive, std::atomic<std::size_t> & count)
         : acceptor_(io_service)
         , count_(count)
         , is_running_(false)
@@ -144,9 +137,15 @@ private:
         return socket.lowest_layer();
     }
 
+    //! 最大接続数を返す.
+    std::size_t max_count() const noexcept
+    {
+        return static_cast<Derived const *>(this)->max_count();
+    }
+
 private:
     acceptor_type acceptor_;
-    std::atomic<size_type> & count_;
+    std::atomic<std::size_t> & count_;
     std::atomic<bool> is_running_;
     std::atomic<bool> is_waiting_;
     bool volatile & marked_alive_;
