@@ -161,9 +161,9 @@ public:
 
     int to_oui() const noexcept
     {
-        int oui = bytes_[2];
-        oui += bytes_[1] * 10;
-        oui += bytes_[0] * 100;
+        int oui = bytes_[0];
+        oui = (oui * 10) + bytes_[1];
+        oui = (oui * 10) + bytes_[2];
         return oui;
     }
 
