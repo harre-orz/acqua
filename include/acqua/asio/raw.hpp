@@ -122,6 +122,39 @@ public:
         return reinterpret_cast<data_type const *>(&sll_);
     }
 
+    acqua::network::linklayer_address address(boost::system::error_code & ec) const noexcept
+    {
+        struct ::ifreq ifr;
+        std::memset(&ifr, 0, sizeof(ifr));
+        if (::if_indextoname(sll_.sll_ifindex, ifr.ifr_name) == nullptr) {
+            ec.assign(errno, boost::system::generic_category());
+            return acqua::network::linklayer_address();
+        }
+
+        int fd;
+        if ((fd = ::socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+            ec.assign(errno, boost::system::generic_category());
+            return acqua::network::linklayer_address();
+        }
+
+        if (::ioctl(fd, SIOCGIFHWADDR, &ifr) != 0) {
+            ec.assign(errno, boost::system::generic_category());
+            ::close(fd);
+            return acqua::network::linklayer_address();
+        }
+
+        ::close(fd);
+        return acqua::network::linklayer_address(ifr.ifr_hwaddr.sa_data);
+    }
+
+    acqua::network::linklayer_address address() noexcept
+    {
+        boost::system::error_code ec;
+        auto addr = address(ec);
+        acqua::exception::throw_error(ec, "address");
+        return addr;
+    }
+
     unsigned int scope_id() const noexcept
     {
         return sll_.sll_ifindex;
@@ -131,7 +164,7 @@ public:
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, basic_endpoint const & rhs)
     {
         char buf[IF_NAMESIZE];
-        if (::if_indextoname(rhs.scope_id(), buf) != 0)
+        if (::if_indextoname(rhs.scope_id(), buf) == nullptr)
             std::strcpy(buf, "null");
         std::copy_n(buf, std::strlen(buf), std::ostreambuf_iterator<char>(os));
         return os;

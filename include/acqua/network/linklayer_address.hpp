@@ -171,7 +171,8 @@ public:
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, linklayer_address const & rhs)
     {
         char buf[3*6];
-        std::sprintf(buf, "%02X:%02X:%02X:%02X:%02X:%02X", rhs.bytes_[0], rhs.bytes_[1], rhs.bytes_[2], rhs.bytes_[3], rhs.bytes_[4], rhs.bytes_[5]);
+        std::sprintf(buf, "%02X:%02X:%02X:%02X:%02X:%02X",
+                     rhs.bytes_[0], rhs.bytes_[1], rhs.bytes_[2], rhs.bytes_[3], rhs.bytes_[4], rhs.bytes_[5]);
         std::copy_n(buf, 17, std::ostreambuf_iterator<char>(os));
         return os;
     }
@@ -186,7 +187,7 @@ private:
     void copy_from(T const * t) noexcept
     {
         reinterpret_cast<std::uint32_t *>(bytes_.data())[0] = reinterpret_cast<std::uint32_t const *>(t)[0];
-        reinterpret_cast<std::uint16_t *>(bytes_.data())[4] = reinterpret_cast<std::uint16_t const *>(t)[4];
+        reinterpret_cast<std::uint16_t *>(bytes_.data())[2] = reinterpret_cast<std::uint16_t const *>(t)[2];
     }
 
     template <typename It>

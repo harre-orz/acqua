@@ -1,3 +1,4 @@
+CXXFLAGS += -g
 .SUBDIRS: exception network asio 
 
 clean:
