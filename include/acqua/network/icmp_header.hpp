@@ -1,3 +1,11 @@
+/*!
+  The acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 extern "C" {
@@ -34,9 +42,9 @@ class icmp_header
 
 private:
 #ifdef __linux__
-    typedef ::icmphdr value_type;
+    using value_type = ::icmphdr;
 #else
-    typedef ::icmp value_type;
+    using value_type = ::icmp;
 #endif
 
 public:
@@ -152,14 +160,13 @@ class icmp_echo
     : public icmp_header
     , public detail::header_base<icmp_echo>
 {
-    typedef detail::header_base<icmp_echo> base_type;
-    typedef icmp_header icmp_type;
+    using base_type = detail::header_base<icmp_echo>;
 
 public:
     using base_type::size;
     using base_type::shrink;
-    using icmp_type::id;
-    using icmp_type::seq;
+    using icmp_header::id;
+    using icmp_header::seq;
 };
 
 } }

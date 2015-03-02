@@ -1,3 +1,11 @@
+/*!
+  The acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 #include <iterator>
@@ -16,6 +24,8 @@ template <
     >
 inline Derived * parse(Header * hdr, It & end) noexcept
 {
+    static_assert(std::is_base_of<detail::header_base<Derived>, Derived>::value, "Derived is base of header_base<Derived>");
+
     auto * ptr = reinterpret_cast<typename std::iterator_traits<It>::pointer>(hdr);
 
     if (ptr + sizeof(*hdr) < &(*end)) {
@@ -33,6 +43,7 @@ inline Derived * parse(Header * hdr, It & end) noexcept
 template <typename Derived, typename It>
 inline Derived * parse(It & beg, It & end) noexcept
 {
+    static_assert(std::is_base_of<detail::header_base<Derived>, Derived>::value, "Derived is base of header_base<Derived>");
     static_assert(sizeof(typename std::iterator_traits<It>::value_type) == 1, "It was must iterator of 1 byte.");
 
     if (beg + sizeof(Derived) < end) {

@@ -1,3 +1,11 @@
+/*!
+  The acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 extern "C" {
@@ -15,9 +23,12 @@ extern "C" {
 
 namespace acqua { namespace network {
 
+/*!
+  イーサネットヘッダークラス.
+*/
 class ethernet_header
-    : public detail::header_base<ethernet_header>
-    , private ::ether_header
+    : private ::ether_header
+    , public detail::header_base<ethernet_header>
 #ifdef __linux__
     , public detail::sourceable_and_destinable<
         ethernet_header,
@@ -39,8 +50,8 @@ class ethernet_header
 #endif
 {
     friend sourceable_and_destinable;
-    typedef detail::header_base<ethernet_header> base_type;
-    typedef ::ether_header value_type;
+    using base_type = detail::header_base<ethernet_header>;
+    using value_type = ::ether_header;
 
 public:
     typedef enum {

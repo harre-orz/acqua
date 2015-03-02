@@ -1,3 +1,11 @@
+/*!
+  The acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 extern "C" {
@@ -13,7 +21,8 @@ extern "C" {
 namespace acqua { namespace network {
 
 class ipv4_header
-    : public detail::header_base<ipv4_header>
+    : private ::ip
+    , public detail::header_base<ipv4_header>
     , public detail::sourceable_and_destinable<
         ipv4_header,
         internet4_address,
@@ -28,12 +37,11 @@ class ipv4_header
         &::ip::ip_sum,
         detail::ipv4_checksum
     >
-    , private ::ip
 {
     friend sourceable_and_destinable;
     friend checkable;
     friend detail::pseudo_header<ipv4_header>;
-    typedef ::ip value_type;
+    using value_type = ::ip;
 
 public:
     typedef enum {
@@ -201,7 +209,7 @@ private:
     std::uint8_t dummy_;
     std::uint8_t protocol_;
     std::uint16_t length_;
-};
+} __attribute__((__packed__));
 
 } } }
 

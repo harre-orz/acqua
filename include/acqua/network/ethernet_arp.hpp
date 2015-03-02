@@ -1,3 +1,11 @@
+/*!
+  The acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 extern "C" {
@@ -10,12 +18,15 @@ extern "C" {
 
 namespace acqua { namespace network {
 
+/*!
+  ARPクラス
+*/
 class ethernet_arp
-    : public detail::header_base<ethernet_arp>
-    , private ::ether_arp
+    : private ::ether_arp
+    , public detail::header_base<ethernet_arp>
 {
-    typedef detail::header_base<ethernet_arp> base_type;
-    typedef ::ether_arp value_type;
+    using base_type = detail::header_base<ethernet_arp>;
+    using value_type = ::ether_arp;
 
 public:
     typedef enum {

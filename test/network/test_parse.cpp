@@ -5,6 +5,10 @@
 #include <acqua/network/ethernet_arp.hpp>
 #include <acqua/network/ipv4_header.hpp>
 #include <acqua/network/icmp_header.hpp>
+#include <acqua/network/ipv6_header.hpp>
+#include <acqua/network/icmpv6_header.hpp>
+#include <acqua/network/udp_header.hpp>
+#include <acqua/network/tcp_header.hpp>
 #include <acqua/network/parse.hpp>
 
 BOOST_AUTO_TEST_SUITE(parse)
