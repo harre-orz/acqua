@@ -1,0 +1,4 @@
+.DEFAULT: $(CXXProgram test_utility, test_utility)
+
+clean:
+        rm -rf $(filter-proper-targets $(ls R, .)) *.omc
