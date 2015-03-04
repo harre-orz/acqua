@@ -4,6 +4,9 @@
 #include <memory>
 
 #include <acqua/utility/move_on_copy_wrapper.hpp>
+#include <acqua/mref.hpp>
+#include <functional>
+
 struct moveable_object
 {
     moveable_object()
@@ -43,6 +46,30 @@ BOOST_AUTO_TEST_CASE(move_on_copy_wrapper_std_ptr_T)
     std::unique_ptr<int> obj2 = wrap2;
     BOOST_CHECK_EQUAL(*obj2, 100);
     BOOST_CHECK_EQUAL((bool)obj1, false);
+}
+
+BOOST_AUTO_TEST_CASE(move_on_copy_wrapper_dereference_T)
+{
+    using acqua::utility::move_on_copy_wrapper;
+
+    int * obj1(new int(100));
+    move_on_copy_wrapper<decltype(obj1)> wrap1(std::move(obj1));
+    move_on_copy_wrapper<decltype(obj1)> wrap2 = wrap1;
+    int * obj2 = wrap2;
+    BOOST_CHECK_EQUAL(*obj2, 100);
+    //BOOST_CHECK_EQUAL((bool)obj1, false);  // dereference のときは移動元を nullptr に初期化しないので、チェックしない
+}
+
+
+void func1(std::unique_ptr<int> obj) {
+    BOOST_CHECK_EQUAL(*obj, 100);
+}
+
+BOOST_AUTO_TEST_CASE(mref)
+{
+    std::unique_ptr<int> obj(new int(100));
+    std::bind(&func1, acqua::mref(std::move(obj)))();
+    std::bind(&func1, acqua::mref(std::unique_ptr<int>(new int(100))))();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

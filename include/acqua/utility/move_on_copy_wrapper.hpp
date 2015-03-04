@@ -13,6 +13,11 @@
 
 namespace acqua { namespace utility {
 
+/*!
+  move セマンティクスを copy で実現するラッパークラス.
+
+  このクラスを扱うときは、所有権がどこにあるかを十分に留意して実装すること
+ */
 template <typename T>
 class move_on_copy_wrapper
 {
