@@ -2,6 +2,9 @@
 
 namespace acqua { namespace utility {
 
+/*!
+  文字型であるかを判定する
+ */
 template <typename T>
 struct is_char_traits
 {
