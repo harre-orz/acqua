@@ -1,0 +1,64 @@
+#pragma once
+
+#include <iterator>
+#include <type_traits>
+#include <boost/locale.hpp>
+
+#include <acqua/utility/is_char_traits.hpp>
+
+namespace acqua { namespace utility {
+
+template <typename It, typename Enabler = void>
+class convert_string;
+
+template <typename It>
+class convert_string<It, typename std::enable_if<acqua::utility::is_char_traits<typename std::iterator_traits<It>::value_type >::value>::type>
+{
+public:
+    using char_type = typename std::iterator_traits<It>::value_type;
+
+    convert_string() noexcept = default;
+
+    template <typename T>
+    convert_string(T const & t) noexcept
+        : beg_(t.begin()), end_(t.end())
+    {
+    }
+
+    convert_string(It beg, It end) noexcept
+        : beg_(beg), end_(end)
+    {
+    }
+
+    template <typename CharT, typename Iter, typename std::enable_if< std::is_same<CharT, char_type>::value>::type * = nullptr>
+    void convert(Iter ins) const
+    {
+        std::copy(beg_, end_, ins);
+    }
+
+    template <typename CharT, typename Iter, typename std::enable_if<!std::is_same<CharT, char_type>::value>::type * = nullptr>
+    void convert(Iter ins) const
+    {
+        boost::locale::utf::code_point cp;
+
+        for(auto it = beg_; it != end_;) {
+            cp = boost::locale::utf::utf_traits<char_type>::template decode<decltype(it)>(it, end_);
+            if (cp != boost::locale::utf::illegal && cp != boost::locale::utf::incomplete) {
+                boost::locale::utf::utf_traits<CharT>::template encode<decltype(ins)>(cp, ins);
+            }
+        }
+    }
+
+    template <typename Ch, typename Tr>
+    friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, convert_string const & rhs)
+    {
+        rhs.template convert<Ch>(std::ostreambuf_iterator<Ch>(os));
+        return os;
+    }
+
+private:
+    const It beg_;
+    const It end_;
+};
+
+} }
