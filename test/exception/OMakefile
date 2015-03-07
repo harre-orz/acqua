@@ -1,0 +1,4 @@
+.DEFAULT: $(CProgram test_throw_error, test_throw_error)
+
+clean:
+        rm -rf $(filter-proper-targets $(ls R, .)) *.omc

@@ -1,4 +1,5 @@
-.DEFAULT: $(CXXProgram test_move_on_copy_wrapper, test_move_on_copy_wrapper)
+.DEFAULT: $(CXXProgram test_move_on_copy_wrapper, test_move_on_copy_wrapper) \
+          $(CXXProgram test_string_cast, test_string_cast)
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc

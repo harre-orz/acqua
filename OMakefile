@@ -1,9 +1,9 @@
 
-CXX = clang++
+#CXX = g++-mp-4.9
 CXXFLAGS += -std=c++11 -W -Wall
 ASFLAGS +=
-LDFLAGS += -lstdc++ -lpthread -lm -lrt -lboost_system
-INCLUDES += ../../include/
+LDFLAGS += -lstdc++ -lpthread -lm 
+INCLUDES += ../../include/ /opt/local/include
 
 .PHONY: build clean install
 .DEFAULT: build
