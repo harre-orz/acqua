@@ -1,5 +1,5 @@
 /*!
-  The acqua library
+  acqua library
 
   Copyright (c) 2015 Haruhiko Uchida
   The software is released under the MIT license.
@@ -12,11 +12,43 @@
 #include <limits>
 #include <atomic>
 #include <type_traits>
-
 #include <boost/utility.hpp>
 #include <boost/asio.hpp>
+#include <acqua/exception/throw_error.hpp>
 
 namespace acqua { namespace asio { namespace detail {
+
+/*!
+  Stream Protocol の接続数を管理するクラス
+
+  \tparam Enabler Connector クラスは、std::enable_shared_from_this<Connector> を継承をチェックするSFINAE
+ */
+template <
+    typename Derived,
+    typename Connector,
+    typename Protocol,
+    typename Tag = void,
+    typename Enabler = void
+    >
+class simple_server_base
+{
+protected:
+    using protocol_type = Protocol;
+    using acceptor_type = typename Protocol::acceptor;
+    using endpoint_type = typename Protocol::endpoint;
+
+    ~simple_server_base() noexcept;
+
+    acceptor_type & acceptor();
+
+public:
+    explicit simple_server_base(boost::asio::io_service & io_service, bool volatile & marked_alive, std::atomic<std::size_t> & count);
+
+    void start();
+
+    void stop();
+};
+
 
 /*!
  */
@@ -24,23 +56,15 @@ template <
     typename Derived,
     typename Connector,
     typename Protocol,
-    typename Tag = void,
-    typename Enable = void
+    typename Tag
     >
-class simple_server_base;
-
-
-/*!
- */
-template <typename Derived, typename Connector, typename Protocol, typename Tag>
 class simple_server_base<
     Derived, Connector, Protocol, Tag,
-    typename std::enable_if<std::is_base_of<std::enable_shared_from_this<Connector>, Connector>::value>::type  // SFINAE
+    typename std::enable_if<std::is_base_of<std::enable_shared_from_this<Connector>, Connector>::value>::type
     > : boost::noncopyable
 {
 protected:
     using protocol_type = Protocol;
-    using socket_type = typename Protocol::socket;
     using acceptor_type = typename Protocol::acceptor;
     using endpoint_type = typename Protocol::endpoint;
 
@@ -68,17 +92,19 @@ public:
     //! 非同期の接続待ち状態を開始する.
     void start()
     {
-        if (acceptor_.is_open() && is_running_.exchange(true) == false) {
-            is_waiting_ = false;
-            async_accept();
+        if (acceptor_.is_open()) {
+            if (is_running_.exchange(true) == false) {
+                is_waiting_ = false;
+                async_accept();
+            }
         }
     }
 
     //! 非同期の接続待ち状態を解除する.
     void stop()
     {
-        acceptor_.cancel();
         is_running_ = false;
+        acceptor_.cancel();
     }
 
 private:
@@ -124,13 +150,12 @@ private:
         if (!error) {
             async_accept();
             conn->start();
-        } else {
-            is_running_ = false;
-            if (error != boost::system::error_code(boost::asio::error::operation_aborted, boost::asio::error::get_system_category())) {
-                throw boost::system::system_error(error);
-            }
+        } else if (is_running_.exchange(false) == true)
+            acqua::exception::throw_error(error, "accept");
         }
     }
+
+    using socket_type = typename Protocol::socket;
 
     // for basic_socket
     static socket_type & lowest_layer_socket(socket_type & socket)

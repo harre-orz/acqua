@@ -1,5 +1,5 @@
 /*!
-  The acqua library
+  acqua library
 
   Copyright (c) 2015 Haruhiko Uchida
   The software is released under the MIT license.

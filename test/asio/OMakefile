@@ -1,6 +1,7 @@
 .DEFAULT: $(CXXProgram test_simple_server, test_simple_server) \
           $(CXXProgram test_internet_server, test_internet_server) \
-          $(CXXProgram test_raw, test_raw) 
+          $(CXXProgram test_raw, test_raw) \
+          $(CXXProgram test_pinger, test_pinger) 
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc

@@ -1,5 +1,5 @@
 /*!
-  The acqua library
+  acqua library
 
   Copyright (c) 2015 Haruhiko Uchida
   The software is released under the MIT license.
@@ -214,7 +214,7 @@ private:
 } } }
 
 
-#include <acqua/network/ipv4_header.hpp>
+#include <acqua/network/ethernet_header.hpp>
 #include <acqua/network/detail/is_match_condition.hpp>
 
 namespace acqua { namespace network { namespace detail {

@@ -1,5 +1,5 @@
 /*!
-  The acqua library
+  acqua library
 
   Copyright (c) 2015 Haruhiko Uchida
   The software is released under the MIT license.
@@ -16,6 +16,7 @@ extern "C" {
 #include <iostream>
 #include <type_traits>
 #include <boost/operators.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/asio/ip/address_v4.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <acqua/exception/throw_error.hpp>

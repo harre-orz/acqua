@@ -1,5 +1,5 @@
 /*!
-  The acqua library
+  acqua library
 
   Copyright (c) 2015 Haruhiko Uchida
   The software is released under the MIT license.
@@ -55,8 +55,15 @@ public:
         listen(base_type::acceptor(), endpoint, ec, reuse_addr);
     }
 
-    using base_type::start;
-    using base_type::stop;
+    void start()
+    {
+        base_type::start();
+    }
+
+    void stop()
+    {
+        base_type::stop();
+    }
 
     std::size_t use_count() const noexcept
     {
