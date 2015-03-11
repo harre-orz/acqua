@@ -1,5 +1,5 @@
 CXXFLAGS += -g
-.SUBDIRS: utility exception network asio
+.SUBDIRS: utility exception container network asio
 
 clean:
 	rm -f *.omc
