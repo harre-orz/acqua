@@ -1,5 +1,5 @@
-.DEFAULT: $(CProgram test_shared_container_iterator, test_shared_container_iterator) \
-          $(CProgram test_unique_container_iterator, test_unique_container_iterator)
+.DEFAULT: $(CXXProgram test_pointer_container_iterator, test_pointer_container_iterator) \
+          $(CXXProgram test_sequenced_map, test_sequenced_map)
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc
