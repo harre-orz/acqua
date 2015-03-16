@@ -1,5 +1,6 @@
 .DEFAULT: $(CXXProgram test_pointer_container_iterator, test_pointer_container_iterator) \
-          $(CXXProgram test_sequenced_map, test_sequenced_map)
+          $(CXXProgram test_sequenced_map, test_sequenced_map) \
+          $(CXXProgram test_sequenced_multimap, test_sequenced_multimap)
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc

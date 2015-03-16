@@ -156,7 +156,7 @@ public:
     {
         bool is_new;
         auto it = find_args(args...);
-        if ((is_new = (it = end()))) {
+        if ((is_new = (it == end()))) {
             map_.emplace_back(args...);
             it = --end();
         }
@@ -176,18 +176,14 @@ public:
 
     std::pair<iterator, iterator> equal_range(key_type const & key)
     {
-        auto a = find(key);
-        auto b = a;
-        if (a != end()) ++b;
-        return std::make_pair(a, b);
+        auto it = find(key);
+        return std::make_pair(it, (it != end() ? std::next(it) : it));
     }
 
     std::pair<const_iterator, const_iterator> equal_range(key_type const & key) const
     {
-        auto a = find(key);
-        auto b = a;
-        if (a != end()) ++b;
-        return std::make_pair(a, b);
+        auto it = find(key);
+        return std::make_pair(it, (it != end() ? std::next(it) : it));
     }
 
     mapped_type & operator[](key_type const & key)
@@ -298,9 +294,9 @@ public:
         return multimap_.empty();
     }
 
-    void clear() const
+    void clear()
     {
-        return multimap_.clear();
+        multimap_.clear();
     }
 
     iterator begin()
@@ -345,7 +341,7 @@ public:
 
     std::pair<iterator, bool> insert(value_type const & value)
     {
-        return std::make_pair(insert(begin(), value), false);
+        return std::make_pair(insert(begin(), value), true);
     }
 
     iterator insert(const_iterator, value_type const & value)
@@ -364,22 +360,40 @@ public:
     template <typename... Args>
     std::pair<iterator, bool> emplace(Args... args)
     {
-        return std::make_pair(iterator(emplace_hint(multimap_.begin(), args...)), false);
+        return std::make_pair(iterator(emplace_hint(begin(), args...)), true);
     }
 
     template <typename... Args>
     iterator emplace_hint(const_iterator, Args... args)
     {
-        bool is_new;
         auto it = find_args(args...);
         if (it == end()) {
             multimap_.emplace_back(args...);
             it = --end();
         } else {
             equal_advance(++it, args...);
-            it = iterator(multimap_.insert(it, args...));
+            it = iterator(multimap_.emplace(it.base(), args...));
         }
         return it;
+    }
+
+    std::pair<iterator, iterator> equal_range(key_type const & key)
+    {
+        auto from = find(key);
+        auto to = from;
+        if (from != end()) {
+            equal_advance(++to, key);
+        }
+        return std::make_pair(from, to);
+    }
+
+    std::pair<const_iterator, const_iterator> equal_range(key_type const & key) const
+    {
+        auto from = find(key);
+        auto to = from;
+        if (from != end())
+            equal_advance(++to, key);
+        return std::make_pair(from, to);
     }
 
 private:
@@ -389,7 +403,7 @@ private:
         return find(key);
     }
 
-    iterator find_args(value_type const & value) const
+    iterator find_args(value_type const & value)
     {
         return find(value.first);
     }
