@@ -40,6 +40,13 @@ public:
     pointer_container_iterator(It it, managed_ptr const & ptr) noexcept
         : ptr_(ptr), it_(it) {}
 
+    pointer_container_iterator(managed_ptr && ptr) noexcept
+        : ptr_(std::move(ptr)), it_(ptr_->begin()) {}
+
+    template <typename It>
+    pointer_container_iterator(It it, managed_ptr && ptr) noexcept
+        : ptr_(std::move(ptr)), it_(it) {}
+
     pointer_container_iterator(T * ptr) noexcept
         : ptr_(ptr), it_(ptr_->begin()) {}
 

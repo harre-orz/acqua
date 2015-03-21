@@ -14,6 +14,7 @@ extern "C" {
 }
 
 #include <iostream>
+#include <boost/units/detail/utility.hpp>
 
 namespace acqua { namespace exception {
 
@@ -32,8 +33,27 @@ inline std::ostream & backtrace(std::ostream & os)
     char ** symbols = ::backtrace_symbols(frames, MAX);
     if (!symbols)
         return os << "failed to backtrace_symbols" << std::endl;
-    for(int i = 0; i < size; ++i)
-        os << symbols[i] << std::endl;
+
+    try {
+        for(int i = 0; i < size; ++i) {
+            char * beg = symbols[i];
+            char * end = beg + std::strlen(beg);
+            char * a = std::find(beg, end, '(');
+            char * b = std::find(a, end, '+');
+            char * c = std::find(b, end, ')');
+            if (c != end && std::distance(a, b) >= 1) {
+                *const_cast<char *>(a++) = '\0';
+                *const_cast<char *>(b++) = '\0';
+                os << beg << ' ' << boost::units::detail::demangle(a) << ++c;
+            } else {
+                os << beg;
+            }
+
+            os << std::endl;
+        }
+    } catch(...) {
+    }
+
     ::free(symbols);
     return os;
 }

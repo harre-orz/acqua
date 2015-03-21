@@ -150,7 +150,7 @@ private:
         if (!error) {
             async_accept();
             conn->start();
-        } else if (is_running_.exchange(false) == true)
+        } else if (is_running_.exchange(false) == true) {
             acqua::exception::throw_error(error, "accept");
         }
     }

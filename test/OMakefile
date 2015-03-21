@@ -1,4 +1,4 @@
-CXXFLAGS += -g
+CXXFLAGS += -g -DACQUA_USE_BACKTRACE -rdynamic
 .SUBDIRS: utility exception container network asio
 
 clean:
