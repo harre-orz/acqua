@@ -2,7 +2,8 @@
           $(CXXProgram test_internet_server, test_internet_server) \
           $(CXXProgram test_raw, test_raw) \
           $(CXXProgram test_pinger, test_pinger) \
-          $(CXXProgram test_inotify, test_inotify)
+          $(CXXProgram test_inotify, test_inotify) \
+          $(CXXProgram test_http_client, test_http_client)
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc
