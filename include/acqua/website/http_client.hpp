@@ -6,6 +6,6 @@
 
 namespace acqua { namespace website {
 
-using http_client = basic_http_client<client_result_future, boost::asio::steady_timer>;
+using http_client = basic_http_client<client_result, boost::asio::steady_timer>;
 
 } }

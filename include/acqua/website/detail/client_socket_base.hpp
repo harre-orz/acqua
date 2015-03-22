@@ -17,7 +17,7 @@ class client_socket_base
 public:
     using endpoint_type = boost::asio::ip::tcp::endpoint;
     using buffer_type = typename Result::buffer_type;
-    using result_type = typename Result::result_type;
+    using result_type = typename Result::result;
 
 public:
     client_socket_base()
