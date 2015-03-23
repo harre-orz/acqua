@@ -1,3 +1,18 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
+#pragma once
+
+#include <string>
+#include <boost/system/error_code.hpp>
+#include <boost/asio/basic_io_object.hpp>
+
+
 namespace acqua { namespace asio {
 
 template <typename Service>

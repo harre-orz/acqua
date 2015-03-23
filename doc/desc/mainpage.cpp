@@ -39,6 +39,6 @@
   \subsection ウェブサイト
   <dl>
   <dt>HTTPクライアント</dt>
-  <dd>acqua::website::http_client</dd>
+  <dd>acqua::website::http_client クラスは、同期もしくは非同期なHTTP通信やHTTPS通信と、同じサーバに対してはキープアライブを用いて、同じコネクションを使い回すことができます。GETには acqua::website::wget 関数を用い、POSTには acqua::website::wpost 関数を用います。</dd>
   </dl>
  */
