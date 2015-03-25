@@ -14,6 +14,7 @@ extern "C" {
 }
 
 #include <iostream>
+#include <cstring>
 #include <boost/units/detail/utility.hpp>
 
 namespace acqua { namespace exception {

@@ -35,12 +35,10 @@ private:
     socket_type socket_;
 };
 
-bool volatile s_marked_echo_reply;
-
 int main(int, char ** argv)
 {
     boost::asio::io_service io_service;
-    acqua::asio::internet_server<echo_reply> sv(io_service, std::atoi(argv[1]), s_marked_echo_reply);
+    acqua::asio::internet_server<echo_reply> sv(io_service, std::atoi(argv[1]));
     sv.start();
     io_service.run();
 }

@@ -1,4 +1,4 @@
-/*!
+ /*!
   acqua library
 
   Copyright (c) 2015 Haruhiko Uchida
@@ -15,6 +15,7 @@
 #include <boost/spirit/include/qi.hpp>
 #include <boost/fusion/adapted/std_pair.hpp>
 #include <acqua/asio/read_until.hpp>
+
 
 namespace acqua { namespace website { namespace detail {
 
@@ -117,8 +118,8 @@ public:
     using buffer_type = typename base_type::buffer_type;
     using result_type = typename base_type::result_type;
 
-    explicit basic_client_socket(Client * client, boost::asio::io_service & io_service, bool const volatile & marked_alive)
-        : client_(client), socket_(io_service), timer_(io_service), marked_alive_(marked_alive), is_ready_(false) {}
+    explicit basic_client_socket(Client * client, boost::asio::io_service & io_service)
+        : client_(client), socket_(io_service), timer_(io_service), is_ready_(false), retry_(1) {}
 
     template <typename Clock, typename Duration>
     void timeout(std::chrono::time_point<Clock, Duration> const & time_point)
@@ -143,7 +144,7 @@ public:
     {
         base_type::endpoint_ = endpoint;
 
-        if (auto socket = reuse_socket()) {
+        if (auto socket = client_->reuse(this)) {
             socket->async_reuse(this);
         } else {
             socket_.async_connect(
@@ -161,7 +162,7 @@ public:
     {
         if (it != typename resolver_type::iterator()) {
             base_type::endpoint_ = it->endpoint();
-            if (auto socket = reuse_socket()) {
+            if (auto socket = client_->reuse(this)) {
                 socket->async_reuse(this);
             } else {
                 socket_.async_connect(
@@ -172,10 +173,9 @@ public:
                         std::placeholders::_1, it
                     )
                 );
-
             }
         } else {
-            on_error(error);
+            on_error(error, "async_connect");
         }
     }
 
@@ -184,7 +184,10 @@ public:
         if (base_type::result_) {
             if (is_ready_.exchange(false) == true) {
                 boost::asio::async_write(
-                    socket_, base_type::buffer_,
+                    socket_,
+                    boost::asio::buffer(
+                        boost::asio::buffer_cast<char const *>(base_type::buffer_.data()),
+                        base_type::buffer_.size()),
                     std::bind(
                         &basic_client_socket::on_write,
                         this->shared_from_this(),
@@ -196,50 +199,66 @@ public:
     }
 
 private:
+    void async_reconnect()
+    {
+        socket_.async_connect(
+            base_type::endpoint_,
+            std::bind(
+                &basic_client_socket::on_connect1,
+                this->shared_from_this(),
+                std::placeholders::_1
+            )
+        );
+    }
+
     void on_connect1(boost::system::error_code const & error)
     {
         if (!error) {
-            async_read();
             is_ready_ = true;
             async_write();
         } else {
-            on_error(error);
+            on_error(error, "on_connect1");
         }
     }
 
     void on_connect2(boost::system::error_code const & error, typename resolver_type::iterator it)
     {
         if (!error) {
-            async_read();
             is_ready_ = true;
             async_write();
         } else {
             boost::system::error_code ec;
             socket_.close(ec);
-            if (ec) on_error(ec);
+            if (ec) on_error(ec, "on_connect2");
             async_connect(error, ++it);
         }
     }
 
     void on_write(boost::system::error_code const & error)
     {
-        if (error) on_error(error);
+        if (!error) {
+            async_read();
+        } else {
+            on_error(error, "on_write");
+        }
     }
 
     void async_read()
     {
-        socket_.async_receive(
+        socket_.async_read_some(
             boost::asio::buffer(&buffer1_, 1),
             std::bind(
                 &basic_client_socket::on_read_1,
                 this->shared_from_this(),
-                std::placeholders::_1)
+                std::placeholders::_1
+            )
         );
     }
 
     void on_read_1(boost::system::error_code const & error)
     {
-        if (!error && base_type::result_) {
+        if (!error) {
+            base_type::buffer_.consume(base_type::buffer_.size());
             boost::asio::async_read_until(
                 socket_, base_type::buffer_, "\r\n",
                 std::bind(
@@ -248,8 +267,11 @@ private:
                     std::placeholders::_1, std::placeholders::_2
                 )
             );
+        } else if (--retry_ > 0) {
+            socket_.close();
+            async_reconnect();
         } else {
-            on_error(error);
+            on_error(error, "on_read_1");
         }
     }
 
@@ -266,7 +288,7 @@ private:
                 )
             );
         } else {
-            on_error(error);
+            on_error(error, "on_read_line");
         }
     }
 
@@ -299,10 +321,9 @@ private:
                     )
                 );
             } else {
-                it = header.find("Connection-Length");
+                it = header.find("Content-Length");
                 if (it != header.end()) {
                     size = std::atol(it->second.c_str());
-
                     boost::asio::async_read_until(
                         socket_, base_type::buffer_, size,
                         std::bind(
@@ -312,6 +333,7 @@ private:
                         )
                     );
                 } else {
+                    size = -1;
                     boost::asio::async_read(
                         socket_, base_type::buffer_,
                         std::bind(
@@ -323,7 +345,7 @@ private:
                 }
             }
         } else {
-            on_error(error);
+            on_error(error, "on_read_header");
         }
     }
 
@@ -334,7 +356,7 @@ private:
             base_type::buffer_copy(size);
             base_type::callback(error, socket_.get_io_service());
         } else {
-            on_error(error);
+            on_error(error, "on_read_sized_content");
         }
     }
 
@@ -360,7 +382,7 @@ private:
                 base_type::callback(error, socket_.get_io_service());
             }
         } else {
-            on_error(error);
+            on_error(error, "on_read_chunked_size");
         }
     }
 
@@ -377,13 +399,14 @@ private:
                 )
             );
         } else {
-            on_error(error);
+            on_error(error, "on_read_chunked_content");
         }
     }
 
-    void on_error(boost::system::error_code const & error)
+    void on_error(boost::system::error_code const & error, char const * location)
     {
         timer_.cancel();
+        std::cout << "on_error " << this << location << std::endl;
         base_type::callback(error, socket_.get_io_service());
     }
 
@@ -394,6 +417,7 @@ private:
         }
     }
 
+public:
     void async_keep_alive()
     {
         socket_.async_receive(
@@ -405,13 +429,14 @@ private:
         );
     }
 
+private:
     void on_keep_alive()
     {
         if (reuse_) {
             reuse_->socket_ = std::move(socket_);
             reuse_->on_connect1(boost::system::error_code());
-        } else if (marked_alive_) {
-            client_.erase(this);
+        } else {
+            client_->erase(this);
         }
 
         delete this;
@@ -423,25 +448,14 @@ private:
         socket_.cancel();
     }
 
-    basic_client_socket * reuse_socket()
-    {
-        if (marked_alive_) {
-            if (auto socket = client_->reuse(this)) {
-                return socket;
-            }
-        }
-
-        return nullptr;
-    }
-
 private:
     Client * client_;
     socket_type socket_;
     timer_type timer_;
-    bool const volatile & marked_alive_;
     std::atomic<bool> is_ready_;
     char buffer1_;
     std::shared_ptr<basic_client_socket> reuse_;
+    int retry_;
 };
 
 

@@ -2,7 +2,7 @@
 #CXX = g++-mp-4.9
 CXXFLAGS += -std=c++11 -W -Wall
 ASFLAGS +=
-LDFLAGS += -lstdc++ -lpthread -lm -lboost_system
+LDFLAGS += -lstdc++ -lpthread -lm -lboost_system -lboost_thread
 INCLUDES += ../../include/ /opt/local/include
 
 .PHONY: build clean install

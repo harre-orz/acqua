@@ -42,7 +42,7 @@ protected:
     acceptor_type & acceptor();
 
 public:
-    explicit simple_server_base(boost::asio::io_service & io_service, bool volatile & marked_alive, std::atomic<std::size_t> & count);
+    explicit simple_server_base(boost::asio::io_service & io_service, std::atomic<std::size_t> & count);
 
     void start();
 
@@ -68,26 +68,18 @@ protected:
     using acceptor_type = typename Protocol::acceptor;
     using endpoint_type = typename Protocol::endpoint;
 
-    ~simple_server_base() noexcept
-    {
-        marked_alive_ = false;
-    }
-
     acceptor_type & acceptor()
     {
         return acceptor_;
     }
 
 public:
-    explicit simple_server_base(boost::asio::io_service & io_service, bool volatile & marked_alive, std::atomic<std::size_t> & count)
+    explicit simple_server_base(boost::asio::io_service & io_service, std::atomic<std::size_t> & count)
         : acceptor_(io_service)
         , count_(count)
         , is_running_(false)
         , is_waiting_(false)
-        , marked_alive_(marked_alive)
-    {
-        marked_alive = true;
-    }
+    {}
 
     //! 非同期の接続待ち状態を開始する.
     void start()
@@ -108,14 +100,12 @@ public:
     }
 
 private:
-    void on_disconnect(Connector * conn, bool volatile & marked_alive)
+    void on_disconnect(Connector * conn)
     {
         delete conn;
-        if (marked_alive) {
-            count_--;
-            if (is_waiting_.exchange(false) == true) {
-                async_accept();
-            }
+        count_--;
+        if (is_waiting_.exchange(false) == true) {
+            async_accept();
         }
     }
 
@@ -130,7 +120,7 @@ private:
 
             std::shared_ptr<Connector> conn(
                 static_cast<Derived *>(this)->construct(acceptor_.get_io_service()),
-                std::bind(&simple_server_base::on_disconnect, this, std::placeholders::_1, std::ref(marked_alive_))
+                std::bind(&simple_server_base::on_disconnect, this, std::placeholders::_1)
             );
             acceptor_.async_accept(
                 lowest_layer_socket(conn->socket()),
@@ -181,7 +171,6 @@ private:
     std::atomic<std::size_t> & count_;
     std::atomic<bool> is_running_;
     std::atomic<bool> is_waiting_;
-    bool volatile & marked_alive_;
 };
 
 } } }

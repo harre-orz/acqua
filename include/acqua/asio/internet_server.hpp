@@ -42,10 +42,10 @@ public:
     using endpoint_type =  typename base_v4_type::endpoint_type;
 
 public:
-    explicit internet_server(boost::asio::io_service & io_service, boost::optional<boost::asio::ip::address> const & address, std::uint16_t port, bool volatile & marked_alive, std::size_t max_count = 100, Traits traits = Traits(), bool reuse_addr = true)
+    explicit internet_server(boost::asio::io_service & io_service, boost::optional<boost::asio::ip::address> const & address, std::uint16_t port, std::size_t max_count = 100, Traits traits = Traits(), bool reuse_addr = true)
         : traits_type(std::move(traits))
-        , base_v4_type(io_service, marked_alive, count_)
-        , base_v6_type(io_service, marked_alive, count_)
+        , base_v4_type(io_service, count_)
+        , base_v6_type(io_service, count_)
         , count_(0)
     {
         boost::system::error_code ec;
@@ -62,10 +62,10 @@ public:
         }
     }
 
-    explicit internet_server(boost::asio::io_service & io_service, endpoint_type const & endpoint, bool volatile & marked_alive, std::size_t max_count = 100, Traits traits = Traits(), bool reuse_addr = true)
+    explicit internet_server(boost::asio::io_service & io_service, endpoint_type const & endpoint, std::size_t max_count = 100, Traits traits = Traits(), bool reuse_addr = true)
         : Traits(std::move(traits))
-        , base_v4_type(io_service, marked_alive, count_)
-        , base_v6_type(io_service, marked_alive, count_)
+        , base_v4_type(io_service, count_)
+        , base_v6_type(io_service, count_)
         , count_(0)
     {
         boost::system::error_code ec;
@@ -78,10 +78,10 @@ public:
         }
     }
 
-    explicit internet_server(boost::asio::io_service & io_service, std::uint16_t port, bool volatile & marked_alive, std::size_t max_count = 100, Traits traits = Traits(), bool reuse_addr = true)
+    explicit internet_server(boost::asio::io_service & io_service, std::uint16_t port, std::size_t max_count = 100, Traits traits = Traits(), bool reuse_addr = true)
         : Traits(std::move(traits))
-        , base_v4_type(io_service, marked_alive, count_)
-        , base_v6_type(io_service, marked_alive, count_)
+        , base_v4_type(io_service, count_)
+        , base_v6_type(io_service, count_)
         , count_(0)
     {
         boost::system::error_code ec;

@@ -26,14 +26,14 @@ public:
     using endpoint_type = boost::asio::ip::tcp::endpoint;
     using socket_type = detail::client_socket_base<Result>;
     using result_ptr = boost::shared_ptr<Result>;
+    using result = typename Result::result;
 
 public:
-    explicit basic_http_client(boost::asio::io_service & io_service, bool volatile & marked_alive)
-        : resolver_(io_service), marked_alive_(marked_alive) {}
+    explicit basic_http_client(boost::asio::io_service & io_service)
+        : resolver_(io_service) {}
 
     ~basic_http_client()
     {
-        marked_alive_ = false;
         for(auto const & ptr : kept_sockets_)
             delete ptr;
     }
@@ -68,11 +68,10 @@ public:
 private:
     std::shared_ptr<socket_type> make_http_socket(endpoint_type const & endpoint)
     {
-        auto & marked_alive = marked_alive_;
         std::shared_ptr<http_socket> http(
-            new http_socket(this, resolver_.get_io_service(), marked_alive),
-            [this, &marked_alive](http_socket * http) {
-                if (marked_alive && !http->is_keep_alive())
+            new http_socket(this, resolver_.get_io_service()),
+            [this](http_socket * http) {
+                if (http->is_keep_alive())
                     collect(http);
                 else
                     delete http;
@@ -84,11 +83,10 @@ private:
 
     std::shared_ptr<socket_type> make_http_socket(boost::system::error_code const & error, typename resolver_type::iterator it)
     {
-        auto & marked_alive = marked_alive_;
         std::shared_ptr<http_socket> http(
-            new http_socket(this, resolver_.get_io_service(), marked_alive),
-            [this, &marked_alive](http_socket * http) {
-                if (marked_alive && !http->is_keep_alive())
+            new http_socket(this, resolver_.get_io_service()),
+            [this](http_socket * http) {
+                if (http->is_keep_alive())
                     collect(http);
                 else
                     delete http;
@@ -101,12 +99,15 @@ private:
     template <typename SocketPtr>
     void collect(SocketPtr * socket)
     {
+        std::lock_guard<decltype(mutex_)> lock(mutex_);
         kept_sockets_.emplace(socket);
+        socket->async_keep_alive();
     }
 
     template <typename SocketPtr>
     SocketPtr * reuse(SocketPtr * socket)
     {
+        std::lock_guard<decltype(mutex_)> lock(mutex_);
         auto it = kept_sockets_.find(socket);
         if (it != kept_sockets_.end()) {
             socket = static_cast<SocketPtr *>(*it);
@@ -121,14 +122,16 @@ private:
     template <typename SocketPtr>
     void erase(SocketPtr * socket)
     {
+        std::lock_guard<decltype(mutex_)> lock(mutex_);
+
         for(auto it = kept_sockets_.find(socket); it != kept_sockets_.end(); ++it) {
             if (*it == socket) {
                 kept_sockets_.erase(it);
                 return;
             }
 
-            if (static_cast<SocketPtr const *>(*it)->endpoint_ != socket->endpoint_) {
-                return;
+            if (static_cast<SocketPtr const *>(*it)->endpoint() != socket->endpoint()) {
+                break;
             }
         }
     }
@@ -155,7 +158,7 @@ private:
 
     resolver_type resolver_;
     std::unordered_set<socket_type *, functor, functor> kept_sockets_;
-    bool volatile & marked_alive_;
+    std::mutex mutex_;
 };
 
 } }
