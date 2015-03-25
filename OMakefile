@@ -10,4 +10,4 @@ INCLUDES += ../../include/ /opt/local/include
 .SUBDIRS: test
 
 clean:
-	rm -rf doc/ *.omc
+	rm -rf doc/html/ doc/latex/ *.omc
