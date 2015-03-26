@@ -47,13 +47,12 @@ public:
     explicit simple_server(boost::asio::io_service & io_service, endpoint_type const & endpoint, std::size_t max_count = 100, Traits traits = Traits(), bool reuse_addr = true)
         : traits_type(std::move(traits))
         , base_type(io_service, count_)
-        , count_(0)
         , max_count_(max_count)
+        , count_(0)
     {
         boost::system::error_code ec;
-        if (max_count_ < 1)
-            ec = boost::system::errc::make_error_code(boost::system::errc::invalid_argument);
-       acqua::exception::throw_error(ec, "max_count");
+        if (max_count_ <= 0)
+            throw boost::system::system_error(EINVAL, boost::system::generic_category());
         listen(base_type::acceptor(), endpoint, ec, reuse_addr);
     }
 
@@ -99,8 +98,8 @@ private:
     }
 
 private:
-    std::atomic<std::size_t> count_;
     std::size_t max_count_;
+    std::atomic<std::size_t> count_;
 };
 
 } }

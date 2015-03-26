@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <mutex>
+#include <condition_variable>
 #include <unordered_set>
 #include <acqua/website/detail/client_socket_base.hpp>
 
@@ -29,13 +31,27 @@ public:
     using result = typename Result::result;
 
 public:
-    explicit basic_http_client(boost::asio::io_service & io_service)
-        : resolver_(io_service) {}
+    explicit basic_http_client(boost::asio::io_service & io_service, std::size_t max_count = 100)
+        : resolver_(io_service), max_count_(max_count), count_(0)
+    {
+        if (max_count <= 0)
+            throw boost::system::system_error(EINVAL, boost::system::generic_category());
+    }
 
     ~basic_http_client()
     {
         for(auto const & ptr : kept_sockets_)
             delete ptr;
+    }
+
+    std::size_t max_count() const noexcept
+    {
+        return max_count_;
+    }
+
+    std::size_t use_count() const noexcept
+    {
+        return count_;
     }
 
     std::shared_ptr<socket_type> http_connect(endpoint_type const & endpoint)
@@ -68,6 +84,8 @@ public:
 private:
     std::shared_ptr<socket_type> make_http_socket(endpoint_type const & endpoint)
     {
+        lock_wait();
+
         std::shared_ptr<http_socket> http(
             new http_socket(this, resolver_.get_io_service()),
             [this](http_socket * http) {
@@ -75,6 +93,8 @@ private:
                     collect(http);
                 else
                     delete http;
+                --count_;
+                cond_.notify_one();
             });
         http->timeout(std::chrono::minutes(1));
         http->async_connect(endpoint);
@@ -83,6 +103,8 @@ private:
 
     std::shared_ptr<socket_type> make_http_socket(boost::system::error_code const & error, typename resolver_type::iterator it)
     {
+        lock_wait();
+
         std::shared_ptr<http_socket> http(
             new http_socket(this, resolver_.get_io_service()),
             [this](http_socket * http) {
@@ -90,10 +112,21 @@ private:
                     collect(http);
                 else
                     delete http;
+
+                --count_;
+                cond_.notify_one();
             });
         http->timeout(std::chrono::minutes(1));
         http->async_connect(error, it);
         return std::static_pointer_cast<socket_type>(http);
+    }
+
+    void lock_wait()
+    {
+        std::unique_lock<decltype(mutex_)> lock(mutex_);
+        cond_.wait(lock, [this] { return count_ < max_count_; });
+        ++count_;
+        cond_.notify_one();
     }
 
     template <typename SocketPtr>
@@ -157,8 +190,11 @@ private:
     };
 
     resolver_type resolver_;
+    std::size_t max_count_;
+    std::atomic<std::size_t> count_;
     std::unordered_set<socket_type *, functor, functor> kept_sockets_;
     std::mutex mutex_;
+    std::condition_variable cond_;
 };
 
 } }

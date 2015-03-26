@@ -112,16 +112,6 @@ public:
         return max_count_;
     }
 
-    void set_max_count(std::size_t max_count, std::size_t lower_limit, boost::system::error_code & ec)
-    {
-        if (max_count < lower_limit) {
-            ec = boost::system::errc::make_error_code(boost::system::errc::invalid_argument);
-            acqua::exception::throw_error(ec, "max_count");
-        }
-
-        max_count_ = max_count;
-    }
-
 private:
     void listen_v4(acceptor_type & acc, endpoint_type const & endpoint, boost::system::error_code & ec, bool reuse_addr)
     {
@@ -160,6 +150,16 @@ private:
     Connector * construct(boost::asio::io_service & io_service)
     {
         return static_cast<Traits *>(this)->construct(io_service);
+    }
+
+    void set_max_count(std::size_t max_count, std::size_t lower_limit, boost::system::error_code & ec)
+    {
+        if (max_count < lower_limit) {
+            ec = boost::system::errc::make_error_code(boost::system::errc::invalid_argument);
+            acqua::exception::throw_error(ec, "max_count");
+        }
+
+        max_count_ = max_count;
     }
 
 private:
