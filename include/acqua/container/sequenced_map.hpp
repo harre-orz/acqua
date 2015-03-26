@@ -42,14 +42,15 @@ private:
 public:
     using size_type = typename map_type::size_type;
 
-    struct iterator
+    class iterator
         : public boost::iterator_adaptor<iterator, typename map_type::iterator>
     {
+    public:
         iterator(typename map_type::iterator it)
             : boost::iterator_adaptor<iterator, typename map_type::iterator>(it) {}
     };
 
-    struct const_iterator
+    class const_iterator
         : boost::iterator_adaptor<const_iterator, typename map_type::const_iterator>
     {
     public:
@@ -249,14 +250,15 @@ private:
 public:
     using size_type = typename multimap_type::size_type;
 
-    struct iterator
+    class iterator
         : public boost::iterator_adaptor<iterator, typename multimap_type::iterator>
     {
+    public:
         iterator(typename multimap_type::iterator it)
             : boost::iterator_adaptor<iterator, typename multimap_type::iterator>(it) {}
     };
 
-    struct const_iterator
+    class const_iterator
         : boost::iterator_adaptor<const_iterator, typename multimap_type::const_iterator>
     {
     public:
@@ -301,32 +303,32 @@ public:
 
     iterator begin()
     {
-        return iterator(multimap_.begin());
+        return multimap_.begin();
     }
 
     const_iterator begin() const
     {
-        return const_iterator(multimap_.begin());
+        return multimap_.begin();
     }
 
     iterator end()
     {
-        return iterator(multimap_.end());
+        return multimap_.end();
     }
 
     const_iterator end() const
     {
-        return const_iterator(multimap_.end());
+        return multimap_.end();
     }
 
     iterator erase(const_iterator it)
     {
-        return iterator(multimap_.erase(it.base()));
+        return multimap_.erase(it.base());
     }
 
     iterator erase(const_iterator beg, const_iterator end)
     {
-        return iterator(multimap_.erase(beg.base(), end.base()));
+        return multimap_.erase(beg.base(), end.base());
     }
 
     iterator find(key_type const & key)
@@ -352,7 +354,7 @@ public:
             it = --end();
         } else {
             equal_advance(++it, value);
-            it = iterator(multimap_.insert(it.base(), value));
+            it = multimap_.insert(it.base(), value);
         }
         return it;
     }
@@ -372,7 +374,7 @@ public:
             it = --end();
         } else {
             equal_advance(++it, args...);
-            it = iterator(multimap_.emplace(it.base(), args...));
+            it = multimap_.emplace(it.base(), args...);
         }
         return it;
     }
