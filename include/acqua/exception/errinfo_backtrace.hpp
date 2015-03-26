@@ -26,15 +26,23 @@ template <>
 class error_info<acqua::exception::detail::errinfo_backtrace_tag, void>
     : public exception_detail::error_info_base
 {
+public:
+    error_info()
+    {
+        std::ostringstream oss;
+        oss << "---- backtrace ----" << std::endl
+             << acqua::exception::backtrace
+             << "-------------------" << std::endl;
+        str_ = oss.str();
+    }
+
 private:
     std::string name_value_string() const
     {
-        std::ostringstream oss;
-        oss << "---- backtrace begin ----" << std::endl
-            << acqua::exception::backtrace
-            << "---- backtrace end -----" << std::endl;
-        return oss.str();
+        return str_;
     }
+
+    std::string str_;
 };
 
 }

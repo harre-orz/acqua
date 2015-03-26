@@ -1,5 +1,5 @@
-CXXFLAGS += -g
-.SUBDIRS: utility exception container network asio
+CXXFLAGS += -g -DACQUA_USE_BACKTRACE -rdynamic
+.SUBDIRS: utility exception container network asio website
 
 clean:
 	rm -f *.omc

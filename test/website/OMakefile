@@ -1,0 +1,4 @@
+.DEFAULT: $(CXXProgram test_http_client, test_http_client)
+
+clean:
+        rm -rf $(filter-proper-targets $(ls R, .)) *.omc

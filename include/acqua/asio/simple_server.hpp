@@ -19,8 +19,10 @@ namespace acqua { namespace asio {
 /*!
  accept がある度に Connector クラスを生成して、また accept が来るまで待つだけのシンプルなサーバ.
 
- Connector クラスは、std::shared_ptr で管理されるので、Connector クラスは必ず std::enable_shared_from_this を継承していること。(コンパイルエラーになる)
- tcp socket だけでなく、unix-domain socket を使用することも可能。
+ boost::asio::ip::tcp::acceptor もしくは boost::asio::local::stream_protocol::acceptor の待受ソケットを使い、コネクションクラスを自動生成することができる
+
+ \tparam Connector std::shared_ptr で管理されるので、Connector クラスは必ず std::enable_shared_from_this を継承していなければならない。
+
  */
 template <
     typename Connector,
@@ -42,9 +44,9 @@ public:
     using endpoint_type = typename base_type::endpoint_type;
 
 public:
-    explicit simple_server(boost::asio::io_service & io_service, endpoint_type const & endpoint, bool volatile & marked_alive, std::size_t max_count = 100, Traits traits = Traits(), bool reuse_addr = true)
+    explicit simple_server(boost::asio::io_service & io_service, endpoint_type const & endpoint, std::size_t max_count = 100, Traits traits = Traits(), bool reuse_addr = true)
         : traits_type(std::move(traits))
-        , base_type(io_service, marked_alive, count_)
+        , base_type(io_service, count_)
         , count_(0)
         , max_count_(max_count)
     {
