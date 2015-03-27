@@ -12,6 +12,7 @@
 #include <memory>
 #include <boost/shared_ptr.hpp>
 #include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/fusion/adapted/std_pair.hpp>
 #include <acqua/asio/read_until.hpp>
@@ -120,6 +121,19 @@ public:
     explicit basic_client_socket(Client * client, boost::asio::io_service & io_service)
         : client_(client), socket_(io_service), timer_(io_service), is_ready_(false), retry_(1) {}
 
+    explicit basic_client_socket(Client * client, boost::asio::io_service & io_service, boost::asio::ssl::context & ctx)
+        : client_(client), socket_(io_service, ctx), timer_(io_service), is_ready_(false), retry_(1)
+    {
+        socket_.set_verify_mode(boost::asio::ssl::verify_peer);
+        socket_.set_verify_callback(
+            std::bind(
+                &basic_client_socket::verify_certificate,
+                this->shared_from_this(),
+                std::placeholders::_1, std::placeholders::_2
+            )
+        );
+    }
+
     template <typename Clock, typename Duration>
     void timeout(std::chrono::time_point<Clock, Duration> const & time_point)
     {
@@ -146,7 +160,7 @@ public:
         if (auto socket = client_->reuse(this)) {
             socket->async_reuse(this);
         } else {
-            socket_.async_connect(
+            lowest_layer_socket(socket_).async_connect(
                 base_type::endpoint_,
                 std::bind(
                     &basic_client_socket::on_connect1,
@@ -199,6 +213,17 @@ public:
     }
 
 private:
+    static socket_type & lowest_layer_socket(socket_type & socket)
+    {
+        return socket;
+    }
+
+    template <typename T>
+    static typename T::lowest_layer_type & lowest_layer_socket(T & socket, typename T::lowest_layer_type * = nullptr)
+    {
+        return socket.lowest_layer();
+    }
+
     void async_reconnect()
     {
         socket_.async_connect(
@@ -215,7 +240,7 @@ private:
     {
         is_ready_ = true;
         if (!error) {
-            async_write();
+            async_handshake(socket_);
         } else {
             on_error(error, "on_connect1");
         }
@@ -225,12 +250,40 @@ private:
     {
         if (!error) {
             is_ready_ = true;
-            async_write();
+            async_handshake(socket_);
         } else {
             boost::system::error_code ec;
             socket_.close(ec);
             if (ec) on_error(ec, "on_connect2");
             async_connect(error, ++it);
+        }
+    }
+
+    void async_handshake(socket_type &)
+    {
+        async_write();
+    }
+
+    template <typename T>
+    void async_handshake(T &, typename T::lowest_layer_type * = nullptr)
+    {
+        socket_.async_handshake(
+            boost::asio::ssl::stream_base::client,
+            std::bind(
+                &basic_client_socket::on_handshake,
+                this->shared_from_this(),
+                std::placeholders::_1
+            )
+        );
+    }
+
+    void on_handshake(boost::system::error_code const & error)
+    {
+        is_ready_ = true;
+        if (!error) {
+            async_write();
+        } else {
+            on_error(error, "on_handshake");
         }
     }
 
@@ -418,6 +471,11 @@ private:
         if (!error) {
             socket_.cancel();
         }
+    }
+
+    bool verify_certificate(bool preverified, boost::asio::ssl::verify_context & ctx)
+    {
+        return preverified;
     }
 
 public:
