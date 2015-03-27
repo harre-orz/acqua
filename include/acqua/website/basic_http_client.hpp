@@ -54,6 +54,11 @@ public:
         return count_;
     }
 
+    std::size_t keep_count() const noexcept
+    {
+        return kept_sockets_.size();
+    }
+
     std::shared_ptr<socket_type> http_connect(endpoint_type const & endpoint)
     {
         return make_http_socket(endpoint);
@@ -124,9 +129,8 @@ private:
     void lock_wait()
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
-        cond_.wait(lock, [this] { return count_ < max_count_; });
+        cond_.wait(lock, [this] { return (count_ + kept_sockets_.size()) < max_count_ ; });
         ++count_;
-        cond_.notify_one();
     }
 
     template <typename SocketPtr>
@@ -160,6 +164,7 @@ private:
         for(auto it = kept_sockets_.find(socket); it != kept_sockets_.end(); ++it) {
             if (*it == socket) {
                 kept_sockets_.erase(it);
+                cond_.notify_one();
                 return;
             }
 
@@ -192,7 +197,7 @@ private:
     resolver_type resolver_;
     std::size_t max_count_;
     std::atomic<std::size_t> count_;
-    std::unordered_set<socket_type *, functor, functor> kept_sockets_;
+    std::unordered_multiset<socket_type *, functor, functor> kept_sockets_;
     std::mutex mutex_;
     std::condition_variable cond_;
 };

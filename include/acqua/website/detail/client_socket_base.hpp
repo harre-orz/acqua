@@ -175,6 +175,7 @@ public:
                 );
             }
         } else {
+            is_ready_ = true;
             on_error(error, "async_connect");
         }
     }
@@ -213,8 +214,8 @@ private:
 
     void on_connect1(boost::system::error_code const & error)
     {
+        is_ready_ = true;
         if (!error) {
-            is_ready_ = true;
             async_write();
         } else {
             on_error(error, "on_connect1");
@@ -238,6 +239,9 @@ private:
     {
         if (!error) {
             async_read();
+        } else if (retry_-- > 0) {
+            socket_.close();
+            async_reconnect();
         } else {
             on_error(error, "on_write");
         }
@@ -267,7 +271,7 @@ private:
                     std::placeholders::_1, std::placeholders::_2
                 )
             );
-        } else if (--retry_ > 0) {
+        } else if (retry_-- > 0) {
             socket_.close();
             async_reconnect();
         } else {
@@ -406,7 +410,7 @@ private:
     void on_error(boost::system::error_code const & error, char const * location)
     {
         timer_.cancel();
-        std::cout << "on_error " << this << location << std::endl;
+        std::cout << "on_error " << error.message() << ' ' << location << std::endl;
         base_type::callback(error, socket_.get_io_service());
     }
 
