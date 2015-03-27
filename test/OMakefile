@@ -1,5 +1,5 @@
-CXXFLAGS += -pg -DACQUA_USE_BACKTRACE -rdynamic
-#CXXFLAGS += -O2
+#CXXFLAGS += -pg -DACQUA_USE_BACKTRACE -rdynamic
+CXXFLAGS += -O2
 .SUBDIRS: utility exception container network asio website
 
 clean:

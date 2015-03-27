@@ -23,8 +23,8 @@ int main(int,  char ** argv)
                 --s_count;
 
                 if (!error) {
-                    std::cout << client.use_count() << ' ' << client.keep_count() << ' ' << s_count << std::endl;
-                    //std::cout << res << std::endl;
+                    //std::cout << client.use_count() << ' ' << client.keep_count() << ' ' << s_count << std::endl;
+                    std::cout << res << std::endl;
                 } else {
                     std::cout << error << ' ' << error.message() << std::endl;
                 }

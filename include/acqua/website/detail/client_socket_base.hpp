@@ -84,9 +84,8 @@ protected:
 
     void buffer_copy(std::size_t size)
     {
-        std::istream is(&buffer_);
-        std::ostream os(&result_->buffer_);
-        std::copy_n(std::istreambuf_iterator<char>(is), size, std::ostreambuf_iterator<char>(os));
+        result_->buffer_.sputn(boost::asio::buffer_cast<char const *>(buffer_.data()), size);
+        buffer_.consume(size);
     }
 
     typename result_type::header_type & get_header()

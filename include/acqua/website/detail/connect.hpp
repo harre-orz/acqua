@@ -26,9 +26,11 @@ inline std::shared_ptr<typename Client::socket_type> connect(Client & client, ch
     qi::symbols<char, int> sym;
     sym.add("http://", 1)("https://", 2);
     auto it = uri.begin();
-    if (qi::parse(it, uri.end(), sym >> *(qi::char_ - ':' - '/') >> ((':' >> qi::int_) | qi::attr(80)), mode, host, port)) {
+    if (qi::parse(it, uri.end(), sym >> *(qi::char_ - ':' - '/') >> ((':' >> qi::int_) | qi::attr(0)), mode, host, port)) {
         switch(mode) {
             case 1: {
+                if (!port)
+                    port = 80;
                 auto socket = client.http_connect(host, std::to_string(port));
                 std::ostream & os = (*socket);
                 os << method << ' ';
@@ -40,7 +42,6 @@ inline std::shared_ptr<typename Client::socket_type> connect(Client & client, ch
                     "Host: " << host << "\r\n"
                     "Connection: Keep-Alive\r\n"
                    << content;
-
                 return socket;
             }
             case 2: {

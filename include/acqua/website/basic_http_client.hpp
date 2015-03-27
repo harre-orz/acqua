@@ -126,6 +126,7 @@ private:
         return std::static_pointer_cast<socket_type>(http);
     }
 
+private:
     void lock_wait()
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
