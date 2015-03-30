@@ -53,6 +53,7 @@ inline std::shared_ptr<typename Client::socket_type> connect(Client & client, ch
                     os << method << ' ';
                     if (it == uri.end() || *it != '/')
                         os << '/';
+                    std::copy(it, uri.end(), std::ostreambuf_iterator<char>(os));
                     os << " "
                         "HTTP/1.1\r\n"
                         "Host: " << host << "\r\n"
