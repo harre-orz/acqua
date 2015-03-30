@@ -6,9 +6,13 @@ LDFLAGS += -lstdc++ -lpthread -lm -lcrypto  -lssl
 LDFLAGS += -lboost_system -lboost_thread
 INCLUDES += ../../include/ /opt/local/include
 
-.PHONY: build clean install
+.PHONY: build clean doc
 .DEFAULT: build
 .SUBDIRS: test
+
+doc:
+	./gen_todo.sh ./include > ./doc/desc/todo.cpp
+	doxygen
 
 clean:
 	rm -rf doc/ *.omc

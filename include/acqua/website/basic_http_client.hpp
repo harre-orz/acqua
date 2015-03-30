@@ -11,6 +11,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <unordered_set>
+#include <boost/asio/ssl.hpp>
 #include <acqua/website/detail/client_socket_base.hpp>
 
 namespace acqua { namespace website {
@@ -21,7 +22,9 @@ class basic_http_client
 {
     using self_type = basic_http_client<Result, Timer>;
     using http_socket = detail::basic_client_socket<self_type, Result, boost::asio::ip::tcp::socket, Timer>;
+    using https_socket = detail::basic_client_socket<self_type, Result, boost::asio::ssl::stream<boost::asio::ip::tcp::socket>, Timer >;
     friend http_socket;
+    friend https_socket;
 
 public:
     using resolver_type = boost::asio::ip::tcp::resolver;
@@ -32,7 +35,14 @@ public:
 
 public:
     explicit basic_http_client(boost::asio::io_service & io_service, std::size_t max_count = 100)
-        : resolver_(io_service), max_count_(max_count), count_(0)
+        : resolver_(io_service), context_(nullptr), max_count_(max_count), count_(0)
+    {
+        if (max_count <= 0)
+            throw boost::system::system_error(EINVAL, boost::system::generic_category());
+    }
+
+    explicit basic_http_client(boost::asio::io_service & io_service, boost::asio::ssl::context & ctx, std::size_t max_count = 100)
+        : resolver_(io_service), context_(&ctx), max_count_(max_count), count_(0)
     {
         if (max_count <= 0)
             throw boost::system::system_error(EINVAL, boost::system::generic_category());
@@ -42,6 +52,11 @@ public:
     {
         for(auto const & ptr : kept_sockets_)
             delete ptr;
+    }
+
+    boost::asio::ssl::context * get_context() noexcept
+    {
+        return context_;
     }
 
     std::size_t max_count() const noexcept
@@ -126,6 +141,36 @@ private:
         return std::static_pointer_cast<socket_type>(http);
     }
 
+public:
+    std::shared_ptr<socket_type> https_connect(boost::asio::ssl::context & ctx, std::string const & host, std::string const & serv)
+    {
+        boost::system::error_code ec;
+        return make_https_socket(ctx, ec, resolver_.resolve(typename resolver_type::query(host, serv), ec));
+    }
+
+private:
+    std::shared_ptr<socket_type> make_https_socket(boost::asio::ssl::context & ctx, boost::system::error_code const & error, typename resolver_type::iterator it)
+    {
+        lock_wait();
+
+        std::shared_ptr<https_socket> https(
+            new https_socket(this, resolver_.get_io_service(), ctx),
+            [this](https_socket * https) {
+                if (https->is_keep_alive())
+                    collect(https);
+                else
+                    delete https;
+
+                --count_;
+                cond_.notify_one();
+            });
+        //https->set_verify_none();
+        https->set_verify_peer();
+        https->timeout(std::chrono::minutes(1));
+        https->async_connect(error, it);
+        return std::static_pointer_cast<socket_type>(https);
+    }
+
 private:
     void lock_wait()
     {
@@ -196,6 +241,7 @@ private:
     };
 
     resolver_type resolver_;
+    boost::asio::ssl::context * context_;
     std::size_t max_count_;
     std::atomic<std::size_t> count_;
     std::unordered_multiset<socket_type *, functor, functor> kept_sockets_;

@@ -85,6 +85,7 @@ protected:
 
     void buffer_copy(std::size_t size)
     {
+        // TODO: content-encoding による圧縮形式に対応
         result_->buffer_.sputn(boost::asio::buffer_cast<char const *>(buffer_.data()), size);
         buffer_.consume(size);
     }
@@ -122,7 +123,14 @@ public:
         : client_(client), socket_(io_service), timer_(io_service), is_ready_(false), retry_(1) {}
 
     explicit basic_client_socket(Client * client, boost::asio::io_service & io_service, boost::asio::ssl::context & ctx)
-        : client_(client), socket_(io_service, ctx), timer_(io_service), is_ready_(false), retry_(1)
+        : client_(client), socket_(io_service, ctx), timer_(io_service), is_ready_(false), retry_(1) {}
+
+    void set_verify_none()
+    {
+        socket_.set_verify_mode(boost::asio::ssl::verify_none);
+    }
+
+    void set_verify_peer()
     {
         socket_.set_verify_mode(boost::asio::ssl::verify_peer);
         socket_.set_verify_callback(
@@ -150,7 +158,7 @@ public:
 
     void cancel()
     {
-        socket_.cancel();
+        lowest_layer_socket(socket_).cancel();
     }
 
     void async_connect(endpoint_type const & endpoint)
@@ -178,7 +186,7 @@ public:
             if (auto socket = client_->reuse(this)) {
                 socket->async_reuse(this);
             } else {
-                socket_.async_connect(
+                lowest_layer_socket(socket_).async_connect(
                     base_type::endpoint_,
                     std::bind(
                         &basic_client_socket::on_connect2,
@@ -213,7 +221,8 @@ public:
     }
 
 private:
-    static socket_type & lowest_layer_socket(socket_type & socket)
+    template <typename Protocol>
+    static socket_type & lowest_layer_socket(boost::asio::basic_stream_socket<Protocol> & socket)
     {
         return socket;
     }
@@ -226,7 +235,7 @@ private:
 
     void async_reconnect()
     {
-        socket_.async_connect(
+        lowest_layer_socket(socket_).async_connect(
             base_type::endpoint_,
             std::bind(
                 &basic_client_socket::on_connect1,
@@ -253,13 +262,14 @@ private:
             async_handshake(socket_);
         } else {
             boost::system::error_code ec;
-            socket_.close(ec);
+            lowest_layer_socket(socket_).close(ec);
             if (ec) on_error(ec, "on_connect2");
             async_connect(error, ++it);
         }
     }
 
-    void async_handshake(socket_type &)
+    template <typename Protocol>
+    void async_handshake(boost::asio::basic_stream_socket<Protocol> &)
     {
         async_write();
     }
@@ -292,7 +302,7 @@ private:
         if (!error) {
             async_read();
         } else if (retry_-- > 0) {
-            socket_.close();
+            lowest_layer_socket(socket_).close();
             async_reconnect();
         } else {
             on_error(error, "on_write");
@@ -324,7 +334,7 @@ private:
                 )
             );
         } else if (retry_-- > 0) {
-            socket_.close();
+            lowest_layer_socket(socket_).close();
             async_reconnect();
         } else {
             on_error(error, "on_read_1");
@@ -334,6 +344,8 @@ private:
     void on_read_line(boost::system::error_code const & error, std::size_t size)
     {
         if (!error) {
+            // TODO: リクエスト文字列を確認する
+
             base_type::buffer_.consume(size);
             boost::asio::async_read_until(
                 socket_, base_type::buffer_, "\r\n\r\n",
@@ -356,9 +368,14 @@ private:
             auto end = beg + size;
 
             namespace qi = boost::spirit::qi;
-            qi::parse(beg, end, (
+            if (!qi::parse(beg, end, (
                           *(qi::char_ - ':') >> ':' >> qi::omit[ *qi::space ] >> *(qi::char_ - "\r\n")
-                      ) % "\r\n" >> "\r\n", header);
+                           ) % "\r\n" >> "\r\n", header)) {
+                // TODO: ちゃんとしたエラーカテゴリを定義する
+                on_error(boost::system::error_code(EINVAL, boost::system::generic_category()), "qi::parse request_header");
+                return;
+            }
+
             base_type::buffer_.consume(size);
 
             auto it = header.find("Connection");
@@ -469,19 +486,32 @@ private:
     void on_wait(boost::system::error_code const & error)
     {
         if (!error) {
-            socket_.cancel();
+            lowest_layer_socket(socket_).cancel();
         }
     }
 
     bool verify_certificate(bool preverified, boost::asio::ssl::verify_context & ctx)
     {
+        // The verify callback can be used to check whether the certificate that is
+        // being presented is valid for the peer. For example, RFC 2818 describes
+        // the steps involved in doing this for HTTPS. Consult the OpenSSL
+        // documentation for more details. Note that the callback is called once
+        // for each certificate in the certificate chain, starting from the root
+        // certificate authority.
+
+        // In this example we will simply print the certificate's subject name.
+        char subject_name[256];
+        X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
+        X509_NAME_oneline(X509_get_subject_name(cert), subject_name, sizeof(subject_name));
+        std::cout << "Verifying " << subject_name << std::endl;
         return preverified;
     }
 
 public:
     void async_keep_alive()
     {
-        socket_.async_receive(
+        boost::asio::async_read(
+            socket_,
             boost::asio::buffer(&buffer1_, 1),
             std::bind(
                 &basic_client_socket::on_keep_alive,
@@ -494,7 +524,7 @@ private:
     void on_keep_alive()
     {
         if (reuse_) {
-            reuse_->socket_ = std::move(socket_);
+            lowest_layer_socket(reuse_->socket_) = boost::move(lowest_layer_socket(socket_));
             reuse_->on_connect1(boost::system::error_code());
         } else {
             client_->erase(this);
@@ -506,7 +536,7 @@ private:
     void async_reuse(basic_client_socket * socket)
     {
         reuse_ = socket->shared_from_this();
-        socket_.cancel();
+        lowest_layer_socket(socket_).cancel();
     }
 
 private:

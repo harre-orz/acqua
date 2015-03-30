@@ -19,14 +19,14 @@ template <typename Client, typename Uri, typename ContentBuffer>
 inline std::shared_ptr<typename Client::socket_type> connect(Client & client, char const * method, Uri const & uri, ContentBuffer content)
 {
     int mode;
-    int port;
+    int port = 0;
     std::string host;
 
     namespace qi = boost::spirit::qi;
     qi::symbols<char, int> sym;
     sym.add("http://", 1)("https://", 2);
     auto it = uri.begin();
-    if (qi::parse(it, uri.end(), sym >> *(qi::char_ - ':' - '/') >> ((':' >> qi::int_) | qi::attr(0)), mode, host, port)) {
+    if (qi::parse(it, uri.end(), sym >> *(qi::char_ - ':' - '/') >> -(':' >> qi::int_), mode, host, port)) {
         switch(mode) {
             case 1: {
                 if (!port)
@@ -45,6 +45,23 @@ inline std::shared_ptr<typename Client::socket_type> connect(Client & client, ch
                 return socket;
             }
             case 2: {
+                if (auto ctx = client.get_context()) {
+                    if (!port)
+                        port = 443;
+                    auto socket = client.https_connect(*ctx, host, std::to_string(port));
+                    std::ostream & os = (*socket);
+                    os << method << ' ';
+                    if (it == uri.end() || *it != '/')
+                        os << '/';
+                    os << " "
+                        "HTTP/1.1\r\n"
+                        "Host: " << host << "\r\n"
+                        "Connection: Keep-Alive\r\n"
+                       << content;
+                    return socket;
+                } else {
+                    throw std::runtime_error("unsupported https");
+                }
             }
         }
     }
