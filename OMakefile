@@ -3,7 +3,7 @@
 CXXFLAGS += -std=c++11 -W -Wall
 ASFLAGS +=
 LDFLAGS += -lstdc++ -lpthread -lm -lcrypto  -lssl
-LDFLAGS += -lboost_system -lboost_thread
+LDFLAGS += -lboost_system -lboost_thread -lboost_locale
 INCLUDES += ../../include/ /opt/local/include
 
 .PHONY: build clean doc
@@ -11,7 +11,7 @@ INCLUDES += ../../include/ /opt/local/include
 .SUBDIRS: test
 
 doc:
-	./gen_todo.sh ./include > ./doc/desc/todo.cpp
+	./gen_todo.sh ./include > ./.TODO.md
 	doxygen
 
 clean:
