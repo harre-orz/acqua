@@ -10,66 +10,52 @@
 
 #include <type_traits>
 #include <iterator>
-#include <acqua/utility/is_char_traits.hpp>
 #include <acqua/utility/convert_string.hpp>
 
 namespace acqua {
 
-template <typename It>
-inline acqua::utility::convert_string<It> string_cast(It beg, It end)
-{
-    return acqua::utility::convert_string<It>(beg, end);
-}
-
-template <
-    typename CharPtr,
-    typename std::enable_if<acqua::utility::is_char_traits<typename std::iterator_traits<CharPtr>::value_type>::value>::type * = nullptr  // CharPtr は 文字型のポインタであること
-    >
-inline acqua::utility::convert_string<typename std::iterator_traits<CharPtr>::value_type const *> string_cast(CharPtr str)
-{
-    using CharT = typename std::iterator_traits<CharPtr>::value_type;
-    return acqua::utility::convert_string<CharT const *>(
-        str, str + std::char_traits<CharT>::length(str)
-    );
-}
-
-template <
-    typename StringOut,
-    typename Allocator = typename StringOut::allocator_type,
-    typename StringIn,
-    typename std::enable_if<std::is_same<StringIn, StringOut>::value>::type * = nullptr  // StringOut は StringIn と全く同じ型であること
-    >
-inline StringOut const & string_cast(StringIn const & str, Allocator = Allocator())
+template <typename String, typename S, typename Allocator = typename String::allocator_type, typename std::enable_if<std::is_same<String, S>::value>::type * = nullptr>
+inline static String const & string_cast(S const & str, Allocator const & = Allocator())
 {
     return str;
 }
 
-template <
-    typename StringOut,
-    typename Allocator = typename StringOut::allocator_type,
-    typename StringIn,
-    typename std::enable_if<!std::is_same<StringIn, StringOut>::value && acqua::utility::is_char_traits<typename StringIn::value_type>::value>::type * = nullptr // StringOut は StringIn と別の型で、StringIn::value_type は 文字型であること
-    >
-inline StringOut string_cast(StringIn const & str, Allocator alloc = Allocator())
+template <typename String, typename Iterator, typename Allocator = typename String::allocator_type>
+inline static String string_cast(Iterator beg, Iterator end, Allocator const & alloc = Allocator())
 {
-    StringOut ret(alloc);
-    acqua::utility::convert_string<typename StringIn::const_iterator>(str).template convert<typename StringOut::value_type>(std::back_inserter(ret));
-    return ret;
+    String res(alloc);
+    utility::convert_string<Iterator>(beg, end).template convert<typename String::value_type>(std::back_inserter(res));
+    return res;
 }
 
-template <
-    typename StringOut,
-    typename Allocator = typename StringOut::allocator_type,
-    typename CharPtr,
-    typename std::enable_if<acqua::utility::is_char_traits<typename std::iterator_traits<CharPtr>::value_type>::value>::type * = nullptr  // CharPtr は文字型のポインタであること
-    >
-inline StringOut string_cast(CharPtr str, Allocator alloc = Allocator())
+template <typename String, typename S, typename Allocator = typename String::allocator_type, typename std::enable_if<!std::is_same<String, S>::value>::type * = nullptr>
+inline static String string_cast(S const & str, Allocator const & alloc = Allocator())
 {
-    using CharT = typename std::iterator_traits<CharPtr>::value_type;
+    return string_cast<String>(str.begin(), str.end(), alloc);
+}
 
-    StringOut ret(alloc);
-    acqua::utility::convert_string<CharT const *>(str, str + std::char_traits<CharT>::length(str)).template convert<typename StringOut::value_type>(std::back_inserter(ret));
-    return ret;
+template <typename String, typename Ch, typename Allocator = typename String::allocator_type>
+inline static String string_cast(Ch const * const str, Allocator const & alloc = Allocator())
+{
+    return string_cast<String>(str, str + std::char_traits<Ch>::length(str), alloc);
+}
+
+template <typename Ch>
+inline static utility::convert_string<Ch const *> string_cast(Ch const * str)
+{
+    return utility::convert_string<Ch const *>(str, str + std::char_traits<Ch>::length(str));
+}
+
+template <typename Ch, typename Tr = std::char_traits<Ch>, typename A = std::allocator<Ch> >
+inline static utility::convert_string<typename std::basic_string<Ch, Tr, A>::const_iterator> string_cast(std::basic_string<Ch, Tr, A> const & str)
+{
+    return utility::convert_string<typename std::basic_string<Ch, Tr, A>::const_iterator>(str.begin(), str.end());
+}
+
+template <typename It>
+inline static utility::convert_string<It> string_cast(It beg, It end)
+{
+    return utility::convert_string<It>(beg, end);
 }
 
 }

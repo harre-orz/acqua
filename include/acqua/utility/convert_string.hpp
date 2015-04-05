@@ -12,26 +12,21 @@
 #include <type_traits>
 #include <boost/locale.hpp>
 
-#include <acqua/utility/is_char_traits.hpp>
+#include <acqua/utility/is_charactor.hpp>
 
 namespace acqua { namespace utility {
 
-template <typename It, typename Enabler = void>
+template <typename String, typename Enabler = void>
 class convert_string;
 
+
 template <typename It>
-class convert_string<It, typename std::enable_if<acqua::utility::is_char_traits<typename std::iterator_traits<It>::value_type >::value>::type>
+class convert_string<It, typename std::enable_if<acqua::utility::is_charactor<typename std::iterator_traits<It>::value_type>::value>::type>
 {
 public:
     using char_type = typename std::iterator_traits<It>::value_type;
 
     convert_string() noexcept = default;
-
-    template <typename T>
-    convert_string(T const & t) noexcept
-        : beg_(t.begin()), end_(t.end())
-    {
-    }
 
     convert_string(It beg, It end) noexcept
         : beg_(beg), end_(end)
@@ -60,7 +55,7 @@ public:
     template <typename Ch, typename Tr>
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, convert_string const & rhs)
     {
-        rhs.template convert<Ch>(std::ostreambuf_iterator<Ch>(os));
+        rhs.convert<Ch>(std::ostreambuf_iterator<Ch>(os));
         return os;
     }
 
