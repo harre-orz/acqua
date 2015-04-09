@@ -86,12 +86,12 @@ public:
 
     int header_length() const noexcept
     {
-        return value_type::ip_hl;
+        return value_type::ip_hl * 4;
     }
 
     void header_length(int n) noexcept
     {
-        value_type::ip_hl = n & 0x0f;
+        value_type::ip_hl = (n / 4) & 0x0f;
     }
 
     int type_of_service() const noexcept

@@ -15,7 +15,6 @@ extern "C" {
 #include <cstdint>
 #include <numeric>
 
-
 namespace acqua { namespace network { namespace detail {
 
 template <typename T, typename U>
@@ -76,18 +75,22 @@ protected:
     ~data_checksum() = default;
 
 public:
-    template <typename Ch>
-    bool check_checksum(Ch const * end) const noexcept
+    template <typename It>
+    bool check_checksum(It const & end) const noexcept
     {
+        static_assert(sizeof(typename std::iterator_traits<It>::value_type) == 1, "");
+
         auto sum = total_checksum(this, end);
         sum = (sum & 0xffff) + (sum >> 16);
         sum = (sum & 0xffff) + (sum >> 16);
         return (sum == 0xffff);
     }
 
-    template <typename Ch>
-    void compute_checksum(Ch const * end) noexcept
+    template <typename It>
+    void compute_checksum(It const & end) noexcept
     {
+        static_assert(sizeof(typename std::iterator_traits<It>::value_type) == 1, "");
+
         (static_cast<Derived *>(this))->checksum(0);
         auto sum = total_checksum(this, end);
         sum = (sum & 0xffff) + (sum >> 16);
@@ -105,9 +108,11 @@ protected:
     ~header_and_data_checksum() = default;
 
 public:
-    template <typename Hdr, typename Ch>
-    bool check_checksum(Hdr const * hdr, Ch const * end) const noexcept
+    template <typename Hdr, typename It>
+    bool check_checksum(Hdr const * hdr, It const & end) const noexcept
     {
+        static_assert(sizeof(typename std::iterator_traits<It>::value_type) == 1, "");
+
         auto sum = total_checksum(this, end);
         pseudo_header<Hdr>(hdr, distance(end)).merge_checksum(sum);
         sum = (sum & 0xffff) + (sum >> 16);
@@ -115,9 +120,11 @@ public:
         return (sum == 0xffff);
     }
 
-    template <typename Hdr, typename Ch>
-    void compute_checksum(Hdr const * hdr, Ch const * end) noexcept
+    template <typename Hdr, typename It>
+    void compute_checksum(Hdr const * hdr, It const & end) noexcept
     {
+        static_assert(sizeof(typename std::iterator_traits<It>::value_type) == 1, "");
+
         (static_cast<Derived *>(this))->checksum(0);
         auto sum = total_checksum(this, end);
         pseudo_header<Hdr>(hdr, distance(end)).checksum(sum);

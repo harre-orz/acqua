@@ -114,79 +114,102 @@ public:
         value_type::ea_hdr.ar_op = htons(code);
     }
 
-    linklayer_address & sender_hw() noexcept
+    linklayer_address & sender_ll() noexcept
     {
         auto * tmp = value_type::arp_sha;
         return *reinterpret_cast<linklayer_address *>(tmp);
     }
 
-    linklayer_address const & sender_hw() const noexcept
+    linklayer_address const & sender_ll() const noexcept
     {
         auto * tmp = value_type::arp_sha;
         return *reinterpret_cast<linklayer_address const *>(tmp);
     }
 
-    void sender_hw(linklayer_address const & hw) noexcept
+    void sender_ll(linklayer_address const & ll_addr) noexcept
     {
-        sender_hw() = hw;
+        sender_ll() = ll_addr;
     }
 
-    linklayer_address & target_hw() noexcept
+    linklayer_address & target_ll() noexcept
     {
         auto * tmp = value_type::arp_tha;
         return *reinterpret_cast<linklayer_address *>(tmp);
     }
 
-    linklayer_address const & target_hw() const noexcept
+    linklayer_address const & target_ll() const noexcept
     {
         auto * tmp = value_type::arp_tha;
         return *reinterpret_cast<linklayer_address const *>(tmp);
     }
 
-    void target_hw(linklayer_address const & hw) noexcept
+    void target_ll(linklayer_address const & ll_addr) noexcept
     {
-        target_hw() = hw;
+        target_ll() = ll_addr;
     }
 
-    internet4_address & sender_ip() noexcept
+    internet4_address & sender_in() noexcept
     {
         auto * tmp = value_type::arp_spa;
         return *reinterpret_cast<internet4_address *>(tmp);
     }
 
-    internet4_address const & sender_ip() const noexcept
+    internet4_address const & sender_in() const noexcept
     {
         auto * tmp = value_type::arp_spa;
         return *reinterpret_cast<internet4_address const *>(tmp);
     }
 
-    void sender_ip(internet4_address const & ip) noexcept
+    void sender_in(internet4_address const & in_addr) noexcept
     {
-        sender_ip() = ip;
+        sender_in() = in_addr;
     }
 
-    internet4_address & target_ip() noexcept
+    internet4_address & target_in() noexcept
     {
         auto * tmp = value_type::arp_tpa;
         return *reinterpret_cast<internet4_address *>(tmp);
     }
 
-    internet4_address const & target_ip() const noexcept
+    internet4_address const & target_in() const noexcept
     {
         auto * tmp = value_type::arp_tpa;
         return *reinterpret_cast<internet4_address const *>(tmp);
     }
 
-    void target_ip(internet4_address const & ip) noexcept
+    void target_in(internet4_address const & in_addr) noexcept
     {
-        target_ip() = ip;
+        target_in() = in_addr;
     }
 
     friend std::ostream & operator<<(std::ostream & os, ethernet_arp const & rhs)
     {
-        os << "arp 0x" << std::hex << rhs.protocol() << std::dec;
-        os << " sdr-hw:" << rhs.sender_hw() << " tgt-hw:" << rhs.target_hw();
-        os << " sdr-ip:" << rhs.sender_ip() << " tgt-ip:" << rhs.target_ip();
+        os << "arp 0x" << std::hex << rhs.operation() << std::dec;
+        switch(rhs.operation()) {
+            case arp_request:
+                os << "(arp request)";
+                break;
+            case arp_reply:
+                os << "(arp reply)";
+                break;
+            case rarp_request:
+                os << "(rarp request)";
+                break;
+            case rarp_reply:
+                os << "(rarp reply)";
+                break;
+            case inarp_request:
+                os << "(inarp request)";
+                break;
+            case inarp_reply:
+                os << "(inarp reply)";
+                break;
+            case arp_nak:
+                os << "(arp nak)";
+                break;
+        }
+        os << " sdr-ll:" << rhs.sender_ll() << " tgt-ll:" << rhs.target_ll();
+        os << " sdr-in:" << rhs.sender_in() << " tgt-in:" << rhs.target_in();
         return os;
     }
 };

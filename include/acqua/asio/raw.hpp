@@ -26,9 +26,9 @@ namespace acqua { namespace asio {
 class raw
 {
 public:
-    typedef raw protocol_type;
-    typedef boost::asio::basic_raw_socket<raw> socket;
-    typedef boost::asio::ip::basic_endpoint<raw> endpoint;
+    using protocol_type = raw;
+    using socket = boost::asio::basic_raw_socket<raw>;
+    using endpoint = boost::asio::ip::basic_endpoint<raw>;
 
     int family() const noexcept
     {
