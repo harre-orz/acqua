@@ -6,7 +6,7 @@
 #include <string>
 #include <type_traits>
 
-#include <acqua/text/line_wrap_category.hpp>
+#include <acqua/text/line_wrap.hpp>
 #include <acqua/text/decode_exception.hpp>
 
 
@@ -15,20 +15,19 @@ namespace acqua { namespace text {
 /*!
   BASE64変換テーブル
  */
-template <typename CharT>
-struct base64_transform_table
+struct base64_table
 {
     static constexpr char const * s_table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     static constexpr std::size_t npos = 64;
 
-    CharT operator[](int ch) const
+    char operator[](int ch) const
     {
-        return static_cast<CharT>(s_table[ch]);
+        return s_table[ch];
     }
 
-    std::size_t find(CharT ch) const
+    std::size_t find(char ch) const
     {
-        return std::find(s_table, s_table + npos, static_cast<char>(ch)) - s_table;
+        return std::find(s_table, s_table + npos, ch) - s_table;
     }
 };
 
@@ -36,56 +35,52 @@ struct base64_transform_table
 /*!
   BASE64URL変換テーブル
  */
-template <typename CharT>
-struct base64_url_transform_table
+struct base64_url_table
 {
     static constexpr char const * table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
     static constexpr std::size_t npos = 64;
 
-    CharT operator[](int ch) const
+    char operator[](int ch) const
     {
-        return static_cast<CharT>(table[ch]);
+        return table[ch];
     }
 
-    std::size_t find(CharT ch) const
+    std::size_t find(char ch) const
     {
-        return std::find(table, table + npos, static_cast<char>(ch)) - table;
+        return std::find(table, table + npos, ch) - table;
     }
 };
 
 /*!
   BASE64変換
  */
-template <template <typename CharT> class TransformTable>
+template <typename Table = base64_table>
 struct basic_base64
 {
     /*!
       BASE64テキストに符号化する
      */
-    template <
-        typename LineWrapCategory = no_line_wrap,
-        typename InputIterator,
-        typename OutputIterator
-        >
-    static void encode(InputIterator begin, InputIterator end, OutputIterator result)
+    template <typename LineWrap = no_line_wrap, typename InputIterator, typename OutputIterator>
+    static void encode(InputIterator beg, InputIterator end, OutputIterator res, LineWrap & lw)
     {
-        LineWrapCategory line;
-        TransformTable<typename std::iterator_traits<InputIterator>::value_type> table;
+        static_assert(sizeof(typename std::iterator_traits<InputIterator>::value_type) == 1, "");
+
+        Table table;
         int i = 0;
         char p_ch = 0;
 
-        for(auto & it = begin; it != end; p_ch = *it++) {
+        for(auto & it = beg; it != end; p_ch = *it++) {
             switch(i % 3) {
                 case 0:
-                    *result++ = ( table[ (*it & 0xfc) >> 2 ] );
+                    lw(res); lw+=4;
+                    *res++ = table[ (*it & 0xfc) >> 2 ];
                     break;
                 case 1:
-                    *result++ = ( table[ ((p_ch & 0x03) << 4) | ((*it & 0xf0) >> 4) ] );
+                    *res++ = table[ ((p_ch & 0x03) << 4) | ((*it & 0xf0) >> 4) ];
                     break;
                 case 2:
-                    *result++ = ( table[ ((p_ch & 0x0f) << 2) | ((*it & 0xc0) >> 6) ] );
-                    *result++ = ( table[ (*it & 0x3f) ] );
-                    (line+=4)(result);
+                    *res++ = table[ ((p_ch & 0x0f) << 2) | ((*it & 0xc0) >> 6) ];
+                    *res++ = table[ (*it & 0x3f) ];
                     break;
             }
 
@@ -94,83 +89,70 @@ struct basic_base64
 
         switch(i % 3) {
             case 1:
-                *result++ = ( table[ ((p_ch & 0x03) << 4) ] );
-                *result++ = ('=');
-                *result++ = ('=');
+                *res++ = ( table[ ((p_ch & 0x03) << 4) ] );
+                *res++ = ('=');
+                *res++ = ('=');
                 break;
             case 2:
-                *result++ = ( table[ ((p_ch & 0x0f) << 2) ] );
-                *result++ = ('=');
+                *res++ = ( table[ ((p_ch & 0x0f) << 2) ] );
+                *res++ = ('=');
                 break;
         }
     }
 
-    template <
-        typename OutputContainer,
-        typename LineWrapCategory = no_line_wrap,
-        typename InputIterator
-        >
-    static OutputContainer encode(InputIterator begin, InputIterator end)
+    template <typename LineWrap = no_line_wrap, typename InputIterator, typename OutputIterator>
+    static void encode(InputIterator beg, InputIterator end, OutputIterator res)
     {
-        OutputContainer ret;
-        encode<LineWrapCategory>(begin, end, std::back_inserter(ret));
-        return ret;
+        LineWrap lw;
+        encode(beg, end, res, lw);
     }
 
-    template <
-        typename OutputContainer,
-        typename LineWrapCategory = no_line_wrap,
-        typename InputContainer
-        >
-    static OutputContainer encode(InputContainer const & str)
+    template <typename Output, typename LineWrap = no_line_wrap, typename InputIterator>
+    static Output encode(InputIterator beg, InputIterator end)
     {
-        return encode<OutputContainer, LineWrapCategory>(str.begin(), str.end());
+        LineWrap lw;
+        Output res;
+        encode<LineWrap>(beg, end, std::back_inserter(res), lw);
+        return res;
     }
 
-    template <
-        typename OutputContainer,
-        typename LineWrapCategory = no_line_wrap
-        >
-    static OutputContainer encode(char const * str)
+    template <typename Output, typename LineWrap = no_line_wrap, typename Input>
+    static Output encode(Input const & str)
     {
-        return encode<OutputContainer, LineWrapCategory>(str, str + std::strlen(str));
+        LineWrap lw;
+        Output res;
+        encode<LineWrap>(str.begin(), str.end(), std::back_inserter(res), lw);
+        return res;
     }
 
-    template <
-        typename OutputContainer,
-        typename LineWrapCategory = no_line_wrap
-        >
-    static OutputContainer encode(wchar_t const * str)
+    template <typename Output, typename LineWrap = no_line_wrap>
+    static Output encode(char const * str)
     {
-        return encode<OutputContainer, LineWrapCategory>(str, str + std::wcslen(str));
+        LineWrap lw;
+        Output res;
+        encode<LineWrap>(str, str + std::char_traits<char>::length(str), std::back_inserter(res), lw);
+        return res;
     }
 
-    template <
-        typename LineWrapCategory = no_line_wrap,
-        typename InputIterator,
-        typename Ch,
-        typename Tr
-        >
-    static void encode(InputIterator begin, InputIterator end, std::basic_ostream<Ch, Tr> & os)
+    template <typename LineWrap = no_line_wrap, typename InputIterator, typename Tr>
+    static void encode(InputIterator begin, InputIterator end, std::basic_ostream<char, Tr> & os)
     {
-        encode<LineWrapCategory>(begin, end, std::ostreambuf_iterator<Ch>(os));
+        encode<LineWrap>(begin, end, std::ostreambuf_iterator<char>(os));
     }
 
     /*!
       BASE64テキストを復元する
      */
-    template <
-        typename InputIterator,
-        typename OutputIterator,
-        bool SkipError = true
-        >
-    static bool decode(InputIterator begin, InputIterator end, OutputIterator result)
+    template <bool SkipError = true, typename InputIterator, typename OutputIterator>
+    static bool decode(InputIterator beg, InputIterator end, OutputIterator res)
     {
-        TransformTable<typename std::iterator_traits<InputIterator>::value_type> table;
+        static_assert(sizeof(typename std::iterator_traits<InputIterator>::value_type) == 1, "");
+
+        Table table;
         std::size_t i = 0;
         std::size_t st[5];
 
-        for(auto & it = begin; it != end && *begin != '='; ++begin) {
+        for(auto & it = beg; it != end && *beg != '='; ++beg) {
             if ((st[4] = table.find(*it)) == table.npos) {
                 if (SkipError)
                     continue;
@@ -179,86 +161,61 @@ struct basic_base64
             }
             st[i++ % 4] = st[4];
             if (i % 4 == 0) {
-                *result++ = ( ((st[0] & 0x3f) << 2) | ((st[1] & 0x30) >> 4) );
-                *result++ = ( ((st[1] & 0x0f) << 4) | ((st[2] & 0x3c) >> 2) );
-                *result++ = ( ((st[2] & 0x03) << 6) | ((st[3] & 0x3f) >> 0) );
+                *res++ = ((st[0] & 0x3f) << 2) | ((st[1] & 0x30) >> 4);
+                *res++ = ((st[1] & 0x0f) << 4) | ((st[2] & 0x3c) >> 2);
+                *res++ = ((st[2] & 0x03) << 6) | ((st[3] & 0x3f) >> 0);
             }
         }
 
         switch(i % 4) {
             case 2:
-                *result++ = ( ((st[0] & 0x3f) << 2) | ((st[1] & 0x30) >> 4) );
+                *res++ = ((st[0] & 0x3f) << 2) | ((st[1] & 0x30) >> 4);
                 break;
             case 3:
-                *result++ = ( ((st[0] & 0x3f) << 2) | ((st[1] & 0x30) >> 4) );
-                *result++ = ( ((st[1] & 0x0f) << 4) | ((st[2] & 0x3c) >> 2) );
+                *res++ = ((st[0] & 0x3f) << 2) | ((st[1] & 0x30) >> 4);
+                *res++ = ((st[1] & 0x0f) << 4) | ((st[2] & 0x3c) >> 2);
                 break;
         }
 
         return true;
     }
 
-    template <
-        typename OutputContainer,
-        typename InputIterator,
-        bool SkipError = true
-        >
-    static OutputContainer decode(InputIterator begin, InputIterator end)
+    template <typename Output, bool SkipError = true, typename InputIterator>
+    static Output decode(InputIterator beg, InputIterator end)
     {
-        OutputContainer ret;
-        if (!decode<InputIterator, decltype(std::back_inserter(ret)), SkipError>(begin, end, std::back_inserter(ret)))
+        Output res;
+        if (!decode<SkipError>(beg, end, std::back_inserter(res)))
             throw decode_exception();
-        return ret;
+        return res;
     }
 
-    template <
-        typename OutputContainer,
-        typename InputContainer,
-        bool SkipError = true
-        >
-    static OutputContainer decode(InputContainer const & str)
+    template <typename Output, bool SkipError = true, typename Input>
+    static Output decode(Input const & str)
     {
-        return decode<OutputContainer, decltype(str.begin()), SkipError>(str.begin(), str.end());
+        Output res;
+        if (!decode<SkipError>(str.begin(), str.end(), std::back_inserter(res)))
+            throw decode_exception();
+        return res;
     }
 
-    template <
-        typename OutputContainer,
-        bool SkipError = true
-        >
-    static OutputContainer decode(char const * str)
+    template <typename Output, bool SkipError = true>
+    static Output decode(char const * str)
     {
-        return decode<OutputContainer, decltype(str), SkipError>(str, str + std::strlen(str));
+        Output res;
+        if (!decode<SkipError>(str, str + std::char_traits<char>::length(str), std::back_inserter(res)))
+            throw decode_exception();
+        return res;
     }
 
-    template <
-        typename OutputContainer,
-        bool SkipError = true
-        >
-    static OutputContainer decode(wchar_t const * str)
+    template <bool SkipError = true, typename InputIterator, typename Tr>
+    static bool decode(InputIterator beg, InputIterator end, std::basic_ostream<char, Tr> & os)
     {
-        return decode<OutputContainer, decltype(str), SkipError>(str, str + std::wcslen(str));
-    }
-
-    template <
-        typename InputIterator,
-        typename Ch,
-        typename Tr,
-        bool SkipError = true
-        >
-    static bool decode(InputIterator begin, InputIterator end, std::basic_ostream<Ch, Tr> & os)
-    {
-        return decode<InputIterator, decltype(std::ostreambuf_iterator<Ch>(os)), SkipError>(begin, end, std::ostreambuf_iterator<Ch>(os));
+        return decode<SkipError>(beg, end, std::ostreambuf_iterator<char>(os));
     }
 };
 
-/*!
-  \class acqua::text::base64
- */
-using base64 = basic_base64<base64_transform_table>;
+using base64 = basic_base64<base64_table>;
 
-/*!
-  \class acqua::text::base64_url
- */
-using base64_url = basic_base64<base64_url_transform_table>;
+using base64_url = basic_base64<base64_url_table>;
 
 } }

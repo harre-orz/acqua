@@ -72,7 +72,6 @@ public:
                     boost::locale::conv::utf_to_utf<typename String::value_type>(temp)
                 );
             }
-
             temp.clear();
         }
     }
@@ -201,10 +200,10 @@ public:
 
             decode_mimeheader(param);
 
-            xp::mark_tag charset_(1);
-            xp::sregex regex = xp::bos >> (charset_ = *xp::set[xp::graph] >> xp::before('\'')) >> '\'' >> *xp::set[xp::graph] >> xp::before('\'') >> '\'';
-            //xp::sregex regex = xp::sregex::compile("^([[:alnum:]_=-]*)'[[:alnum:]_=-]*'");
             xp::smatch what;
+            xp::mark_tag charset_(1);
+            xp::sregex regex = xp::bos >> (charset_ = *xp::set[xp::graph] >> xp::before('\''))
+                                       >> '\'' >> *xp::set[xp::graph] >> xp::before('\'') >> '\'';
 
             if (xp::regex_search(param, what, regex)) {
                 charset = what[charset_].str();

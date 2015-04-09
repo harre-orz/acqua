@@ -4,7 +4,6 @@
 #include <boost/test/included/unit_test.hpp>
 #include <acqua/text/quoted_printable.hpp>
 
-
 BOOST_AUTO_TEST_SUITE(quoted_printable)
 
 BOOST_AUTO_TEST_CASE(quoted_printable_encode)

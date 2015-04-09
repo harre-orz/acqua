@@ -11,7 +11,6 @@ namespace acqua { namespace text {
 class no_line_wrap
 {
 public:
-    using line_wrap_category = no_line_wrap;
     static constexpr std::size_t count = std::numeric_limits<std::size_t>::max();
 
 public:
@@ -28,7 +27,6 @@ template <std::size_t N, typename LineChars>
 class line_wrap
 {
 public:
-    using line_wrap_category = line_wrap<N, LineChars>;
     static constexpr std::size_t count = N;
 
 public:

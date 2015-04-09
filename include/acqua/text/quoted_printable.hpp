@@ -6,81 +6,71 @@
 #include <cstring>
 #include <boost/range/algorithm.hpp>
 
-#include <acqua/text/line_wrap_category.hpp>
+#include <acqua/text/line_wrap.hpp>
 #include <acqua/text/decode_exception.hpp>
 
 namespace acqua { namespace text {
 
 struct quoted_printable
 {
-    template <
-        typename LineWrapCategory = no_line_wrap,
-        typename InputIterator,
-        typename OutputIterator
-        >
-    static void encode(InputIterator beg, InputIterator end, OutputIterator res)
+    template <typename LineWrap = no_line_wrap, typename InputIterator, typename OutputIterator>
+    static void encode(InputIterator beg, InputIterator end, OutputIterator res, LineWrap & lw)
     {
-        LineWrapCategory line;
+        static_assert(sizeof(typename std::iterator_traits<InputIterator>::value_type) == 1, "");
 
         for(auto & it = beg; it != end; ++it) {
-            ++line;
+            lw(res);
             if (is_escape(*it)) {
                 *res++ = '=';
                 *res++ = do_enc((*it >> 4) & 0x0f);
                 *res++ = do_enc((*it     ) & 0x0f);
-                (line+=2)(res);
-            } else
+                lw+=2;
+            } else {
                 *res++ = *it;
+            }
+            ++lw;
         }
     }
 
-    template <
-        typename OutputContainer,
-        typename LineWrapCategory = no_line_wrap,
-        typename InputIterator
-        >
-    static OutputContainer encode(InputIterator beg, InputIterator end)
+    template <typename LineWrap = no_line_wrap, typename InputIterator, typename OutputIterator>
+    static void encode(InputIterator beg, InputIterator end, OutputIterator res)
     {
-        OutputContainer res;
-        encode<LineWrapCategory>(beg, end, std::back_inserter(res));
+        LineWrap lw;
+        encode(beg, end, res, lw);
+    }
+
+    template <typename Output, typename LineWrap = no_line_wrap, typename InputIterator>
+    static Output encode(InputIterator beg, InputIterator end)
+    {
+        LineWrap lw;
+        Output res;
+        encode(beg, end, std::back_inserter(res), lw);
         return res;
     }
 
-    template <
-        typename OutputContainer,
-        typename LineWrapCategory = no_line_wrap,
-        typename InputContainer
-        >
-    static OutputContainer encode(const InputContainer & src)
+    template <typename Output, typename LineWrap = no_line_wrap, typename Input>
+    static Output encode(Input const & str)
     {
-        return encode<OutputContainer, LineWrapCategory>(src.begin(), src.end());
+        LineWrap lw;
+        Output res;
+        encode(str.begin(), str.end(), std::back_inserter(res), lw);
+        return res;
     }
 
-    template <
-        typename OutputContainer,
-        typename LineWrapCategory = no_line_wrap
-        >
-    static OutputContainer encode(char const * str)
+    template <typename Output, typename LineWrap = no_line_wrap>
+    static Output encode(char const * str)
     {
-        return encode<OutputContainer, LineWrapCategory>(str, str + std::strlen(str));
+        LineWrap lw;
+        Output res;
+        encode(str, str + std::char_traits<char>::length(str), std::back_inserter(res), lw);
+        return res;
     }
 
-    template <
-        typename OutputContainer,
-        typename LineWrapCategory = no_line_wrap
-        >
-    static OutputContainer encode(wchar_t const * str)
-    {
-        return encode<OutputContainer, LineWrapCategory>(str, str + std::wcslen(str));
-    }
-
-    template <
-        typename InputIterator,
-        typename OutputIterator,
-        bool SkipError = true
-        >
+    template <bool SkipError = true, typename InputIterator, typename OutputIterator>
     static bool decode(InputIterator beg, InputIterator end, OutputIterator res)
     {
+        static_assert(sizeof(typename std::iterator_traits<InputIterator>::value_type) == 1, "");
+
         for(auto & it = beg; it != end; ++it) {
             if (*it == '=') {
                 if (++it == end) {
@@ -104,57 +94,40 @@ struct quoted_printable
         return true;
     }
 
-    template <
-        typename OutputContainer,
-        typename InputIterator,
-        bool SkipError = true
-        >
-    static OutputContainer decode(InputIterator beg, InputIterator end)
+    template <typename Output, bool SkipError = true, typename InputIterator>
+    static Output decode(InputIterator beg, InputIterator end)
     {
-        OutputContainer res;
-        if (!decode<InputIterator, decltype(std::back_inserter(res)), SkipError>(beg, end, std::back_inserter(res)))
+        Output res;
+        if (!decode<SkipError>(beg, end, std::back_inserter(res)))
             throw decode_exception();
         return res;
     }
 
-    template <
-        typename OutputContainer,
-        typename InputContainer,
-        bool SkipError = true
-        >
-    static OutputContainer decode(const InputContainer & str)
+    template <typename Output, bool SkipError = true, typename Input>
+    static Output decode(Input const & str)
     {
-        return decode<OutputContainer, decltype(str.begin()), SkipError>(str.begin(), str.end());
+        Output res;
+        if (!decode<SkipError>(str.begin(), str.end(), std::back_inserter(res)))
+            throw decode_exception();
+        return res;
     }
 
-    template <
-        typename OutputContainer,
-        bool SkipError = true
-        >
-    static OutputContainer decode(char const * str)
+    template <typename Output, bool SkipError = true>
+    static Output decode(char const * str)
     {
-        return decode<OutputContainer, decltype(str), SkipError>(str, str + std::strlen(str));
-    }
-
-
-    template <
-        typename OutputContainer,
-        bool SkipError = true
-        >
-    static OutputContainer decode(wchar_t const * str)
-    {
-        return decode<OutputContainer, decltype(str), SkipError>(str, str + std::wcslen(str));
+        Output res;
+        if (!decode<SkipError>(str, str + std::char_traits<char>::length(str), std::back_inserter(res)))
+            throw decode_exception();
+        return res;
     }
 
 private:
-    template <typename CharT>
-    static bool is_escape(CharT ch)
+    static bool is_escape(char ch)
     {
-        return !(std::isalnum(static_cast<char>(ch)) || ch == '.' || ch == '_' || ch == '-');
+        return !(std::isalnum(ch) || ch == '.' || ch == '_' || ch == '-');
     }
 
-    template <typename CharT>
-    static char do_enc(CharT hex)
+    static char do_enc(char hex)
     {
         return (hex < 10 ? '0' + hex : 'A' - 10 + hex);
     }
