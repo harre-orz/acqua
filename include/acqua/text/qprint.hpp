@@ -11,15 +11,15 @@
 #include <sstream>
 #include <boost/locale/encoding.hpp>
 #include <acqua/text/linefeed.hpp>
-#include <acqua/text/detail/base64_impl.hpp>
+#include <acqua/text/detail/qprint_impl.hpp>
 
 namespace acqua { namespace text {
 
 template <typename CharT>
-class base64_encoder
+class qprint_encoder
 {
 public:
-    explicit base64_encoder(std::string const & charset = "UTF-8", linefeed_type linefeed = linefeed_type::crln, std::size_t indent = 0, std::size_t width = 80)
+    explicit qprint_encoder(std::string const & charset = "UTF-8", linefeed_type linefeed = linefeed_type::crln, std::size_t indent = 0, std::size_t width = 80)
         : impl_(width, indent), charset_(charset), linefeed_(linefeed) {}
 
     void push(std::basic_string<CharT> const & str)
@@ -28,14 +28,14 @@ public:
             return;
 
         std::string buf = boost::locale::conv::from_utf(str, charset_);
-        std::size_t i = 0;
+        std::size_t i = 0, n = buf.size();
 
         do {
             std::streamsize rest = impl_.write(oss_, buf.c_str() + i, buf.size() - i);
             if (rest < 0)
                 return;
             i += rest;
-            if (i >= buf.size())
+            if (i >= n)
                 return;
             oss_ << linefeed_;
         } while(true);
@@ -48,7 +48,7 @@ public:
     }
 
 private:
-    detail::base64_encoder_impl impl_;
+    detail::qprint_encoder_impl impl_;
     std::string charset_;
     linefeed_type linefeed_;
     std::ostringstream oss_;
@@ -56,10 +56,10 @@ private:
 
 
 template <typename CharT>
-class base64_decoder
+class qprint_decoder
 {
 public:
-    explicit base64_decoder(std::string const & charset = "UTF-8")
+    explicit qprint_decoder(std::string const & charset = "UTF-8")
         : charset_(charset) {}
 
     void push(std::string const & str)
@@ -79,7 +79,7 @@ public:
     }
 
 private:
-    detail::base64_decoder_impl impl_;
+    detail::qprint_decoder_impl impl_;
     std::string charset_;
     std::ostringstream oss_;
 };
