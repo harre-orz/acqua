@@ -129,7 +129,7 @@ struct sequenced_map_base
     { return std::find_if(begin(), end(), [this, &key](value_type const & e) { return key_eq()(e.first, key); }); }
 
     template <typename Iterator>
-    Iterator to_next_key_tag(unique_tag, Iterator it) const
+    Iterator to_next(unique_tag, Iterator it) const
     {
         if (it != end())
             ++it;
@@ -137,7 +137,7 @@ struct sequenced_map_base
     }
 
     template <typename Iterator>
-    Iterator to_next_key_(non_unique_tag, Iterator it) const
+    Iterator to_next(non_unique_tag, Iterator it) const
     {
         if (it != end()) {
             auto const & key = it->key;
@@ -155,13 +155,13 @@ struct sequenced_map_base
     std::pair<iterator, iterator> equal_range(key_type const & key)
     {
         auto it = find(key);
-        return std::make_pair(it, to_next_key_(Tag(), it));
+        return std::make_pair(it, to_next(Tag(), it));
     }
 
     std::pair<const_iterator, const_iterator> equal_range(key_type const & key) const
     {
         auto it = find(key);
-        return std::make_pair(it, to_next_key_(Tag(), it));
+        return std::make_pair(it, to_next(Tag(), it));
     }
 
     std::pair<iterator, bool> insert(value_type const & val)
@@ -180,7 +180,7 @@ struct sequenced_map_base
 
     std::pair<iterator, bool> insert_(non_unique_tag, value_type const & val)
     {
-        return std::make_pair(iterator(data_.insert(find(key(args...)).base(), args...)), true);
+        return std::make_pair(iterator(data_.insert(find(key(val.first)).base(), val)), true);
     }
 
     template <typename... Args>
@@ -205,6 +205,12 @@ struct sequenced_map_base
         return std::make_pair(iterator(data_.emplace(find(key(args...)).base(), args...)), true);
     }
 
+    template <typename... Args>
+    iterator emplace_hint(const_iterator, Args... args)
+    {
+        return emplace(args...).first;
+    }
+
     iterator erase(const_iterator it)
     {
         return data_.erase(it.base());
@@ -218,7 +224,23 @@ struct sequenced_map_base
     iterator erase(key_type const & key)
     {
         auto it = find(key);
-        return data_.erase(it.base(), to_next_key_(Tag(), it).base());
+        return data_.erase(it.base(), to_next(Tag(), it).base());
+    }
+
+    mapped_type & at(key_type const & key)
+    {
+        auto it = find(key);
+        if (it == end())
+            throw std::out_of_range("sequenced_map_base::at");
+        return it->second;
+    }
+
+    mapped_type const & at(key_type const & key) const
+    {
+        auto it = find(key);
+        if (it == end())
+            throw std::out_of_range("sequenced_map_base::at");
+        return it->second;
     }
 
     mapped_type & operator[](key_type const & key)

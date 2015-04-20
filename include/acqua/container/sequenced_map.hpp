@@ -59,7 +59,9 @@ public:
     using base_type::equal_range;
     using base_type::insert;
     using base_type::emplace;
+    using base_type::emplace_hint;
     using base_type::erase;
+    using base_type::at;
     using base_type::operator[];
 };
 
@@ -108,7 +110,10 @@ public:
     using base_type::count;
     using base_type::equal_range;
     using base_type::insert;
+    using base_type::emplace;
+    using base_type::emplace_hint;
     using base_type::erase;
+    using base_type::at;
     using base_type::operator[];
 };
 
