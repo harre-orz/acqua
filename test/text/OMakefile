@@ -3,7 +3,8 @@
 
 build: $(CXXProgram test_base64, test_base64) \
        $(CXXProgram test_quoted_printable, test_quoted_printable) \
-       $(CXXProgram test_rfc2047, test_rfc2047)
+       $(CXXProgram test_rfc2047, test_rfc2047) \
+       $(CXXProgram test_json_parser, test_json_parser)
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc
