@@ -9,9 +9,10 @@ namespace acqua { namespace text {
 
 struct parse_error : virtual  std::exception, virtual boost::exception {};
 
-template <typename CharT, typename Destinate>
+template <typename CharT, typename Dest>
 class basic_json_parser
 {
+    struct json_visitor;
     struct any_parser;
     struct literal_parser;
     struct number_parser;
@@ -22,9 +23,13 @@ class basic_json_parser
 
     struct any_parser
     {
-        bool operator()(CharT const & ch, Destinate & dest, Parser & next)
+        Dest * dest_;
+        any_parser(Dest * dest) : dest_(dest) {}
+
+        bool put(CharT const & ch, Parser & next)
         {
-            (void) dest;
+            std::cout << ch << " any_parser" << std::endl;
+
             switch(ch) {
                 case '\0':
                     return true;
@@ -32,22 +37,28 @@ class basic_json_parser
                     // SkipSpace
                     return true;
                 case 'n': case 'N':
-                    next = literal_parser(literal_parser::l_null);
+                    next = literal_parser(dest_, literal_parser::l_null);
                     return true;
                 case 't': case 'T':
-                    next = literal_parser(literal_parser::l_true);
+                    next = literal_parser(dest_, literal_parser::l_true);
                     return true;
                 case 'f': case 'F':
-                    next = literal_parser(literal_parser::l_false);
+                    next = literal_parser(dest_, literal_parser::l_false);
                     return true;
                 case '1' ... '9':
-                    next = number_parser(ch - '0');
+                    next = number_parser(dest_, ch - '0');
                     return true;
                 case '-':
-                    next = number_parser(0, true);
+                    next = number_parser(dest_, 0, true);
                     return true;
                 case '"':
-                    next = string_parser();
+                    next = string_parser(dest_);
+                    return true;
+                case '[':
+                    next = array_parser(dest_);
+                    return true;
+                case '{':
+                    next = object_parser(dest_);
                     return true;
             }
 
@@ -57,16 +68,18 @@ class basic_json_parser
 
     struct literal_parser
     {
+        Dest * dest_;
         enum l_type { l_null, l_true, l_false } l_;
         char const * s_;
-        explicit literal_parser(l_type l) : l_(l), s_(str()) {}
+        literal_parser(Dest * dest, l_type l) : dest_(dest), l_(l), s_(str()) {}
 
-        bool operator()(CharT const & ch, Destinate & dest, Parser & next)
+        bool put(CharT const & ch, Parser & next)
         {
+            std::cout << ch << " literal_parser" << std::endl;
+
             if (*++s_ == '\0') {
-                (void) dest;
                 std::cout << "(literal) " << str() << std::endl;
-                next = any_parser();
+                next = any_parser(dest_);
                 return true;
             } else if (std::tolower(ch, std::locale("C")) == *s_) {
                 return true;
@@ -88,17 +101,18 @@ class basic_json_parser
 
     struct number_parser
     {
+        Dest * dest_;
         enum n_type { n_decimal, n_fraction, n_exp, n_power } n_ = n_decimal;
         int decimal_;
         int fraction_;
         int power_;
         bool minus_;
-        explicit number_parser(int decimal, bool minus = false)
-            : decimal_(decimal), fraction_(0), power_(0), minus_(minus) {}
+        number_parser(Dest * dest, int decimal, bool minus = false)
+            : dest_(dest), decimal_(decimal), fraction_(0), power_(0), minus_(minus) {}
 
-        bool operator()(CharT const & ch, Destinate & dest, Parser & next)
+        bool put(CharT const & ch, Parser & next)
         {
-            (void) dest;
+            std::cout << ch << " number_parser" << std::endl;
 
             switch(n_) {
                 case n_decimal:
@@ -119,7 +133,7 @@ class basic_json_parser
 
                     if (minus_) decimal_ *= -1;
                     std::cout << "(integer) " << decimal_ << std::endl;
-                    next = any_parser();
+                    next = any_parser(dest_);
                     return false;
                 case n_fraction:
                     if (ch == 'e' || ch == 'E') {
@@ -132,7 +146,7 @@ class basic_json_parser
                     }
 
                     std::cout << "(float) " << decimal_ << '.' << fraction_ << std::endl;
-                    next = any_parser();
+                    next = any_parser(dest_);
                     return false;
                 case n_exp:
                     switch(ch) {
@@ -157,7 +171,7 @@ class basic_json_parser
 
                     if (minus_) power_ *= -1;
                     std::cout << "(float) " << decimal_ << '.' << fraction_ << 'e' << power_ << std::endl;
-                    next = any_parser();
+                    next = any_parser(dest_);
                     return false;
             }
 
@@ -167,13 +181,14 @@ class basic_json_parser
 
     struct string_parser
     {
+        Dest * dest_;
         std::basic_string<CharT> s_;
         bool escape_ = false;
         char c_[6];
-
-        bool operator()(CharT const & ch, Destinate & dest, Parser & next)
+        string_parser(Dest * dest) : dest_(dest) {}
+        bool put(CharT const & ch, Parser & next)
         {
-            (void) dest;
+            std::cout << ch << " string_parser" << std::endl;
 
             if (escape_) {
                 if (c_[0] == 0) {
@@ -212,29 +227,25 @@ class basic_json_parser
 
                     escape_ = false;
                     return true;
-                }
-                else if (c_[1] == 0) {
+                } else if (c_[1] == 0) {
                     if (std::isxdigit(ch)) {
                         c_[1] = ch;
                         c_[2] = 0;
                         return true;
                     }
-                }
-                else if (c_[2] == 0) {
+                } else if (c_[2] == 0) {
                     if (std::isxdigit(ch)) {
                         c_[2] = ch;
                         c_[3] = 0;
                         return true;
                     }
-                }
-                else if (c_[3] == 0) {
+                } else if (c_[3] == 0) {
                     if (std::isxdigit(ch)) {
                         c_[3] = ch;
                         c_[4] = 0;
                         return true;
                     }
-                }
-                else if (c_[4] == 0) {
+                } else if (c_[4] == 0) {
                     if (std::isxdigit(ch)) {
                         c_[4] = ch;
                         c_[5] = 0;
@@ -244,18 +255,15 @@ class basic_json_parser
                         return true;
                     }
                 }
-            }
-            else if (ch == '"') {
+            } else if (ch == '"') {
                 std::cout << "(string) " << '"' << s_ << '"' << std::endl;
-                next = any_parser();
+                next = any_parser(dest_);
                 return true;
-            }
-            else if (ch == '\\') {
+            } else if (ch == '\\') {
                 escape_ = true;
                 c_[0] = 0;
                 return true;
-            }
-            else if (std::isprint(ch, std::locale("C"))) {
+            } else if (std::isprint(ch, std::locale("C"))) {
                 s_ += ch;
                 return true;
             }
@@ -266,22 +274,64 @@ class basic_json_parser
 
     struct array_parser
     {
-        bool operator()(CharT const & ch, Destinate & dest, Parser & next)
+        Dest * dest_;
+        std::unique_ptr<Parser> data_;
+        int index_ = 0;
+
+        array_parser(Dest * dest) : dest_(dest) {}
+        bool put(CharT const & ch, Parser & next)
         {
-            (void) ch;
-            (void) dest;
-            (void) next;
+            std::cout << ch << " array_parser" << std::endl;
+
+            if (data_ && data_->which() != 0) {
+                return boost::apply_visitor(json_visitor(ch, *data_), *data_);
+            } else if (ch == ']') {
+                next = any_parser(dest_);
+                return true;
+            } else if (!data_) {
+                data_.reset(new Parser(any_parser(dest_)));
+                ++index_;
+                return boost::apply_visitor(json_visitor(ch, *data_), *data_);
+            } else if (ch == ',') {
+                data_.release();
+                ++index_;
+                return true;
+            }
+
             throw parse_error();
         }
     };
 
     struct object_parser
     {
-        bool operator()(CharT const & ch, Destinate & dest, Parser & next)
+        Dest * dest_;
+        std::unique_ptr<Parser> key_;
+        std::unique_ptr<Parser> val_;
+
+        object_parser(Dest * dest) : dest_(dest) {}
+        bool put(CharT const & ch, Parser & next)
         {
-            (void) ch;
-            (void) dest;
-            (void) next;
+            std::cout << ch << " object_parser" << std::endl;
+
+            if (!key_ && val_ && val_->which() == 0) {
+                key_.reset(new Parser(string_parser(dest_)));
+                return boost::apply_visitor(json_visitor(ch, *val_), *val_);
+            } else if (val_ && val_->which() != 0) {
+                return boost::apply_visitor(json_visitor(ch, *val_), *val_);
+            } else if (key_ && key_->which() != 0) {
+                return boost::apply_visitor(json_visitor(ch, *key_), *key_);
+            } else if (ch == '}') {
+                std::cout << "(object)" << std::endl;
+                next = any_parser(dest_);
+                return true;
+            } else {
+                if (key_->which() == 0 && ch == ':') {
+                    key_.release();
+                    val_.reset(new Parser(any_parser(dest_)));
+                    return true;
+                }
+            }
+
             throw parse_error();
         }
     };
@@ -289,30 +339,31 @@ class basic_json_parser
     struct json_visitor : boost::static_visitor<bool>
     {
         CharT const & ch_;
-        Destinate & dest_;
         Parser & next_;
-        json_visitor(CharT const & ch, Destinate & dest, Parser & next)
-            : ch_(ch), dest_(dest), next_(next) {}
+        json_visitor(CharT const & ch, Parser & next)
+            : ch_(ch), next_(next) {}
 
         template <typename Parser>
         bool operator()(Parser & parser) const
         {
-            return parser(ch_, dest_, next_);
+            return parser.put(ch_, next_);
         }
     };
 
 public:
-    explicit basic_json_parser(Destinate & dest)
-        : dest_(dest) {}
+    explicit basic_json_parser(Dest & dest)
+        : data_( any_parser(&dest) )
+    {
+    }
 
     bool parse(CharT ch)
     {
-        while( boost::apply_visitor(json_visitor(ch, dest_, data_), data_) == false );
+        while(!boost::apply_visitor(json_visitor(ch, data_), data_))
+            ;
         return data_.which() == 0;
     }
 
 private:
-    Destinate & dest_;
     Parser data_;
 };
 
