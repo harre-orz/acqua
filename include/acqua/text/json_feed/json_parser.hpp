@@ -1,3 +1,11 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 #include <boost/variant.hpp>
@@ -193,6 +201,23 @@ class string_parser
 protected:
     String str_;
 
+private:
+    static void unescape(char16_t ch, std::basic_string<char16_t> & s)
+    {
+        s += ch;
+    }
+
+    template <typename CharT>
+    static void unescape(char16_t ch, std::basic_string<CharT> & s)
+    {
+        namespace utf = boost::locale::utf;
+        
+        char16_t * it = &ch;
+        utf::code_point cp = utf::utf_traits<char16_t>::decode(it, it + 1);
+        if (cp != utf::illegal && cp != utf::incomplete)
+            utf::utf_traits<CharT>::encode(cp, std::back_inserter(s));
+    }
+    
 public:
     template <typename CharT, typename Parser>
     bool parse(CharT const & ch, Parser & next)
@@ -257,9 +282,8 @@ public:
                 if (std::isxdigit(ch)) {
                     hex_[4] = ch;
                     hex_[5] = 0;
-                    wchar_t tmp[] = { (wchar_t)std::strtol(hex_ + 1, nullptr, 16), 0 };
-                    str_ += boost::locale::conv::utf_to_utf<CharT>(tmp);
                     escape_ = false;
+                    unescape(std::strtol(hex_ + 1, nullptr, 16), str_);
                     return true;
                 }
             }
