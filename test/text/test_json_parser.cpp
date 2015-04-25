@@ -1,10 +1,13 @@
-#include <acqua/text/json_parser.hpp>
+#include <acqua/text/json_feed_parser.hpp>
+#include <acqua/text/adapt/boost_ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 
 int main(int, char ** argv)
 {
-    int x;
-    acqua::text::json_parser<int, char> parser(x);
-    char const *s = argv[1];
-    while( parser.parse(*s), *s++ )
-        ;
+    boost::property_tree::ptree pt;
+    acqua::text::json_feed_parser<decltype(pt), char> feed(pt);
+    feed << argv[1];
+
+    std::cout << "---------" << std::endl;
+    boost::property_tree::write_xml(std::cout, pt);
 }
