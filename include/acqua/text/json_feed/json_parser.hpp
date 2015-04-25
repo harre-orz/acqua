@@ -18,6 +18,8 @@ public:
         switch(ch) {
             case '\0':
                 return true;
+            case ' ': case '\t': case '\r': case '\n':
+                return true;
             case 'n': case 'N':
                 next.null();
                 return true;
@@ -75,7 +77,7 @@ public:
     {
         using acqua::text::adapt::parse_value;
         
-        if (!*++lit_) {
+        if (*++lit_ == '\0') {
             switch(l_) {
                 case l_null:
                     parse_value(nullptr, next.destinate());
@@ -88,7 +90,7 @@ public:
                     break;
             }
             next.complete();
-            return true;
+            return false;
         } else if (std::tolower(ch, std::locale("C")) == *lit_) {
             return true;
         }
@@ -304,6 +306,9 @@ public:
             return true;
         }
 
+        if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
+            return true;
+
         throw parse_error();
     }
 };
@@ -381,7 +386,10 @@ public:
             val_.reset(new Parser(parse_child(key_.destinate(), next.destinate())));
             return true;
         }
-        
+
+        if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
+            return true;
+
         throw parse_error();
     }
 };
