@@ -220,10 +220,10 @@ public:
                     case 'n':
                         str_ += '\n';
                         break;
-                    case '\r':
+                    case 'r':
                         str_ += '\r';
                         break;
-                    case '\t':
+                    case 't':
                         str_ += '\t';
                         break;
                     case 'u': case 'U':

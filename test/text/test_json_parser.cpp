@@ -10,8 +10,10 @@ int main(int, char **)
     char ch;
     while (feed.good()) {
         std::cin >> ch;
+        std::cout << ch;
         feed << ch;
     }
-    
+
+    std::cout << std::endl << std::endl;
     boost::property_tree::write_json(std::cout, pt, true);
 }
