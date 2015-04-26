@@ -9,6 +9,7 @@
 #pragma once
 
 #include <deque>
+#include <list>
 #include <acqua/container/detail/container_tag.hpp>
 #include <acqua/container/detail/sequenced_map_base.hpp>
 
@@ -78,9 +79,9 @@ template <
     typename Allocator = std::allocator< std::pair<Key const, Value> >
     >
 class sequenced_multimap
-    : detail::sequenced_map_base<detail::non_unique_tag, Key, Value, Pred, Allocator, std::deque>
+    : public detail::sequenced_map_base<detail::non_unique_tag, Key, Value, Pred, Allocator, std::list>
 {
-    using base_type = detail::sequenced_map_base<detail::non_unique_tag, Key, Value, Pred, Allocator, std::deque>;
+    using base_type = detail::sequenced_map_base<detail::non_unique_tag, Key, Value, Pred, Allocator, std::list>;
 
 public:
     using key_type = typename base_type::key_type;

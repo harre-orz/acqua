@@ -14,13 +14,14 @@
 
 namespace acqua { namespace container { namespace detail {
 
-template <typename Tag, typename Key, typename Value, typename Pred, typename Allocator, template <typename V, typename A> class Container>
+template <typename Tag, typename Key, typename Value, typename Pred, typename Allocator,
+          template <typename T, typename A> class Container>
 struct sequenced_map_base
     : private Pred, private Allocator
 {
     using key_type = Key;
     using mapped_type = Value;
-    using value_type = std::pair<key_type, mapped_type>;
+    using value_type = std::pair<key_type const, mapped_type>;
     using key_equal = Pred;
     using allocator_type = Allocator;
     using data_type = Container<value_type, allocator_type>;
@@ -258,12 +259,13 @@ struct sequenced_map_base
         return val.first;
     }
 
-    template <typename T, typename... Args>
-    static T const & key(T const & t, Args...)
+    template <typename... Args>
+    static key_type const & key(key_type const & t, Args...)
     {
         return t;
     }
 
+private:
     data_type data_;
 };
 
