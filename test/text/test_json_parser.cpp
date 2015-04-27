@@ -4,8 +4,9 @@
 
 int main(int, char **)
 {
+
     boost::property_tree::ptree pt;
-    acqua::text::json_feed_parser<decltype(pt), char> feed(pt);
+    acqua::text::json_feed_parser<char, decltype(pt)> feed(pt);
 
     char ch;
     while (feed.good()) {
