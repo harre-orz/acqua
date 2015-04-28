@@ -23,6 +23,13 @@ extern "C" {
 
 namespace acqua { namespace network {
 
+namespace detail {
+
+template <typename Address>
+class prefix_address;
+
+}
+
 /*!
   IPv4アドレスクラス.
 
@@ -35,7 +42,10 @@ class internet4_address
     , private boost::unit_steppable<internet4_address>
     , private boost::additive2<internet4_address, long int>
 {
+    friend detail::prefix_address<internet4_address>;
+
 public:
+    using masklen_type = char;
     using bytes_type = boost::asio::ip::address_v4::bytes_type;
 
     internet4_address() noexcept
@@ -247,8 +257,8 @@ public:
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, internet4_address const & rhs)
     {
         char buf[4*4];
-        auto size = std::sprintf(buf, "%d.%d.%d.%d", rhs.bytes_[0], rhs.bytes_[1], rhs.bytes_[2], rhs.bytes_[3]);
-        std::copy_n(buf, size, std::ostreambuf_iterator<Ch>(os));
+        char * end = rhs.write(buf);
+        std::copy(buf, end, std::ostreambuf_iterator<Ch>(os));
         return os;
     }
 
@@ -258,6 +268,11 @@ public:
     }
 
 private:
+    char * write(char * buf) const
+    {
+        return buf + std::sprintf(buf, "%d.%d.%d.%d", bytes_[0], bytes_[1], bytes_[2], bytes_[3]);
+    }
+
     template <typename T, typename std::enable_if<std::is_integral<T>::value>::type * = nullptr>
     void copy_from(T const * t) noexcept
     {

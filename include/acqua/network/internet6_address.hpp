@@ -22,6 +22,14 @@ extern "C" {
 
 namespace acqua { namespace network {
 
+namespace detail {
+
+template <typename Address>
+class prefix_address;
+
+}
+
+
 /*!
   IPv6アドレスクラス.
 
@@ -34,8 +42,11 @@ class internet6_address
     , private boost::unit_steppable<internet6_address>
     , private boost::additive2<internet6_address, long int>
 {
+    friend detail::prefix_address<internet6_address>;
+
 public:
     using bytes_type = boost::asio::ip::address_v6::bytes_type;
+    using masklen_type = char;
 
     internet6_address() noexcept
     {
@@ -217,12 +228,17 @@ public:
         return boost::lexical_cast<std::string>(*this);
     }
 
+    operator ::in6_addr const &() const
+    {
+        return *reinterpret_cast<::in6_addr const *>(bytes_.data());
+    }
+
     template <typename Ch, typename Tr>
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, internet6_address const & rhs)
     {
-        char buf[5 * 8];
-        ::inet_ntop(AF_INET6, rhs.bytes_.data(), buf, sizeof(buf));
-        std::copy_n(buf, std::strlen(buf), std::ostreambuf_iterator<Ch>(os));
+        // char buf[5 * 8];
+        // char const * end = rhs.write(buf);
+        // std::copy(buf, end, std::ostreambuf_iterator<Ch>(os));
         return os;
     }
 
@@ -232,6 +248,11 @@ public:
     }
 
 private:
+    char * write(char * buf) const
+    {
+        return const_cast<char *>(::inet_ntop(AF_INET6, bytes_.data(), buf, 40));
+    }
+
     template <typename T, typename std::enable_if<std::is_integral<T>::value>::type * = nullptr>
     void copy_from(T const * t) noexcept
     {

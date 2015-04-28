@@ -20,8 +20,20 @@ extern "C" {
 #include <boost/asio/ip/basic_endpoint.hpp>
 #include <acqua/exception/throw_error.hpp>
 #include <acqua/network/linklayer_address.hpp>
+#include <acqua/asio/detail/membership.hpp>
 
 namespace acqua { namespace asio {
+
+namespace socket_base {
+
+using add_promisc = detail::membership<SOL_PACKET, PACKET_ADD_MEMBERSHIP, PACKET_MR_PROMISC>;
+using del_promisc = detail::membership<SOL_PACKET, PACKET_DROP_MEMBERSHIP, PACKET_MR_PROMISC>;
+using add_multicast = detail::membership<SOL_PACKET, PACKET_ADD_MEMBERSHIP, PACKET_MR_MULTICAST>;
+using del_multicast = detail::membership<SOL_PACKET, PACKET_DROP_MEMBERSHIP, PACKET_MR_MULTICAST>;
+using add_allmulti = detail::membership<SOL_PACKET, PACKET_ADD_MEMBERSHIP, PACKET_MR_ALLMULTI>;
+using del_allmulti = detail::membership<SOL_PACKET, PACKET_DROP_MEMBERSHIP, PACKET_MR_ALLMULTI>;
+
+}
 
 class raw
 {
@@ -29,6 +41,7 @@ public:
     using protocol_type = raw;
     using socket = boost::asio::basic_raw_socket<raw>;
     using endpoint = boost::asio::ip::basic_endpoint<raw>;
+    using address = acqua::network::linklayer_address;
 
     int family() const noexcept
     {
@@ -55,8 +68,9 @@ template <>
 class basic_endpoint<acqua::asio::raw>
 {
 public:
-    typedef struct ::sockaddr data_type;
-    typedef acqua::asio::raw protocol_type;
+    using data_type = ::sockaddr;
+    using protocol_type = acqua::asio::raw;
+    using address_type = typename protocol_type::address;
 
     basic_endpoint() noexcept
     {
@@ -130,32 +144,32 @@ public:
         return reinterpret_cast<data_type const *>(&sll_);
     }
 
-    acqua::network::linklayer_address address(boost::system::error_code & ec) const noexcept
+    address_type address(boost::system::error_code & ec) const noexcept
     {
         struct ::ifreq ifr;
         std::memset(&ifr, 0, sizeof(ifr));
         if (::if_indextoname(sll_.sll_ifindex, ifr.ifr_name) == nullptr) {
             ec.assign(errno, boost::system::generic_category());
-            return acqua::network::linklayer_address();
+            return address_type();
         }
 
         int fd;
         if ((fd = ::socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
             ec.assign(errno, boost::system::generic_category());
-            return acqua::network::linklayer_address();
+            return address_type();
         }
 
         if (::ioctl(fd, SIOCGIFHWADDR, &ifr) != 0) {
             ec.assign(errno, boost::system::generic_category());
             ::close(fd);
-            return acqua::network::linklayer_address();
+            return address_type();
         }
 
         ::close(fd);
-        return acqua::network::linklayer_address(ifr.ifr_hwaddr.sa_data);
+        return address_type(ifr.ifr_hwaddr.sa_data);
     }
 
-    acqua::network::linklayer_address address() noexcept
+    address_type address() noexcept
     {
         boost::system::error_code ec;
         auto addr = address(ec);
