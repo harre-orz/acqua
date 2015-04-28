@@ -10,9 +10,10 @@ extern "C" {
 }
 
 #include <acqua/asio/raw.hpp>
-#include <acqua/network/linklayer_address.hpp>
 
-namespace acqua { namespace asio { namespace detail {
+namespace acqua { namespace asio {
+
+namespace detail {
 
 template <int Level, int Name, int Type>
 class membership
@@ -25,7 +26,7 @@ public:
         mr_.mr_ifindex = ep.scope_id();
     }
 
-    explicit membership(raw::endpoint const & ep, acqua::network::linklayer_address const & addr)
+    explicit membership(raw::endpoint const & ep, raw::address const & addr)
     {
         std::memset(&mr_, 0, sizeof(mr_));
         mr_.mr_type = Type;
