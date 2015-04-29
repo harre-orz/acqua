@@ -45,8 +45,8 @@ class internet4_address
     friend detail::prefix_address<internet4_address>;
 
 public:
-    using masklen_type = char;
     using bytes_type = boost::asio::ip::address_v4::bytes_type;
+    using masklen_type = unsigned char;
 
     internet4_address() noexcept
     {

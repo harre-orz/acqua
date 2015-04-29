@@ -46,7 +46,7 @@ class internet6_address
 
 public:
     using bytes_type = boost::asio::ip::address_v6::bytes_type;
-    using masklen_type = char;
+    using masklen_type = unsigned char;
 
     internet6_address() noexcept
     {
