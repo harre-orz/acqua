@@ -7,14 +7,6 @@ int main(int, char **)
 
     boost::property_tree::ptree pt;
     acqua::text::json_feed_parser<char, decltype(pt)> feed(pt);
-
-    char ch;
-    while (feed.good()) {
-        std::cin >> ch;
-        std::cout << ch;
-        feed << ch;
-    }
-
-    std::cout << std::endl << std::endl;
+    std::cin >> feed;
     boost::property_tree::write_json(std::cout, pt, true);
 }

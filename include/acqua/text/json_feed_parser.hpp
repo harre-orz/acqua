@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <boost/system/error_code.hpp>
 #include <boost/variant.hpp>
 #include <boost/locale/encoding_utf.hpp>
 #include <acqua/text/adapt/parse_adaptor.hpp>
@@ -56,7 +57,7 @@ public:
                 return true;
         }
 
-        next.error();
+        next.failure();
         return true;
     }
 };
@@ -88,22 +89,21 @@ public:
         if (*++lit_ == '\0') {
             switch(l_) {
                 case l_null:
-                    parse_adaptor<typename Parser::destinate_type>(next.destinate()).parse_value(nullptr);
+                    next.complete(nullptr);
                     break;
                 case l_true:
-                    parse_adaptor<typename Parser::destinate_type>(next.destinate()).parse_value(true);
+                    next.complete(true);
                     break;
                 case l_false:
-                    parse_adaptor<typename Parser::destinate_type>(next.destinate()).parse_value(false);
+                    next.complete(false);
                     break;
             }
-            next.complete();
             return false;
-        } else if (std::tolower(ch, std::locale("C")) == *lit_) {
+        } else if (std::tolower(ch, std::locale::classic()) == *lit_) {
             return true;
         }
 
-        next.error();
+        next.failure();
         return true;
     }
 };
@@ -141,9 +141,7 @@ public:
                 }
 
                 if (sign_) decimal_ *= -1;
-                parse_adaptor<typename Parser::destinate_type>(next.destinate())
-                    .parse_value(decimal_);
-                next.complete();
+                next.complete(decimal_);
                 return false;
             case n_fraction:
                 if (ch == 'e' || ch == 'E') {
@@ -158,9 +156,7 @@ public:
                 }
 
                 if (sign_) decimal_ *= -1;
-                parse_adaptor<typename Parser::destinate_type>(next.destinate())
-                    .parse_value((double)decimal_ / (double)fraction_);
-                next.complete();
+                next.complete((double)decimal_ / (double)fraction_);
                 return false;
             case n_exp:
                 switch(ch) {
@@ -183,13 +179,11 @@ public:
                     return true;
                 }
                 if (sign_) exponent_ *= -1;
-                parse_adaptor<typename Parser::destinate_type>(next.destinate())
-                    .parse_value((double)decimal_ * std::pow(10, exponent_) / (double)fraction_);
-                next.complete();
+                next.complete((double)decimal_ * std::pow(10, exponent_) / (double)fraction_);
                 return false;
         }
 
-        next.error();
+        next.failure();
         return true;
     }
 };
@@ -257,7 +251,7 @@ public:
                         hex_[1] = 0;
                         return true;
                     default:
-                        next.error();
+                        next.failure();
                         return true;
                 }
                 escape_ = false;
@@ -290,19 +284,18 @@ public:
                 }
             }
         } else if (ch == '"') {
-            parse_adaptor<typename Parser::destinate_type>(next.destinate()).parse_value(str_);
-            next.complete();
+            next.complete(str_);
             return true;
         } else if (ch == '\\') {
             escape_ = true;
             hex_[0] = 0;
             return true;
-        } else if (std::isprint(ch, std::locale("C"))) {
+        } else if (std::isprint(ch, std::locale::classic())) {
             str_ += ch;
             return true;
         }
 
-        next.error();
+        next.failure();
         return true;
     }
 };
@@ -318,23 +311,23 @@ public:
     template <typename CharT>
     bool parse(CharT const & ch, Parser & next)
     {
-        if (data_ && data_->is_progress()) {
+        if (data_ && data_->progress()) {
             return data_->parse(ch);
         } else if (ch == ']') {
             next.complete();
             return true;
         } else if (!data_) {
-            data_.reset(new Parser(parse_adaptor<typename Parser::destinate_type>(next.destinate()).parse_child(index_++)));
+            data_ = next.child(index_++);
             return data_->parse(ch);
         } else if (ch == ',') {
-            data_.reset(new Parser(parse_adaptor<typename Parser::destinate_type>(next.destinate()).parse_child(index_++)));
+            data_ = next.child(index_++);
             return true;
         }
 
         if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
             return true;
 
-        next.error();
+        next.failure();
         return true;
     }
 };
@@ -345,41 +338,16 @@ class object_parser
 {
     struct string : string_parser<String>
     {
-        using destinate_type = String;
-        bool ready_ = false;
+        explicit string(Parser & parent) : parent_(parent) {}
+        bool progress() const { return !compl_; }
+        template <typename T>
+        void complete(T const &) { compl_ = true; }
+        void failure() { parent_.failure(); }
+        String const & str() const { return this->str_; }
+        Parser & parent_;
         bool compl_ = false;
-        void ready()
-        {
-            ready_ = true;
-        }
-        bool is_ready() const
-        {
-            return ready_;
-        }
-        void complete()
-        {
-            compl_ = true;
-        }
-        void error()
-        {
-            // FIXME: このエラーをハンドリングしていない
-            compl_ = true;
-        }
-        bool is_progress() const
-        {
-            return !compl_;
-        }
-        destinate_type & destinate()
-        {
-            return this->str_;
-        }
-        void clear()
-        {
-            ready_ = false;
-            compl_ = false;
-            this->str_.clear();
-        }
-    } key_;
+    };
+    std::unique_ptr<string> key_;
     std::unique_ptr<Parser> val_;
     bool first_ = true;
 
@@ -388,38 +356,38 @@ public:
     bool parse(CharT const & ch, Parser & next)
     {
         if (val_) {
-            if (val_->is_progress())
+            if (val_->progress())
                 return val_->parse(ch);
             if (ch == '}') {
                 next.complete();
                 return true;
             }
             if (ch == ',') {
-                key_.clear();
+                key_.release();
                 val_.release();
                 return true;
             }
-        } else if (!key_.is_ready()) {
+        } else if (!key_) {
             if (first_ && ch == '}') {
                 next.complete();
                 return true;
             }
             if (ch == '"') {
                 first_ = false;
-                key_.ready();
+                key_.reset(new string(next));
                 return true;
             }
-        } else if (key_.is_progress()) {
-            return key_.parse(ch, key_);
+        } else if (key_->progress()) {
+            return key_->parse(ch, *key_);
         } else if (ch == ':') {
-            val_.reset(new Parser(parse_adaptor<typename Parser::destinate_type>(next.destinate()).parse_child(key_.destinate())));
+            val_ = next.child(key_->str());
             return true;
         }
 
         if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
             return true;
 
-        next.error();
+        next.failure();
         return true;
     }
 };
@@ -439,6 +407,7 @@ class feed_parser
     using array_type = array_parser< feed_parser<CharT, Destinate> >;
     using object_type = object_parser< feed_parser<CharT, Destinate>, std::basic_string<CharT> >;
     using base_type = boost::variant<any_type, literal_type, number_type, string_type, array_type, object_type>;
+    using adaptor_type = parse_adaptor<Destinate>;
 
     struct parse_visitor : boost::static_visitor<bool>
     {
@@ -459,82 +428,111 @@ public:
     using destinate_type = Destinate;
 
 public:
-    feed_parser(Destinate & dest)
-        : base_type(), dest_(&dest) {}
+    feed_parser(Destinate & dest, boost::system::error_code & error)
+        : base_type(), adapt_(dest), error_(error) {}
 
     feed_parser(feed_parser const & rhs)
-        : base_type(), dest_(rhs.dest_) {}
+        : base_type(), adapt_(rhs.dest_), error_(rhs.error_) {}
 
-    destinate_type & destinate()
-    {
-        return *dest_;
-    }
-
+    //! ch をパースする.
+    //! 次の文字へ進むときは true, 同じ文字をもう一度パースするときは false を返す
     bool parse(CharT ch)
     {
         return boost::apply_visitor(parse_visitor(*this, ch), *this);
     }
 
+    //! null のパーサになる
     void null()
     {
         static_cast<base_type &>(*this) = literal_type(l_null);
     }
 
+    //! true/false のパーサになる
     void boolean(bool val)
     {
         static_cast<base_type &>(*this) = literal_type(val ? l_true : l_false);
     }
 
+    //! 数値のパーサになる
     void number(char ch)
     {
         static_cast<base_type &>(*this)
-            = (ch == '-')
-            ? number_type(0, true)
-            : (ch == '+')
-            ? number_type(0, false)
-            : number_type(ch - '0', false);
+            = (ch == '-') ? number_type(0, true)
+            : (ch == '+') ? number_type(0, false)
+            :               number_type(ch - '0', false);
     }
 
+    //! 文字列のパーサになる
     void string()
     {
         static_cast<base_type &>(*this) = string_type();
     }
 
+    //! 配列のパーサになる
     void array()
     {
         static_cast<base_type &>(*this) = array_type();
     }
 
+    //! オブジェクトのパーサになる
     void object()
     {
         static_cast<base_type &>(*this) = object_type();
     }
 
+    //! 現在のパースを成功にして、次のパーサを選択するパーサになる
     void complete()
     {
         static_cast<base_type &>(*this) = any_type();
         compl_ = true;
     }
 
-    void error()
+    //! 現在のパースが成功にして値 T を保存し、次のパーサを選択するパーサになる
+    template <typename T>
+    void complete(T const & t)
     {
+        adapt_.parse_value(t);
         complete();
-        error_ = true;
     }
 
-    bool is_progress() const
+    //! パースに失敗した状態になる
+    void failure()
+    {
+        error_.assign(EIO, boost::system::generic_category());
+    }
+
+    //! パースが進行中であれば true を返す
+    bool progress() const
     {
         return !compl_;
     }
 
+    //! 現在のパースが成功にして値 T を保存し、入れ子パーサを返す
+    template <typename T>
+    std::unique_ptr<feed_parser> child(T const & t)
+    {
+        return std::unique_ptr<feed_parser>(new feed_parser(adapt_.parse_child(t), error_));
+    }
+
+    boost::system::error_code const & error() const
+    {
+        return error_;
+    }
+
 private:
-    destinate_type * dest_;
+    adaptor_type adapt_;
+    boost::system::error_code & error_;
     bool compl_ = false;
-    bool error_ = false;
 };
 
 } // json_impl
 
+
+/*!
+  JSONストリーミングパーサ.
+
+  バッファを持たずに状態を保持しながら逐次的にパースする
+ */
 template <typename CharT, typename Destinate>
 class json_feed_parser
 {
@@ -542,35 +540,38 @@ class json_feed_parser
 
 public:
     json_feed_parser(Destinate & dest)
-        : data_(dest) {}
+        : data_(dest, error_) {}
 
-    bool good() const
+    //! パースの処理中であれば true を返す
+    bool progress() const
     {
-        return data_.is_progress();
+        return !data_.error() && data_.progress();
     }
 
-    json_feed_parser & operator<<(CharT ch)
+    //! パースが継続できないとき、error に値が入る
+    boost::system::error_code const & error() const
+    {
+        return data_.error();
+    }
+
+    //! ch をストリーミングパースする
+    json_feed_parser & parse(CharT ch)
     {
         while(!data_.parse(ch));
         return *this;
     }
 
-    json_feed_parser & operator<<(CharT const * str)
+    //! is がEOFになるか、パースが正常/異常終了するまで、is から文字を取得し続ける
+    friend std::basic_istream<CharT> & operator>>(std::basic_istream<CharT> & is, json_feed_parser<CharT, Destinate> & rhs)
     {
-        while(*str)
-            *this << *str++;
-        return *this;
-    }
-
-    json_feed_parser & operator<<(std::basic_string<CharT> const & str)
-    {
-        for(CharT const & ch : str)
-            *this << ch;
-        return *this;
+        CharT ch;
+        while(is.get(ch).good() && rhs.parse(ch).good());
+        return is;
     }
 
 private:
     data_type data_;
+    boost::system::error_code error_;
 };
 
 } }
