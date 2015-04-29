@@ -34,7 +34,7 @@ public:
     prefix_address(address_type const & address, masklen_type masklen) noexcept
         : masklen_(std::min(masklen, max_masklen())), address_()
     {
-        auto iit = address.bytes_.begin();
+                auto iit = address.bytes_.begin();
         auto oit = address_.bytes_.begin();
         for(masklen = masklen_; masklen > 8; masklen -= 8)
             *oit++ = *iit++;
@@ -45,6 +45,18 @@ public:
     prefix_address(prefix_address &&) = default;
     prefix_address & operator=(prefix_address const &) = default;
     prefix_address & operator=(prefix_address &&) = default;
+
+    void assign(address_type const & address, masklen_type masklen)
+    {
+        masklen_ = std::min(masklen, max_masklen());
+        address_ = address_type::unspecifed();
+
+        auto iit = address.bytes_.begin();
+        auto oit = address_.bytes_.begin();
+        for(masklen = masklen_; masklen > 8; masklen -= 8)
+            *oit++ = *iit++;
+        *oit = *iit & ~((0x01 << (8 - masklen)) - 1);
+    }
 
     address_type address() const
     {
@@ -113,6 +125,10 @@ public:
     }
 
 private:
+    void fit(address_type const & address)
+    {
+    }
+
     constexpr masklen_type max_masklen() const
     {
         return std::tuple_size<bytes_type>::value * 8;
