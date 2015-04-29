@@ -565,7 +565,7 @@ public:
     friend std::basic_istream<CharT> & operator>>(std::basic_istream<CharT> & is, json_feed_parser<CharT, Destinate> & rhs)
     {
         CharT ch;
-        while(is.get(ch).good() && rhs.parse(ch).good());
+        while(is.get(ch).good() && rhs.parse(ch).progress());
         return is;
     }
 
