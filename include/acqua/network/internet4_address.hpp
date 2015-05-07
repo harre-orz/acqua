@@ -257,7 +257,7 @@ public:
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, internet4_address const & rhs)
     {
         char buf[4*4];
-        char * end = rhs.write(buf);
+        char * end = rhs.inet_ntop(buf);
         std::copy(buf, end, std::ostreambuf_iterator<Ch>(os));
         return os;
     }
@@ -268,7 +268,7 @@ public:
     }
 
 private:
-    char * write(char * buf) const
+    char * inet_ntop(char * buf) const
     {
         return buf + std::sprintf(buf, "%d.%d.%d.%d", bytes_[0], bytes_[1], bytes_[2], bytes_[3]);
     }

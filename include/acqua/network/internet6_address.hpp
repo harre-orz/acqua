@@ -236,9 +236,9 @@ public:
     template <typename Ch, typename Tr>
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, internet6_address const & rhs)
     {
-        // char buf[5 * 8];
-        // char const * end = rhs.write(buf);
-        // std::copy(buf, end, std::ostreambuf_iterator<Ch>(os));
+        char buf[5 * 8];
+        char * end = rhs.inet_ntop(buf);
+        std::copy(buf, end, std::ostreambuf_iterator<Ch>(os));
         return os;
     }
 
@@ -248,9 +248,10 @@ public:
     }
 
 private:
-    char * write(char * buf) const
+    char * inet_ntop(char * buf) const
     {
         return const_cast<char *>(::inet_ntop(AF_INET6, bytes_.data(), buf, 40));
+        return buf;
     }
 
     template <typename T, typename std::enable_if<std::is_integral<T>::value>::type * = nullptr>

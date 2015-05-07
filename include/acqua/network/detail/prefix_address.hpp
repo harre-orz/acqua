@@ -115,16 +115,22 @@ public:
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, prefix_address const & rhs)
     {
         char buf[ rhs.buffer_size(rhs.address_) ];
-        char * end = rhs.address_.write(buf);
-        *end++ = '/';
-        if ((*end = '0' + rhs.masklen_ / 100 % 10) != '0') end++;
-        if ((*end = '0' + rhs.masklen_ /  10 % 10) != '0') end++;
-        *end++ = '0' + rhs.masklen_ % 10;
+        char * end = rhs.inet_ntop(buf);
         std::copy(buf, end, std::ostreambuf_iterator<Ch>(os));
         return os;
     }
 
 private:
+    char * inet_ntop(char * buf) const
+    {
+        char * end = address_.inet_ntop(buf);
+        *end++ = '/';
+        if ((*end = '0' + masklen_ / 100 % 10) != '0') end++;
+        if ((*end = '0' + masklen_ /  10 % 10) != '0') end++;
+        *end++ = '0' + masklen_ % 10;
+        return end;
+    }
+
     void fit(address_type const & address)
     {
     }
