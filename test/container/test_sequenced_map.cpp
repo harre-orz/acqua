@@ -21,7 +21,6 @@ BOOST_AUTO_TEST_CASE(sequenced_map_basic)
     BOOST_CHECK_EQUAL((map.begin()+1)->second, 2);
     BOOST_CHECK_EQUAL((map.begin()+2)->first, 3);
     BOOST_CHECK_EQUAL((map.begin()+2)->second, 3);
-
     BOOST_CHECK_EQUAL(map.size(), 3);
     BOOST_CHECK_EQUAL(map.empty(), false);
     map.clear();
@@ -51,7 +50,6 @@ BOOST_AUTO_TEST_CASE(sequenced_map_insert)
     BOOST_CHECK_EQUAL(map.size(), 2);
     map.clear();
     BOOST_CHECK_EQUAL(map.size(), 0);
-
 }
 
 BOOST_AUTO_TEST_CASE(sequenced_map_emplace)

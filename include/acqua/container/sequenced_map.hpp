@@ -44,7 +44,6 @@ public:
     using difference_type = typename base_type::difference_type;
     using size_type = typename base_type::size_type;
 
-public:
     using base_type::base_type;
     using base_type::key_eq;
     using base_type::get_allocator;
@@ -79,9 +78,9 @@ template <
     typename Allocator = std::allocator< std::pair<Key const, Value> >
     >
 class sequenced_multimap
-    : public detail::sequenced_map_base<detail::non_unique_tag, Key, Value, Pred, Allocator, std::list>
+    : public detail::sequenced_map_base<detail::non_unique_tag, Key, Value, Pred, Allocator, std::deque>
 {
-    using base_type = detail::sequenced_map_base<detail::non_unique_tag, Key, Value, Pred, Allocator, std::list>;
+    using base_type = detail::sequenced_map_base<detail::non_unique_tag, Key, Value, Pred, Allocator, std::deque>;
 
 public:
     using key_type = typename base_type::key_type;
@@ -96,7 +95,6 @@ public:
     using difference_type = typename base_type::difference_type;
     using size_type = typename base_type::size_type;
 
-public:
     using base_type::base_type;
     using base_type::key_eq;
     using base_type::get_allocator;
