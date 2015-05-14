@@ -16,46 +16,59 @@ namespace acqua { namespace container { namespace detail {
 
 template <typename Tag, typename Key, typename Value, typename Pred, typename Allocator,
           template <typename T, typename A> class Container>
-struct sequenced_map_base
+class sequenced_map_base
     : private Pred, private Allocator
 {
+public:
     using key_type = Key;
     using mapped_type = Value;
     using value_type = std::pair<key_type const, mapped_type>;
     using key_equal = Pred;
     using allocator_type = Allocator;
-    using data_type = Container<value_type, allocator_type>;
+
+private:
+    struct wrapped_value_type : std::pair<key_type, mapped_type>
+    {
+        template <typename... Args>
+        wrapped_value_type(Args... args)
+            : std::pair<key_type, mapped_type>(args...) {}
+        operator value_type &() { return *reinterpret_cast<value_type *>(this); }
+        operator value_type const &() const { return *reinterpret_cast<value_type const *>(this); }
+    };
+    using data_type = Container<wrapped_value_type, typename Allocator::template rebind<wrapped_value_type>::other>;
+
+public:
     using difference_type = typename std::iterator_traits<typename data_type::iterator>::difference_type;
     using size_type = typename data_type::size_type;
 
-    struct iterator : boost::iterator_adaptor<iterator, typename data_type::iterator>
+    struct iterator : boost::iterator_adaptor<iterator, typename data_type::iterator, value_type>
     {
         iterator(typename data_type::iterator it)
-            : boost::iterator_adaptor<iterator, typename data_type::iterator>(it) {}
+            : boost::iterator_adaptor<iterator, typename data_type::iterator, value_type>(it) {}
     };
 
-    struct const_iterator : boost::iterator_adaptor<const_iterator, typename data_type::const_iterator>
+    struct const_iterator : boost::iterator_adaptor<const_iterator, typename data_type::const_iterator, value_type>
     {
         const_iterator(typename data_type::const_iterator it)
-            : boost::iterator_adaptor<const_iterator, typename data_type::const_iterator>(it) {}
+            : boost::iterator_adaptor<const_iterator, typename data_type::const_iterator, value_type>(it) {}
 
         const_iterator(iterator it)
-            : boost::iterator_adaptor<const_iterator, typename data_type::const_iterator>(it.base()) {}
+            : boost::iterator_adaptor<const_iterator, typename data_type::const_iterator, value_type>(it.base()) {}
     };
 
-    struct reverse_iterator : boost::iterator_adaptor<reverse_iterator, typename data_type::reverse_iterator>
+    struct reverse_iterator : boost::iterator_adaptor<reverse_iterator, typename data_type::reverse_iterator, value_type>
     {
         reverse_iterator(typename data_type::reverse_iterator it)
-            : boost::iterator_adaptor<reverse_iterator, typename data_type::reverse_iterator>(it) {}
+            : boost::iterator_adaptor<reverse_iterator, typename data_type::reverse_iterator, value_type>(it) {}
     };
 
-    struct const_reverse_iterator : boost::iterator_adaptor<const_reverse_iterator, typename data_type::const_reverse_iterator>
+    struct const_reverse_iterator : boost::iterator_adaptor<const_reverse_iterator, typename data_type::const_reverse_iterator, value_type>
     {
-        const_reverse_iterator(typename data_type::const_reverse_iterator it)
-            : boost::iterator_adaptor<const_reverse_iterator, typename data_type::const_reverse_iterator>(it) {}
-
         const_reverse_iterator(iterator it)
-            : boost::iterator_adaptor<const_reverse_iterator, typename data_type::const_reverse_iterator>(it.base()) {}
+            : boost::iterator_adaptor<const_reverse_iterator, typename data_type::const_reverse_iterator, value_type>(it.base()) {}
+
+        const_reverse_iterator(typename data_type::const_reverse_iterator it)
+            : boost::iterator_adaptor<const_reverse_iterator, typename data_type::const_reverse_iterator, value_type>(it) {}
     };
 
     sequenced_map_base() = default;
