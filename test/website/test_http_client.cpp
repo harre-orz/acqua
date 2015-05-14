@@ -19,6 +19,13 @@ int main(int,  char ** argv)
         tg.create_thread(boost::bind(&boost::asio::io_service::run, &io_service));
 
     acqua::website::http_client client(io_service, ctx, std::atoi(argv[3]));
+
+    // web::wget(client, "http://localhost");
+    // web::wget(client, web::uri("http://localhost", param));
+    // web::wget(client, web::uri("http://localhost", "iso-2022-jp"));
+    // web::wget(client, web::uri("http://localhost", "iso-2022-jp", param));
+    // web::wget(client, "http://localhost", res);
+
     int n = s_count = std::atoi(argv[2]);
     for(int i = 0; i < n; ++i) {
         acqua::website::wget(client, argv[1], [&io_service,&client](boost::system::error_code const & error, acqua::website::http_client::result & res) {

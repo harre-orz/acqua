@@ -3,7 +3,7 @@
 CXXFLAGS += -std=c++11 -W -Wall
 ASFLAGS +=
 LDFLAGS += -lstdc++ -lpthread -lm -lcrypto  -lssl
-LDFLAGS += -lboost_system -lboost_thread -lboost_locale
+LDFLAGS += -lboost_system -lboost_thread -lboost_locale -lboost_date_time
 INCLUDES += ../../include/ /opt/local/include
 
 .PHONY: build clean doc

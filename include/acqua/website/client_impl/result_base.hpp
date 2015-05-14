@@ -20,13 +20,13 @@ namespace acqua { namespace website  {
 
 class client_result;
 
-namespace detail {
+namespace client_impl {
 
-template <typename Result> class client_socket_base;
+template <typename Result> class socket_base;
 
-class client_result_base
+class result_base
 {
-    friend detail::client_socket_base<client_result>;
+    friend socket_base<client_result>;
 
     struct iless
     {
@@ -39,18 +39,18 @@ class client_result_base
 
 public:
     using buffer_type = boost::asio::streambuf;
-    using handler_type = std::function<void(boost::system::error_code const &, client_result_base &)>;
+    using handler_type = std::function<void(boost::system::error_code const &, result_base &)>;
     using header_type = boost::container::flat_map<std::string, std::string>;
 
 private:
-    client_result_base() {}
+    result_base() {}
 
 public:
     template <typename Handler>
-    explicit client_result_base(Handler handler)
+    explicit result_base(Handler handler)
         : handler_(handler) {}
 
-    friend std::ostream & operator<<(std::ostream & os, client_result_base & rhs)
+    friend std::ostream & operator<<(std::ostream & os, result_base & rhs)
     {
         if (rhs.buffer_.size())
             os << &rhs.buffer_;

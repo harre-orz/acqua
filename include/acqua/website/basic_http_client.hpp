@@ -12,7 +12,7 @@
 #include <condition_variable>
 #include <unordered_set>
 #include <boost/asio/ssl.hpp>
-#include <acqua/website/detail/client_socket_base.hpp>
+#include <acqua/website/client_impl/basic_socket.hpp>
 
 namespace acqua { namespace website {
 
@@ -21,15 +21,15 @@ class basic_http_client
     : private boost::noncopyable
 {
     using self_type = basic_http_client<Result, Timer>;
-    using http_socket = detail::basic_client_socket<self_type, Result, boost::asio::ip::tcp::socket, Timer>;
-    using https_socket = detail::basic_client_socket<self_type, Result, boost::asio::ssl::stream<boost::asio::ip::tcp::socket>, Timer >;
+    using http_socket = client_impl::basic_socket<self_type, Result, boost::asio::ip::tcp::socket, Timer>;
+    using https_socket = client_impl::basic_socket<self_type, Result, boost::asio::ssl::stream<boost::asio::ip::tcp::socket>, Timer >;
     friend http_socket;
     friend https_socket;
 
 public:
     using resolver_type = boost::asio::ip::tcp::resolver;
     using endpoint_type = boost::asio::ip::tcp::endpoint;
-    using socket_type = detail::client_socket_base<Result>;
+    using socket_type = client_impl::socket_base<Result>;
     using result_ptr = boost::shared_ptr<Result>;
     using result = typename Result::result;
 
@@ -50,9 +50,12 @@ public:
 
     ~basic_http_client()
     {
-        for(auto const & ptr : kept_sockets_)
+        for(auto const & ptr : keep_sockets_)
             delete ptr;
     }
+
+    bool & enabled_keep_alive() { return enabled_keep_alive_; }
+    bool const & enabled_keep_alive() const { return enabled_keep_alive_; }
 
     boost::asio::ssl::context * get_context() noexcept
     {
@@ -71,7 +74,7 @@ public:
 
     std::size_t keep_count() const noexcept
     {
-        return kept_sockets_.size();
+        return keep_sockets_.size();
     }
 
     std::shared_ptr<socket_type> http_connect(endpoint_type const & endpoint)
@@ -175,7 +178,7 @@ private:
     void lock_wait()
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
-        cond_.wait(lock, [this] { return (count_ + kept_sockets_.size()) < max_count_ ; });
+        cond_.wait(lock, [this] { return (count_ + keep_sockets_.size()) < max_count_ ; });
         ++count_;
     }
 
@@ -183,7 +186,7 @@ private:
     void collect(SocketPtr * socket)
     {
         std::lock_guard<decltype(mutex_)> lock(mutex_);
-        kept_sockets_.emplace(socket);
+        keep_sockets_.emplace(socket);
         socket->async_keep_alive();
     }
 
@@ -191,10 +194,10 @@ private:
     SocketPtr * reuse(SocketPtr * socket)
     {
         std::lock_guard<decltype(mutex_)> lock(mutex_);
-        auto it = kept_sockets_.find(socket);
-        if (it != kept_sockets_.end()) {
+        auto it = keep_sockets_.find(socket);
+        if (it != keep_sockets_.end()) {
             socket = static_cast<SocketPtr *>(*it);
-            kept_sockets_.erase(it);
+            keep_sockets_.erase(it);
         } else {
             socket = nullptr;
         }
@@ -207,9 +210,9 @@ private:
     {
         std::lock_guard<decltype(mutex_)> lock(mutex_);
 
-        for(auto it = kept_sockets_.find(socket); it != kept_sockets_.end(); ++it) {
+        for(auto it = keep_sockets_.find(socket); it != keep_sockets_.end(); ++it) {
             if (*it == socket) {
-                kept_sockets_.erase(it);
+                keep_sockets_.erase(it);
                 cond_.notify_one();
                 return;
             }
@@ -244,9 +247,11 @@ private:
     boost::asio::ssl::context * context_;
     std::size_t max_count_;
     std::atomic<std::size_t> count_;
-    std::unordered_multiset<socket_type *, functor, functor> kept_sockets_;
+    std::unordered_multiset<socket_type *, functor, functor> keep_sockets_;
     std::mutex mutex_;
     std::condition_variable cond_;
+
+    bool enabled_keep_alive_ = true;;
 };
 
 } }

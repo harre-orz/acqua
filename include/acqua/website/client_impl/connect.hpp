@@ -11,12 +11,11 @@
 #include <string>
 #include <cstdlib>
 #include <boost/spirit/include/qi.hpp>
-#include <acqua/website/detail/content_buffer.hpp>
 
-namespace acqua { namespace website { namespace detail {
+namespace acqua { namespace website { namespace client_impl {
 
-template <typename Client, typename Uri, typename ContentBuffer>
-inline std::shared_ptr<typename Client::socket_type> connect(Client & client, char const * method, Uri const & uri, ContentBuffer content)
+template <typename Client, typename Req, typename Uri>
+inline std::shared_ptr<typename Client::socket_type> connect(Client & client,  Req const & req,  Uri const & uri)
 {
     int mode;
     int port = 0;
@@ -33,15 +32,18 @@ inline std::shared_ptr<typename Client::socket_type> connect(Client & client, ch
                     port = 80;
                 auto socket = client.http_connect(host, std::to_string(port));
                 std::ostream & os = (*socket);
-                os << method << ' ';
+                req.method(os);
+                os << ' ';
                 if (it == uri.end() || *it != '/')
                     os << '/';
                 std::copy(it, uri.end(), std::ostreambuf_iterator<char>(os));
+                uri.query(os);
                 os << " "
                     "HTTP/1.1\r\n"
                     "Host: " << host << "\r\n"
-                    "Connection: Keep-Alive\r\n"
-                   << content;
+                    "Connection: " << (client.enabled_keep_alive() ? "Keep-Alive" : "Close") << "\r\n";
+                uri.header(os);
+                req.content(os);
                 return socket;
             }
             case 2: {
@@ -50,15 +52,18 @@ inline std::shared_ptr<typename Client::socket_type> connect(Client & client, ch
                         port = 443;
                     auto socket = client.https_connect(*ctx, host, std::to_string(port));
                     std::ostream & os = (*socket);
-                    os << method << ' ';
+                    req.method(os);
+                    os << ' ';
                     if (it == uri.end() || *it != '/')
                         os << '/';
                     std::copy(it, uri.end(), std::ostreambuf_iterator<char>(os));
+                    uri.query(os);
                     os << " "
                         "HTTP/1.1\r\n"
                         "Host: " << host << "\r\n"
-                        "Connection: Keep-Alive\r\n"
-                       << content;
+                        "Connection: " << (client.enabled_keep_alive() ? "Keep-Alive" : "Close") << "\r\n";
+                    uri.header(os);
+                    req.content(os);
                     return socket;
                 } else {
                     throw std::runtime_error("unsupported https");
