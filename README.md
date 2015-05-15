@@ -39,7 +39,7 @@ acqua::network::internet4_address クラス。
 acqua::network::internet6_address クラス
 
 
-### ウェブサイト
+### ウェブクライアント
 
-acqua::website::http_client クラスは、同期もしくは非同期なHTTP通信やHTTPS通信と、同じサーバに対してはキープアライブを用いて、同じコネクションを使い回す。
-GETには acqua::website::wget 関数を用い、POSTには acqua::website::wpost 関数を用いる。
+acqua::webclient::http_client クラスは、同期もしくは非同期なHTTP通信やHTTPS通信と、同じサーバに対してはキープアライブを用いて、同じコネクションを使い回す。
+GETには acqua::webclient::wget 関数を用い、POSTには acqua::webclient::wpost 関数を用いる。

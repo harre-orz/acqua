@@ -1,5 +1,5 @@
-#include <acqua/website/http_client.hpp>
-#include <acqua/website/wget.hpp>
+#include <acqua/webclient/http_client.hpp>
+#include <acqua/webclient/wget.hpp>
 
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
@@ -18,7 +18,7 @@ int main(int,  char ** argv)
     for(int i = 0; i < 8; ++i)
         tg.create_thread(boost::bind(&boost::asio::io_service::run, &io_service));
 
-    acqua::website::http_client client(io_service, ctx, std::atoi(argv[3]));
+    acqua::webclient::http_client client(io_service, ctx, std::atoi(argv[3]));
 
     // web::wget(client, "http://localhost");
     // web::wget(client, web::uri("http://localhost", param));
@@ -28,7 +28,7 @@ int main(int,  char ** argv)
 
     int n = s_count = std::atoi(argv[2]);
     for(int i = 0; i < n; ++i) {
-        acqua::website::wget(client, argv[1], [&io_service,&client](boost::system::error_code const & error, acqua::website::http_client::result & res) {
+        acqua::webclient::wget(client, argv[1], [&io_service,&client](boost::system::error_code const & error, acqua::webclient::http_client::result & res) {
                 std::lock_guard<decltype(s_mutex)> lock(s_mutex);
                 --s_count;
 

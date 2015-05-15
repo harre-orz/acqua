@@ -11,16 +11,16 @@
 #include <iostream>
 #include <future>
 #include <boost/system/error_code.hpp>
-#include <acqua/website/client_impl/result_base.hpp>
+#include <acqua/webclient/detail/client_result_base.hpp>
 
 
-namespace acqua { namespace website {
+namespace acqua { namespace webclient {
 
 class client_result
-    : public client_impl::result_base
+    : public detail::client_result_base
 {
 public:
-    using result = client_impl::result_base;
+    using result = detail::client_result_base;
     using buffer_type = typename result::buffer_type;
     using handler_type = typename result::handler_type;
 

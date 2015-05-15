@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <boost/spirit/include/qi.hpp>
 
-namespace acqua { namespace website { namespace client_impl {
+namespace acqua { namespace webclient {
 
 template <typename Client, typename Req, typename Uri>
 inline std::shared_ptr<typename Client::socket_type> connect(Client & client,  Req const & req,  Uri const & uri)
@@ -75,4 +75,4 @@ inline std::shared_ptr<typename Client::socket_type> connect(Client & client,  R
     throw std::runtime_error("invalid argument");
 }
 
-} } }
+} }

@@ -9,19 +9,19 @@
 #pragma once
 
 #include <type_traits>
-#include <acqua/website/uri.hpp>
-#include <acqua/website/client_impl/connect.hpp>
+#include <acqua/webclient/uri.hpp>
+#include <acqua/webclient/connect.hpp>
 
 
-namespace acqua { namespace website {
+namespace acqua { namespace webclient {
 
-namespace client_impl {
+namespace detail {
 
 template <typename Content>
-class no_encoded_post
+class non_encoded_post
 {
 public:
-    explicit no_encoded_post(Content content)
+    explicit non_encoded_post(Content content)
         : content_(content) {}
 
     void method(std::ostream & os) const
@@ -67,10 +67,10 @@ inline typename Client::result_ptr wpost(Client & client, std::string const & ur
     return wpost(client, uri(url), content);
 }
 
-template <typename Client, typename Uri, typename Content, typename std::enable_if<std::is_base_of<uri_base, Uri>::value>::type * = nullptr>
+template <typename Client, typename Uri, typename Content, typename std::enable_if<std::is_base_of<detail::uri_base, Uri>::value>::type * = nullptr>
 inline typename Client::result_ptr wpost(Client & client, Uri const & uri, Content content)
 {
-    return client_impl::connect(client, client_impl::no_encoded_post<Content>(content), uri)->start();
+    return connect(client, detail::non_encoded_post<Content>(content), uri)->start();
 }
 
 
@@ -80,10 +80,10 @@ inline void wpost(Client & client, std::string const & url, Content content, Han
     wpost(client, uri(url), content, handler);
 }
 
-template <typename Client, typename Uri, typename Content, typename Handler>
+template <typename Client, typename Uri, typename Content, typename Handler, typename std::enable_if<std::is_base_of<detail::uri_base, Uri>::value>::type * = nullptr>
 inline void wpost(Client & client, Uri const & uri, Content content, Handler handler)
 {
-    client_impl::connect(client, client_impl::no_encoded_post<Content>(content), uri, handler);
+    connect(client, detail::non_encoded_post<Content>(content), uri, handler);
 }
 
 } }

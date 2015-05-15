@@ -1,3 +1,11 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 #include <iostream>
@@ -8,13 +16,11 @@
 #include <boost/spirit/include/qi.hpp>
 #include <boost/fusion/adapted/std_pair.hpp>
 #include <acqua/asio/read_until.hpp>
-#include <acqua/website/client_impl/socket_base.hpp>
 
-
-namespace acqua { namespace website { namespace client_impl {
+namespace acqua { namespace webclient { namespace detail {
 
 template <typename Result>
-class socket_base
+class client_socket_base
     : public std::ostream
 {
 public:
@@ -23,10 +29,10 @@ public:
     using result_type = typename Result::result;
 
 public:
-    socket_base()
+    client_socket_base()
         : std::ostream(&buffer_) {}
 
-    virtual ~socket_base() {}
+    virtual ~client_socket_base() {}
     virtual void cancel() = 0;
 
     endpoint_type const & endpoint() const noexcept

@@ -8,28 +8,35 @@
 
 #pragma once
 
+#include <iostream>
+#include <type_traits>
+#include <memory>
+#include <chrono>
+#include <unordered_set>
 #include <mutex>
 #include <condition_variable>
-#include <unordered_set>
-#include <boost/asio/ssl.hpp>
-#include <acqua/website/client_impl/basic_socket.hpp>
+#include <atomic>
+#include <boost/asio.hpp>
+#include <boost/asio/steady_timer.hpp>
+#include <acqua/webclient/client_result.hpp>
+#include <acqua/webclient/detail/client_socket.hpp>
 
-namespace acqua { namespace website {
+namespace acqua { namespace webclient {
 
 template <typename Result, typename Timer>
 class basic_http_client
     : private boost::noncopyable
 {
     using self_type = basic_http_client<Result, Timer>;
-    using http_socket = client_impl::basic_socket<self_type, Result, boost::asio::ip::tcp::socket, Timer>;
-    using https_socket = client_impl::basic_socket<self_type, Result, boost::asio::ssl::stream<boost::asio::ip::tcp::socket>, Timer >;
+    using http_socket = detail::client_socket<self_type, Result, boost::asio::ip::tcp::socket, Timer>;
+    using https_socket = detail::client_socket<self_type, Result, boost::asio::ssl::stream<boost::asio::ip::tcp::socket>, Timer >;
     friend http_socket;
     friend https_socket;
 
 public:
     using resolver_type = boost::asio::ip::tcp::resolver;
     using endpoint_type = boost::asio::ip::tcp::endpoint;
-    using socket_type = client_impl::socket_base<Result>;
+    using socket_type = detail::client_socket_base<Result>;
     using result_ptr = boost::shared_ptr<Result>;
     using result = typename Result::result;
 
@@ -251,7 +258,9 @@ private:
     std::mutex mutex_;
     std::condition_variable cond_;
 
-    bool enabled_keep_alive_ = true;;
+    bool enabled_keep_alive_ = true;
 };
+
+using http_client = basic_http_client<client_result, boost::asio::steady_timer>;
 
 } }

@@ -16,17 +16,18 @@
 #include <boost/container/flat_map.hpp>
 
 
-namespace acqua { namespace website  {
+namespace acqua { namespace webclient  {
 
 class client_result;
 
-namespace client_impl {
+namespace detail {
 
-template <typename Result> class socket_base;
+template <typename Result>
+class client_socket_base;
 
-class result_base
+class client_result_base
 {
-    friend socket_base<client_result>;
+    friend client_socket_base<client_result>;
 
     struct iless
     {
@@ -39,18 +40,18 @@ class result_base
 
 public:
     using buffer_type = boost::asio::streambuf;
-    using handler_type = std::function<void(boost::system::error_code const &, result_base &)>;
+    using handler_type = std::function<void(boost::system::error_code const &, client_result_base &)>;
     using header_type = boost::container::flat_map<std::string, std::string>;
 
 private:
-    result_base() {}
+    client_result_base() {}
 
 public:
     template <typename Handler>
-    explicit result_base(Handler handler)
+    explicit client_result_base(Handler handler)
         : handler_(handler) {}
 
-    friend std::ostream & operator<<(std::ostream & os, result_base & rhs)
+    friend std::ostream & operator<<(std::ostream & os, client_result_base & rhs)
     {
         if (rhs.buffer_.size())
             os << &rhs.buffer_;

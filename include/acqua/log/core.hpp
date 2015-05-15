@@ -97,9 +97,10 @@ public:
             buf->format(os, format_);
             os.flush();
 
-            for(auto const & sink : sinks_) {
-                sink->write(dest.c_str(), dest.size());
-            }
+            std::cout << dest << std::endl;
+            //for(auto const & sink : sinks_) {
+            //    sink->write(dest.c_str(), dest.size());
+            //}
         }
 
         void set_format(string_type const & format)

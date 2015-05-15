@@ -1,13 +1,20 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
+#include <iostream>
+#include <type_traits>
 #include <boost/blank.hpp>
-#include <acqua/website/client_impl/socket_base.hpp>
 
-namespace acqua { namespace website {
+namespace acqua { namespace webclient { namespace detail {
 
 class uri_base {};
-
-namespace client_impl {
 
 template <typename Uri, typename Query = boost::blank, typename Header = boost::blank>
 class non_encoded_uri
@@ -31,21 +38,20 @@ public:
 
     void query(std::ostream & os) const
     {
-        write_query(os, query_);
+        query(os, query_);
     }
 
     void header(std::ostream & os) const
     {
-        write_header(os, header_);
+        header(os, header_);
     }
 
 private:
-    void write_query(std::ostream &, boost::blank) const
-    {
-    }
+    void query(std::ostream &, boost::blank) const {}
+    void header(std::ostream &, boost::blank) const {}
 
     template <typename Map, typename Map::mapped_type * = nullptr>
-    void write_query(std::ostream & os, Map const & map) const
+    void query(std::ostream & os, Map const & map) const
     {
         auto it = map.begin();
         if (it != map.end()) {
@@ -58,16 +64,12 @@ private:
         }
     }
 
-    void write_query(std::ostream & os, char const * str) const
+    void query(std::ostream & os, char const * str) const
     {
         if (str && *str != '\0') {
             os << '?';
             os << str;
         }
-    }
-
-    void write_header(std::ostream &, boost::blank) const
-    {
     }
 
 private:
@@ -78,9 +80,9 @@ private:
 
 }
 
-inline client_impl::non_encoded_uri<std::string const &> uri(std::string const & uri)
+inline detail::non_encoded_uri<std::string const &> uri(std::string const & uri)
 {
-    return client_impl::non_encoded_uri<std::string const &>(uri);
+    return detail::non_encoded_uri<std::string const &>(uri);
 }
 
 

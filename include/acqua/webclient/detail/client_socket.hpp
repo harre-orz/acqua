@@ -16,16 +16,16 @@
 #include <boost/spirit/include/qi.hpp>
 #include <boost/fusion/adapted/std_pair.hpp>
 #include <acqua/asio/read_until.hpp>
-#include <acqua/website/client_impl/socket_base.hpp>
+#include <acqua/webclient/detail/client_socket_base.hpp>
 
-namespace acqua { namespace website { namespace client_impl {
+namespace acqua { namespace webclient { namespace detail {
 
 template <typename Client, typename Result, typename Socket, typename Timer>
-class basic_socket
-    : public socket_base<Result>
-    , public std::enable_shared_from_this< basic_socket<Client, Result, Socket, Timer> >
+class client_socket
+    : public client_socket_base<Result>
+    , public std::enable_shared_from_this< client_socket<Client, Result, Socket, Timer> >
 {
-    using base_type = socket_base<Result>;
+    using base_type = client_socket_base<Result>;
 
 public:
     using socket_type = Socket;
@@ -35,10 +35,10 @@ public:
     using buffer_type = typename base_type::buffer_type;
     using result_type = typename base_type::result_type;
 
-    explicit basic_socket(Client * client, boost::asio::io_service & io_service)
+    explicit client_socket(Client * client, boost::asio::io_service & io_service)
         : client_(client), socket_(io_service), timer_(io_service), is_ready_(false), retry_(1) {}
 
-    explicit basic_socket(Client * client, boost::asio::io_service & io_service, boost::asio::ssl::context & ctx)
+    explicit client_socket(Client * client, boost::asio::io_service & io_service, boost::asio::ssl::context & ctx)
         : client_(client), socket_(io_service, ctx), timer_(io_service), is_ready_(false), retry_(1) {}
 
     void set_verify_none()
@@ -51,7 +51,7 @@ public:
         socket_.set_verify_mode(boost::asio::ssl::verify_peer);
         socket_.set_verify_callback(
             std::bind(
-                &basic_socket::verify_certificate,
+                &client_socket::verify_certificate,
                 this->shared_from_this(),
                 std::placeholders::_1, std::placeholders::_2
             )
@@ -62,14 +62,14 @@ public:
     void timeout(std::chrono::time_point<Clock, Duration> const & time_point)
     {
         timer_.expires_at(time_point);
-        timer_.async_wait(std::bind(&basic_socket::on_wait, this->shared_from_this(), std::placeholders::_1));
+        timer_.async_wait(std::bind(&client_socket::on_wait, this->shared_from_this(), std::placeholders::_1));
     }
 
     template <typename Rep, typename Period>
     void timeout(std::chrono::duration<Rep, Period> const & duration)
     {
         timer_.expires_from_now(duration);
-        timer_.async_wait(std::bind(&basic_socket::on_wait, this->shared_from_this(), std::placeholders::_1));
+        timer_.async_wait(std::bind(&client_socket::on_wait, this->shared_from_this(), std::placeholders::_1));
     }
 
     void cancel()
@@ -87,7 +87,7 @@ public:
             lowest_layer_socket(socket_).async_connect(
                 base_type::endpoint_,
                 std::bind(
-                    &basic_socket::on_connect1,
+                    &client_socket::on_connect1,
                     this->shared_from_this(),
                     std::placeholders::_1
                 )
@@ -105,7 +105,7 @@ public:
                 lowest_layer_socket(socket_).async_connect(
                     base_type::endpoint_,
                     std::bind(
-                        &basic_socket::on_connect2,
+                        &client_socket::on_connect2,
                         this->shared_from_this(),
                         std::placeholders::_1, it
                     )
@@ -127,7 +127,7 @@ public:
                         boost::asio::buffer_cast<char const *>(base_type::buffer_.data()),
                         base_type::buffer_.size()),
                     std::bind(
-                        &basic_socket::on_write,
+                        &client_socket::on_write,
                         this->shared_from_this(),
                         std::placeholders::_1
                     )
@@ -154,7 +154,7 @@ private:
         lowest_layer_socket(socket_).async_connect(
             base_type::endpoint_,
             std::bind(
-                &basic_socket::on_connect1,
+                &client_socket::on_connect1,
                 this->shared_from_this(),
                 std::placeholders::_1
             )
@@ -196,7 +196,7 @@ private:
         socket_.async_handshake(
             boost::asio::ssl::stream_base::client,
             std::bind(
-                &basic_socket::on_handshake,
+                &client_socket::on_handshake,
                 this->shared_from_this(),
                 std::placeholders::_1
             )
@@ -230,7 +230,7 @@ private:
         socket_.async_read_some(
             boost::asio::buffer(&buffer1_, 1),
             std::bind(
-                &basic_socket::on_read_1,
+                &client_socket::on_read_1,
                 this->shared_from_this(),
                 std::placeholders::_1
             )
@@ -244,7 +244,7 @@ private:
             boost::asio::async_read_until(
                 socket_, base_type::buffer_, "\r\n",
                 std::bind(
-                    &basic_socket::on_read_line,
+                    &client_socket::on_read_line,
                     this->shared_from_this(),
                     std::placeholders::_1, std::placeholders::_2
                 )
@@ -266,7 +266,7 @@ private:
             boost::asio::async_read_until(
                 socket_, base_type::buffer_, "\r\n\r\n",
                 std::bind(
-                    &basic_socket::on_read_header,
+                    &client_socket::on_read_header,
                     this->shared_from_this(),
                     std::placeholders::_1, std::placeholders::_2
                 )
@@ -304,7 +304,7 @@ private:
                 boost::asio::async_read_until(
                     socket_, base_type::buffer_, "\r\n",
                     std::bind(
-                        &basic_socket::on_read_chunked_size,
+                        &client_socket::on_read_chunked_size,
                         this->shared_from_this(),
                         std::placeholders::_1, std::placeholders::_2
                     )
@@ -316,7 +316,7 @@ private:
                     boost::asio::async_read_until(
                         socket_, base_type::buffer_, size,
                         std::bind(
-                            &basic_socket::on_read_sized_content,
+                            &client_socket::on_read_sized_content,
                             this->shared_from_this(),
                             std::placeholders::_1, std::placeholders::_2
                         )
@@ -326,7 +326,7 @@ private:
                     boost::asio::async_read(
                         socket_, base_type::buffer_,
                         std::bind(
-                            &basic_socket::on_read_sized_content,
+                            &client_socket::on_read_sized_content,
                             this->shared_from_this(),
                             std::placeholders::_1, std::placeholders::_2
                         )
@@ -361,7 +361,7 @@ private:
                 boost::asio::async_read_until(
                     socket_, base_type::buffer_, chunk_size+2,
                     std::bind(
-                        &basic_socket::on_read_chunked_content,
+                        &client_socket::on_read_chunked_content,
                         this->shared_from_this(),
                         std::placeholders::_1, std::placeholders::_2
                     )
@@ -382,7 +382,7 @@ private:
             boost::asio::async_read_until(
                 socket_, base_type::buffer_, "\r\n",
                 std::bind(
-                    &basic_socket::on_read_chunked_size,
+                    &client_socket::on_read_chunked_size,
                     this->shared_from_this(),
                     std::placeholders::_1, std::placeholders::_2
                 )
@@ -430,7 +430,7 @@ public:
             socket_,
             boost::asio::buffer(&buffer1_, 1),
             std::bind(
-                &basic_socket::on_keep_alive,
+                &client_socket::on_keep_alive,
                 this
             )
         );
@@ -449,7 +449,7 @@ private:
         delete this;
     }
 
-    void async_reuse(basic_socket * socket)
+    void async_reuse(client_socket * socket)
     {
         reuse_ = socket->shared_from_this();
         lowest_layer_socket(socket_).cancel();
@@ -461,7 +461,7 @@ private:
     timer_type timer_;
     std::atomic<bool> is_ready_;
     char buffer1_;
-    std::shared_ptr<basic_socket> reuse_;
+    std::shared_ptr<client_socket> reuse_;
     int retry_;
 };
 
