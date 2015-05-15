@@ -313,6 +313,7 @@ private:
                 it = header.find("Content-Length");
                 if (it != header.end()) {
                     size = std::atol(it->second.c_str());
+
                     boost::asio::async_read_until(
                         socket_, base_type::buffer_, size,
                         std::bind(
@@ -394,8 +395,9 @@ private:
 
     void on_error(boost::system::error_code const & error, char const * location)
     {
+        (void) location;
         timer_.cancel();
-        std::cout << "on_error " << error.message() << ' ' << location << std::endl;
+        //std::cout << "on_error " << error.message() << ' ' << location << std::endl;
         base_type::callback(error, socket_.get_io_service());
     }
 
@@ -419,7 +421,7 @@ private:
         char subject_name[256];
         X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
         X509_NAME_oneline(X509_get_subject_name(cert), subject_name, sizeof(subject_name));
-        std::cout << "Verifying " << subject_name << std::endl;
+        //std::cout << "Verifying " << subject_name << std::endl;
         return preverified;
     }
 

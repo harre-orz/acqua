@@ -112,81 +112,24 @@ public:
     }
 
 private:
-    std::shared_ptr<socket_type> make_http_socket(endpoint_type const & endpoint)
-    {
-        lock_wait();
-
-        std::shared_ptr<http_socket> http(
-            new http_socket(this, resolver_.get_io_service()),
-            [this](http_socket * http) {
-                if (http->is_keep_alive())
-                    collect(http);
-                else
-                    delete http;
-                --count_;
-                cond_.notify_one();
-            });
-        http->timeout(std::chrono::minutes(1));
-        http->async_connect(endpoint);
-        return std::static_pointer_cast<socket_type>(http);
-    }
-
-    std::shared_ptr<socket_type> make_http_socket(boost::system::error_code const & error, typename resolver_type::iterator it)
-    {
-        lock_wait();
-
-        std::shared_ptr<http_socket> http(
-            new http_socket(this, resolver_.get_io_service()),
-            [this](http_socket * http) {
-                if (http->is_keep_alive())
-                    collect(http);
-                else
-                    delete http;
-
-                --count_;
-                cond_.notify_one();
-            });
-        http->timeout(std::chrono::minutes(1));
-        http->async_connect(error, it);
-        return std::static_pointer_cast<socket_type>(http);
-    }
-
-public:
-    std::shared_ptr<socket_type> https_connect(boost::asio::ssl::context & ctx, std::string const & host, std::string const & serv)
-    {
-        boost::system::error_code ec;
-        return make_https_socket(ctx, ec, resolver_.resolve(typename resolver_type::query(host, serv), ec));
-    }
-
-private:
-    std::shared_ptr<socket_type> make_https_socket(boost::asio::ssl::context & ctx, boost::system::error_code const & error, typename resolver_type::iterator it)
-    {
-        lock_wait();
-
-        std::shared_ptr<https_socket> https(
-            new https_socket(this, resolver_.get_io_service(), ctx),
-            [this](https_socket * https) {
-                if (https->is_keep_alive())
-                    collect(https);
-                else
-                    delete https;
-
-                --count_;
-                cond_.notify_one();
-            });
-        //https->set_verify_none();
-        https->set_verify_peer();
-        https->timeout(std::chrono::minutes(1));
-        https->async_connect(error, it);
-        return std::static_pointer_cast<socket_type>(https);
-    }
-
-private:
     void lock_wait()
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
         cond_.wait(lock, [this] { return (count_ + keep_sockets_.size()) < max_count_ ; });
         ++count_;
+    }
+
+    template <typename SocketPtr>
+    void socket_deleter(SocketPtr * socket)
+    {
+        if (socket->is_keep_alive())
+            collect(socket);
+        else
+            delete socket;
+
+        std::lock_guard<decltype(mutex_)> lock(mutex_);
+        --count_;
+        cond_.notify_one();
     }
 
     template <typename SocketPtr>
@@ -230,6 +173,45 @@ private:
         }
     }
 
+    std::shared_ptr<socket_type> make_http_socket(endpoint_type const & endpoint)
+    {
+        lock_wait();
+
+        std::shared_ptr<http_socket> http(new http_socket(this, resolver_.get_io_service()), std::bind(&basic_http_client::socket_deleter<http_socket>, this, std::placeholders::_1));
+        http->timeout(std::chrono::minutes(1));
+        http->async_connect(endpoint);
+        return std::static_pointer_cast<socket_type>(http);
+    }
+
+    std::shared_ptr<socket_type> make_http_socket(boost::system::error_code const & error, typename resolver_type::iterator it)
+    {
+        lock_wait();
+
+        std::shared_ptr<http_socket> http(new http_socket(this, resolver_.get_io_service()), std::bind(&basic_http_client::socket_deleter<http_socket>, this, std::placeholders::_1));
+        http->timeout(std::chrono::minutes(1));
+        http->async_connect(error, it);
+        return std::static_pointer_cast<socket_type>(http);
+    }
+
+public:
+    std::shared_ptr<socket_type> https_connect(boost::asio::ssl::context & ctx, std::string const & host, std::string const & serv)
+    {
+        boost::system::error_code ec;
+        return make_https_socket(ctx, ec, resolver_.resolve(typename resolver_type::query(host, serv), ec));
+    }
+
+private:
+    std::shared_ptr<socket_type> make_https_socket(boost::asio::ssl::context & ctx, boost::system::error_code const & error, typename resolver_type::iterator it)
+    {
+        lock_wait();
+
+        std::shared_ptr<https_socket> https(new https_socket(this, resolver_.get_io_service(), ctx), std::bind(&basic_http_client::socket_deleter<https_socket>, this, std::placeholders::_1));
+        https->set_verify_peer();
+        https->timeout(std::chrono::minutes(1));
+        https->async_connect(error, it);
+        return std::static_pointer_cast<socket_type>(https);
+    }
+
 private:
     struct functor
     {
@@ -253,7 +235,7 @@ private:
     resolver_type resolver_;
     boost::asio::ssl::context * context_;
     std::size_t max_count_;
-    std::atomic<std::size_t> count_;
+    std::size_t count_;
     std::unordered_multiset<socket_type *, functor, functor> keep_sockets_;
     std::mutex mutex_;
     std::condition_variable cond_;
@@ -261,6 +243,10 @@ private:
     bool enabled_keep_alive_ = true;
 };
 
+
+/*!
+  HTTPクライアントのサービスクラス.
+ */
 using http_client = basic_http_client<client_result, boost::asio::steady_timer>;
 
 } }

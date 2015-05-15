@@ -14,7 +14,34 @@
 
 namespace acqua { namespace webclient { namespace detail {
 
-class uri_base {};
+/*!
+  URIの基底クラス
+ */
+class uri_base
+{
+    /*!
+      URLの先頭の位置を返す.
+      URLの文字列は 「スキーマ名://ホスト名[:ポート番号][/パス...[?クエリキー=クエリ名&...]]」 になる。
+     */
+    std::string::const_iterator begin() const;
+
+    /*!
+      URLの終端の位置を返す.
+      URLの文字列は 「スキーマ名://ホスト名[:ポート番号][/パス...[?クエリキー=クエリ名&...]]」 になる。
+    */
+    std::string::const_iterator end() const;
+
+    /*!
+      特殊なクエリのデータ構造をリクエストパスに加える.
+     */
+    void query(std::ostream &) const;
+
+    /*!
+      特殊なリクエストヘッダーに加える.
+     */
+    void header(std::ostream &) const;
+};
+
 
 template <typename Uri, typename Query = boost::blank, typename Header = boost::blank>
 class non_encoded_uri
@@ -23,8 +50,8 @@ class non_encoded_uri
 public:
     using const_iterator = typename std::decay<Uri>::type::const_iterator;
 
-    explicit non_encoded_uri(Uri uri)
-        : uri_(uri) {}
+    explicit non_encoded_uri(Uri uri, Query query, Header header)
+        : uri_(uri), query_(query), header_(header) {}
 
     const_iterator begin() const
     {
@@ -72,6 +99,14 @@ private:
         }
     }
 
+    template <typename Map, typename Map::mapped_type * = nullptr>
+    void header(std::ostream & os, Map const & map) const
+    {
+        for(auto const & e : map) {
+            os << e.first << ':' << ' ' << e.second << '\r' << '\n';
+        }
+    }
+
 private:
     Uri uri_;
     Query query_;
@@ -80,10 +115,15 @@ private:
 
 }
 
-inline detail::non_encoded_uri<std::string const &> uri(std::string const & uri)
+inline detail::non_encoded_uri<std::string const &, boost::blank, boost::blank> uri(std::string const & uri)
 {
-    return detail::non_encoded_uri<std::string const &>(uri);
+    return detail::non_encoded_uri<std::string const &, boost::blank, boost::blank>(uri, boost::blank(), boost::blank());
 }
 
+template <typename Query, typename Header>
+inline detail::non_encoded_uri<std::string const &, Query, Header> uri(std::string const & uri, Query query, Header header)
+{
+    return detail::non_encoded_uri<std::string const &, Query, Header>(uri, query, header);
+}
 
 } }

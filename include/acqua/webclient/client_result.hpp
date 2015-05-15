@@ -28,15 +28,20 @@ public:
         : result(&client_result::callback)
         , future_(promise_.get_future()) {}
 
-    boost::system::error_code const & error() const
+    void wait() const
     {
         future_.wait();
+    }
+
+    boost::system::error_code const & error() const
+    {
+        wait();
         return error_;
     }
 
     friend std::ostream & operator<<(std::ostream & os, client_result & rhs)
     {
-        rhs.future_.wait();
+        rhs.wait();
         return os << static_cast<result &>(rhs);
     }
 

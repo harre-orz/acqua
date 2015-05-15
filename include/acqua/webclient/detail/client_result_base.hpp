@@ -14,6 +14,7 @@
 #include <boost/asio/streambuf.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/container/flat_map.hpp>
+#include <acqua/utility/initialized_static_value.hpp>
 
 
 namespace acqua { namespace webclient  {
@@ -56,6 +57,12 @@ public:
         if (rhs.buffer_.size())
             os << &rhs.buffer_;
         return os;
+    }
+
+    std::string const & header(std::string const & key) const
+    {
+        auto it = header_.find(key);
+        return (it != header_.end() ? it->second : acqua::utility::initialized_static_value<std::string>());
     }
 
 private:

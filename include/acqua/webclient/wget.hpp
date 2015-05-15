@@ -32,11 +32,19 @@ public:
 
 }
 
+
+/*!
+  url に HTTP/1.1 GET リクエストを行い結果を戻り値で取得する.
+
+  url は「http://localhost:8080/index.html?key=val」といった文字列を使用する
+  使用できるスキーマは http (デフォルトポート:80), https (デフォルトポート:443)
+*/
 template <typename Client>
 inline typename Client::result_ptr wget(Client & client, std::string const & url)
 {
     return wget(client, uri(url));
 }
+
 
 template <typename Client, typename Uri, typename std::enable_if<std::is_base_of<detail::uri_base, Uri>::value>::type * = nullptr>
 inline typename Client::result_ptr wget(Client & client, Uri const & uri)
@@ -45,11 +53,18 @@ inline typename Client::result_ptr wget(Client & client, Uri const & uri)
 }
 
 
+/*!
+  url に HTTP/1.1 GET リクエストを行い結果をコールバックで取得する.
+
+  url は「http://localhost:8080/index.html?key=val」といった文字列を使用する
+  使用できるスキーマは http (デフォルトポート:80), https (デフォルトポート:443)
+*/
 template <typename Client, typename Handler>
 inline void wget(Client & client, std::string const & url, Handler handler)
 {
     wget(client, uri(url), handler);
 }
+
 
 template <typename Client, typename Uri, typename Handler, typename std::enable_if<std::is_base_of<detail::uri_base, Uri>::value>::type * = nullptr>
 inline void wget(Client & client, Uri const & uri, Handler handler)

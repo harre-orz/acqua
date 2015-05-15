@@ -61,11 +61,21 @@ private:
 
 }
 
+
+/*!
+  url と content で HTTP/1.1 POST リクエストを行い、結果を戻り値で取得する.
+
+  url は「http://localhost:8080/index.html?key=val」といった文字列を使用する
+  使用できるスキーマは http (デフォルトポート:80), https (デフォルトポート:443)
+
+  content は、key-value のコンテナを指定できる
+ */
 template <typename Client, typename Content>
 inline typename Client::result_ptr wpost(Client & client, std::string const & url, Content content)
 {
     return wpost(client, uri(url), content);
 }
+
 
 template <typename Client, typename Uri, typename Content, typename std::enable_if<std::is_base_of<detail::uri_base, Uri>::value>::type * = nullptr>
 inline typename Client::result_ptr wpost(Client & client, Uri const & uri, Content content)
@@ -74,11 +84,20 @@ inline typename Client::result_ptr wpost(Client & client, Uri const & uri, Conte
 }
 
 
+/*!
+  url と content で HTTP/1.1 POST リクエストを行い、結果をコールバックで取得する.
+
+  url は「http://localhost:8080/index.html?key=val」といった文字列を使用する
+  使用できるスキーマは http (デフォルトポート:80), https (デフォルトポート:443)
+
+  content は、key-value のコンテナを指定できる
+ */
 template <typename Client, typename Content, typename Handler>
 inline void wpost(Client & client, std::string const & url, Content content, Handler handler)
 {
     wpost(client, uri(url), content, handler);
 }
+
 
 template <typename Client, typename Uri, typename Content, typename Handler, typename std::enable_if<std::is_base_of<detail::uri_base, Uri>::value>::type * = nullptr>
 inline void wpost(Client & client, Uri const & uri, Content content, Handler handler)

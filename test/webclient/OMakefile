@@ -1,4 +1,5 @@
-.DEFAULT: $(CXXProgram test_http_client, test_http_client) 
+.DEFAULT: $(CXXProgram test_http_client, test_http_client)  \
+          $(CXXProgram test_ig2_school, test_ig2_school)
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc
