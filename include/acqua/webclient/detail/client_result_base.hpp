@@ -14,7 +14,7 @@
 #include <boost/asio/streambuf.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/container/flat_map.hpp>
-#include <acqua/utility/initialized_static_value.hpp>
+#include <acqua/container/sequenced_map.hpp>
 
 
 namespace acqua { namespace webclient  {
@@ -30,19 +30,20 @@ class client_result_base
 {
     friend client_socket_base<client_result>;
 
-    struct iless
+    struct iequals
     {
         template <typename T>
         bool operator()(T const & lhs, T const & rhs) const noexcept
         {
-            return boost::algorithm::lexicographical_compare(lhs, rhs);
+            return boost::algorithm::iequals(lhs, rhs);
         }
     };
 
 public:
     using buffer_type = boost::asio::streambuf;
     using handler_type = std::function<void(boost::system::error_code const &, client_result_base &)>;
-    using header_type = boost::container::flat_map<std::string, std::string>;
+    //using header_type = acqua::container::sequenced_multimap<std::string, std::string, iequals>;
+    using header_type = boost::container::flat_multimap<std::string, std::string>;
 
 private:
     client_result_base() {}
@@ -59,16 +60,21 @@ public:
         return os;
     }
 
-    std::string const & header(std::string const & key) const
+    header_type const & get_header() const
     {
-        auto it = header_.find(key);
-        return (it != header_.end() ? it->second : acqua::utility::initialized_static_value<std::string>());
+        return header_;
+    }
+
+    int status_code() const
+    {
+        return status_code_;
     }
 
 private:
     handler_type handler_;
     buffer_type buffer_;
     header_type header_;
+    int status_code_;
 };
 
 } } }

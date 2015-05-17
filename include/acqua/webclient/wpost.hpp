@@ -10,8 +10,6 @@
 
 #include <type_traits>
 #include <acqua/webclient/uri.hpp>
-#include <acqua/webclient/connect.hpp>
-
 
 namespace acqua { namespace webclient {
 
@@ -49,10 +47,16 @@ private:
             }
         }
 
+        write_content(os, buf);
+    }
+
+    void write_content(std::ostream & os, boost::asio::streambuf const & buf) const
+    {
         os <<
             "Content-Type: application/x-www-form-urlencoded\r\n"
             "Content-Length: " << buf.size() << "\r\n"
-            "\r\n" << &buf;
+            "\r\n";
+        os.write(boost::asio::buffer_cast<char const *>(buf.data()), buf.size());
     }
 
 private:
@@ -80,7 +84,7 @@ inline typename Client::result_ptr wpost(Client & client, std::string const & ur
 template <typename Client, typename Uri, typename Content, typename std::enable_if<std::is_base_of<detail::uri_base, Uri>::value>::type * = nullptr>
 inline typename Client::result_ptr wpost(Client & client, Uri const & uri, Content content)
 {
-    return connect(client, detail::non_encoded_post<Content>(content), uri)->start();
+    return client.connect(detail::non_encoded_post<Content>(content),uri)->start();
 }
 
 
@@ -102,7 +106,7 @@ inline void wpost(Client & client, std::string const & url, Content content, Han
 template <typename Client, typename Uri, typename Content, typename Handler, typename std::enable_if<std::is_base_of<detail::uri_base, Uri>::value>::type * = nullptr>
 inline void wpost(Client & client, Uri const & uri, Content content, Handler handler)
 {
-    connect(client, detail::non_encoded_post<Content>(content), uri, handler);
+    client.connect(detail::non_encoded_post<Content>(content), uri)->async_start(handler);
 }
 
 } }

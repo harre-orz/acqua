@@ -21,6 +21,7 @@
 #include <acqua/webclient/client_result.hpp>
 #include <acqua/webclient/detail/client_socket.hpp>
 
+
 namespace acqua { namespace webclient {
 
 template <typename Result, typename Timer>
@@ -29,7 +30,7 @@ class basic_http_client
 {
     using self_type = basic_http_client<Result, Timer>;
     using http_socket = detail::client_socket<self_type, Result, boost::asio::ip::tcp::socket, Timer>;
-    using https_socket = detail::client_socket<self_type, Result, boost::asio::ssl::stream<boost::asio::ip::tcp::socket>, Timer >;
+    using https_socket = detail::client_socket<self_type, Result, boost::asio::ssl::stream<boost::asio::ip::tcp::socket>, Timer>;
     friend http_socket;
     friend https_socket;
 
@@ -64,11 +65,6 @@ public:
     bool & enabled_keep_alive() { return enabled_keep_alive_; }
     bool const & enabled_keep_alive() const { return enabled_keep_alive_; }
 
-    boost::asio::ssl::context * get_context() noexcept
-    {
-        return context_;
-    }
-
     std::size_t max_count() const noexcept
     {
         return max_count_;
@@ -84,38 +80,81 @@ public:
         return keep_sockets_.size();
     }
 
-    std::shared_ptr<socket_type> http_connect(endpoint_type const & endpoint)
+    template <typename Req, typename Uri>
+    std::shared_ptr<socket_type> connect(Req const & req, Uri const & uri)
     {
-        return make_http_socket(endpoint);
-    }
-
-    std::shared_ptr<socket_type> http_connect(boost::asio::ip::address_v4 const & addr, std::uint16_t port = 80)
-    {
-        return make_http_socket(endpoint_type(addr, port));
-    }
-
-    std::shared_ptr<socket_type> http_connect(boost::asio::ip::address_v6 const & addr, std::uint16_t port = 80)
-    {
-        return make_http_socket(endpoint_type(addr, port));
-    }
-
-    std::shared_ptr<socket_type> http_connect(std::string const & host, std::string const & serv)
-    {
-        boost::system::error_code ec;
-        return make_http_socket(ec, resolver_.resolve(typename resolver_type::query(host, serv), ec));
-    }
-
-    std::shared_ptr<socket_type> http_connect(std::string const & host)
-    {
-        boost::system::error_code ec;
-        return make_http_socket(ec, resolver_.resolve(typename resolver_type::query(host, "80"), ec));
+        return do_connect(req, uri, 3, true);
     }
 
 private:
-    void lock_wait()
+    template <typename Req, typename Uri>
+    std::shared_ptr<socket_type> do_connect(Req const & req, Uri const & uri, int retry, bool use_lock)
+    {
+        boost::system::error_code ec;
+        std::shared_ptr<socket_type> socket;
+        std::string host;
+        std::string serv;
+        int scheme;
+
+        namespace qi = boost::spirit::qi;
+        qi::symbols<char, int> sym;
+        sym.add("http://", 1)("https://", 2);
+        auto it = uri.begin();
+        if (!qi::parse(it, uri.end(), sym >> *(qi::char_ - ':' - '/') >> -(':' >> qi::char_('0','9')), scheme, host, serv))
+            throw std::runtime_error("invalid argument");
+
+        lock_wait(use_lock);
+
+        switch(scheme) {
+            case 1:
+                if (serv.empty()) {
+                    serv = "80";
+                    socket = make_http_socket(ec, resolver_.resolve(typename resolver_type::query(host, serv)), retry);
+                } else {
+                    socket = make_http_socket(ec, resolver_.resolve(typename resolver_type::query(host, serv)), retry);
+                    host += ':';
+                    host += serv;
+                }
+                break;
+            case 2:
+                if (!context_)
+                    throw std::runtime_error("unsupported https");
+
+                if (serv.empty()) {
+                    serv = "443";
+                    socket = make_https_socket(*context_, ec, resolver_.resolve(typename resolver_type::query(host, serv)), retry);
+                } else {
+                    socket = make_https_socket(*context_, ec, resolver_.resolve(typename resolver_type::query(host, serv)), retry);
+                    host += ':';
+                    host += serv;
+                }
+                break;
+        }
+
+        std::ostream & os = *socket;
+        req.method(os);
+        os << ' ';
+        if (it == uri.end() || *it != '/')
+            os << '/';
+        std::copy(it, uri.end(), std::ostreambuf_iterator<char>(os));
+        uri.query(os);
+        os << " "
+            "HTTP/1.1\r\n"
+            "Host: " << host << "\r\n"
+            "Connection: " << (enabled_keep_alive_ ? "Keep-Alive" : "Close") << "\r\n"
+            "Accept: */*\r\n"
+            "Accept-Encoding: compress, gzip\r\n"
+            ;
+        uri.header(os);
+        req.content(os);
+
+        return socket;
+    }
+
+    void lock_wait(bool mode)
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
-        cond_.wait(lock, [this] { return (count_ + keep_sockets_.size()) < max_count_ ; });
+        if (mode) cond_.wait(lock, [this] { return (count_ + keep_sockets_.size()) < max_count_; });
         ++count_;
     }
 
@@ -173,41 +212,19 @@ private:
         }
     }
 
-    std::shared_ptr<socket_type> make_http_socket(endpoint_type const & endpoint)
+    std::shared_ptr<socket_type> make_http_socket(boost::system::error_code const & error, typename resolver_type::iterator it, int retry)
     {
-        lock_wait();
-
-        std::shared_ptr<http_socket> http(new http_socket(this, resolver_.get_io_service()), std::bind(&basic_http_client::socket_deleter<http_socket>, this, std::placeholders::_1));
-        http->timeout(std::chrono::minutes(1));
-        http->async_connect(endpoint);
-        return std::static_pointer_cast<socket_type>(http);
-    }
-
-    std::shared_ptr<socket_type> make_http_socket(boost::system::error_code const & error, typename resolver_type::iterator it)
-    {
-        lock_wait();
-
-        std::shared_ptr<http_socket> http(new http_socket(this, resolver_.get_io_service()), std::bind(&basic_http_client::socket_deleter<http_socket>, this, std::placeholders::_1));
-        http->timeout(std::chrono::minutes(1));
+        std::shared_ptr<http_socket> http(new http_socket(this, resolver_.get_io_service(), retry), std::bind(&basic_http_client::socket_deleter<http_socket>, this, std::placeholders::_1));
+        http->set_timeout(std::chrono::seconds(5));
         http->async_connect(error, it);
         return std::static_pointer_cast<socket_type>(http);
     }
 
-public:
-    std::shared_ptr<socket_type> https_connect(boost::asio::ssl::context & ctx, std::string const & host, std::string const & serv)
+    std::shared_ptr<socket_type> make_https_socket(boost::asio::ssl::context & ctx, boost::system::error_code const & error, typename resolver_type::iterator it, int retry)
     {
-        boost::system::error_code ec;
-        return make_https_socket(ctx, ec, resolver_.resolve(typename resolver_type::query(host, serv), ec));
-    }
-
-private:
-    std::shared_ptr<socket_type> make_https_socket(boost::asio::ssl::context & ctx, boost::system::error_code const & error, typename resolver_type::iterator it)
-    {
-        lock_wait();
-
-        std::shared_ptr<https_socket> https(new https_socket(this, resolver_.get_io_service(), ctx), std::bind(&basic_http_client::socket_deleter<https_socket>, this, std::placeholders::_1));
+        std::shared_ptr<https_socket> https(new https_socket(this, resolver_.get_io_service(), ctx, retry), std::bind(&basic_http_client::socket_deleter<https_socket>, this, std::placeholders::_1));
         https->set_verify_peer();
-        https->timeout(std::chrono::minutes(1));
+        https->set_timeout(std::chrono::seconds(5));
         https->async_connect(error, it);
         return std::static_pointer_cast<socket_type>(https);
     }
@@ -239,7 +256,6 @@ private:
     std::unordered_multiset<socket_type *, functor, functor> keep_sockets_;
     std::mutex mutex_;
     std::condition_variable cond_;
-
     bool enabled_keep_alive_ = true;
 };
 

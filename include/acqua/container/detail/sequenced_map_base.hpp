@@ -183,6 +183,11 @@ public:
         return insert_(Tag(), val);
     }
 
+    iterator insert(const_iterator, value_type const & val)
+    {
+        return insert_(Tag(), val).first;
+    }
+
     std::pair<iterator, bool> insert_(unique_tag, value_type const & val)
     {
         auto it = find(val.first);

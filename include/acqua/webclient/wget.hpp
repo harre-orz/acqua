@@ -10,7 +10,6 @@
 
 #include <type_traits>
 #include <acqua/webclient/uri.hpp>
-#include <acqua/webclient/connect.hpp>
 
 namespace acqua { namespace webclient {
 
@@ -49,7 +48,7 @@ inline typename Client::result_ptr wget(Client & client, std::string const & url
 template <typename Client, typename Uri, typename std::enable_if<std::is_base_of<detail::uri_base, Uri>::value>::type * = nullptr>
 inline typename Client::result_ptr wget(Client & client, Uri const & uri)
 {
-    return connect(client, detail::get(), uri)->start();
+    return client.connect(detail::get(), uri)->start();
 }
 
 
@@ -69,7 +68,7 @@ inline void wget(Client & client, std::string const & url, Handler handler)
 template <typename Client, typename Uri, typename Handler, typename std::enable_if<std::is_base_of<detail::uri_base, Uri>::value>::type * = nullptr>
 inline void wget(Client & client, Uri const & uri, Handler handler)
 {
-    connect(client, detail::get(), uri)->async_start(handler);
+    client.connect(detail::get(), uri)->async_start(handler);
 }
 
 } }

@@ -16,6 +16,9 @@
 #include <boost/spirit/include/qi.hpp>
 #include <boost/fusion/adapted/std_pair.hpp>
 #include <acqua/asio/read_until.hpp>
+#include <acqua/webclient/uri.hpp>
+#include <acqua/webclient/wget.hpp>
+#include <acqua/webclient/wpost.hpp>
 #include <acqua/webclient/detail/client_socket_base.hpp>
 
 namespace acqua { namespace webclient { namespace detail {
@@ -35,11 +38,11 @@ public:
     using buffer_type = typename base_type::buffer_type;
     using result_type = typename base_type::result_type;
 
-    explicit client_socket(Client * client, boost::asio::io_service & io_service)
-        : client_(client), socket_(io_service), timer_(io_service), is_ready_(false), retry_(1) {}
+    client_socket(Client * client, boost::asio::io_service & io_service, int retry = 3)
+        : client_(client), socket_(io_service), timer_(io_service), retry_(retry), is_ready_(false) {}
 
-    explicit client_socket(Client * client, boost::asio::io_service & io_service, boost::asio::ssl::context & ctx)
-        : client_(client), socket_(io_service, ctx), timer_(io_service), is_ready_(false), retry_(1) {}
+    client_socket(Client * client, boost::asio::io_service & io_service, boost::asio::ssl::context & ctx, int retry = 3)
+        : client_(client), socket_(io_service, ctx), timer_(io_service), retry_(retry), is_ready_(false) {}
 
     void set_verify_none()
     {
@@ -59,14 +62,14 @@ public:
     }
 
     template <typename Clock, typename Duration>
-    void timeout(std::chrono::time_point<Clock, Duration> const & time_point)
+    void set_timeout(std::chrono::time_point<Clock, Duration> const & time_point)
     {
         timer_.expires_at(time_point);
         timer_.async_wait(std::bind(&client_socket::on_wait, this->shared_from_this(), std::placeholders::_1));
     }
 
     template <typename Rep, typename Period>
-    void timeout(std::chrono::duration<Rep, Period> const & duration)
+    void set_timeout(std::chrono::duration<Rep, Period> const & duration)
     {
         timer_.expires_from_now(duration);
         timer_.async_wait(std::bind(&client_socket::on_wait, this->shared_from_this(), std::placeholders::_1));
@@ -240,9 +243,9 @@ private:
     void on_read_1(boost::system::error_code const & error)
     {
         if (!error) {
-            base_type::buffer_.consume(base_type::buffer_.size());
+            std::ostream(&(base_type::temp_buffer())) << buffer1_;
             boost::asio::async_read_until(
-                socket_, base_type::buffer_, "\r\n",
+                socket_, base_type::temp_buffer(), "\r\n",
                 std::bind(
                     &client_socket::on_read_line,
                     this->shared_from_this(),
@@ -260,11 +263,18 @@ private:
     void on_read_line(boost::system::error_code const & error, std::size_t size)
     {
         if (!error) {
-            // TODO: リクエスト文字列を確認する
+            char const * data = boost::asio::buffer_cast<char const *>(base_type::temp_buffer().data());
+            namespace qi = boost::spirit::qi;
+            if (!qi::parse(data, data + base_type::temp_buffer().size(),
+                           qi::omit[ "HTTP/" >> qi::int_ >> '.' >> qi::int_ >> +qi::space] >> qi::int_, base_type::status_code())) {
+                // TODO: ちゃんとしたエラーカテゴリを定義する
+                on_error(boost::system::error_code(EINVAL, boost::system::generic_category()), "qi::parse request_line");
+                return;
+            }
 
-            base_type::buffer_.consume(size);
+            base_type::temp_buffer().consume(size);
             boost::asio::async_read_until(
-                socket_, base_type::buffer_, "\r\n\r\n",
+                socket_, base_type::temp_buffer(), "\r\n\r\n",
                 std::bind(
                     &client_socket::on_read_header,
                     this->shared_from_this(),
@@ -280,7 +290,7 @@ private:
     {
         if (!error) {
             auto & header = base_type::get_header();
-            auto beg = boost::asio::buffer_cast<char const *>(base_type::buffer_.data());
+            auto beg = boost::asio::buffer_cast<char const *>(base_type::temp_buffer().data());
             auto end = beg + size;
 
             namespace qi = boost::spirit::qi;
@@ -292,11 +302,26 @@ private:
                 return;
             }
 
-            base_type::buffer_.consume(size);
+            base_type::temp_buffer().consume(size);
+            auto it = header.find("Location");
+            if (it != header.end()) {
+                on_move(it->second);
+                return;
+            }
 
-            auto it = header.find("Connection");
+            base_type::buffer_.consume(base_type::buffer_.size());
+            std::ostream(&this->buffer_).write(boost::asio::buffer_cast<char const *>(base_type::temp_buffer().data()), base_type::temp_buffer().size());
+            base_type::temp_buffer().consume(base_type::temp_buffer().size());
+
+            it = header.find("Connection");
             if (it != header.end()) {
                 base_type::is_keep_alive_ = boost::iequals(it->second, "keep-alive");
+            }
+
+            it = header.find("Content-Encoding");
+            if (it != header.end()) {
+                if (boost::iequals(it->second, "gzip")) base_type::set_gzip();
+                if (boost::iequals(it->second, "zlib")) base_type::set_zlib();
             }
 
             it = header.find("Transfer-Encoding");
@@ -354,6 +379,7 @@ private:
     {
         if (!error && size > 2) {
             auto data = boost::asio::buffer_cast<char const *>(base_type::buffer_.data());
+
             const_cast<char *>(data)[size-2] = '\0';
             std::size_t chunk_size = std::strtol(data, nullptr, 16);
 
@@ -393,11 +419,87 @@ private:
         }
     }
 
-    void on_error(boost::system::error_code const & error, char const * location)
+    template <typename String>
+    void on_move(String const & loc)
     {
-        (void) location;
+        char const * beg = boost::asio::buffer_cast<char const *>(base_type::buffer_.data());
+        char const * end = beg + base_type::buffer_.size();
+        auto & header = base_type::get_header();  // result_->header_ を 前回送信したリクエストヘッダーのバッファに流用する
+
+        namespace qi = boost::spirit::qi;
+        qi::symbols<char, int> sym;
+        int req, maj, min;
+        sym.add("GET", 1)("POST", 2);
+        qi::parse(beg, end, sym >> qi::omit[ *qi::space >> +(qi::char_ - qi::space) >> *qi::space ] >> "HTTP/" >> qi::int_ >> '.' >> qi::int_ >> "\r\n", req, maj, min);
+
+        String url;
+        if (maj == 1 && min == 1 && (loc.empty() || loc[0] == '/')) {
+            scheme_name(this, url);
+            qi::parse(beg, end, "Host:" >> qi::omit[ *qi::space ] >> *(qi::char_ - '\r') >> "\r\n", url);
+            port_name(this, url);
+        } else {
+            beg = std::find(beg, end, '\n')+1;
+        }
+        beg = std::find(beg, end, '\n')+1; // Connection の次に移動しておく
+        beg = std::find(beg, end, '\n')+1; // Accept の次に移動しておく
+        beg = std::find(beg, end, '\n')+1; // Accept-Encoding の次に移動しておく
+        url += loc;
+        header.clear(); // loc の内容が消えるので注意
+        qi::parse(beg, end, (
+                      *(qi::char_ - ':') >> ':' >> qi::omit[ *qi::space ] >> *(qi::char_ - "\r\n")
+                  ) % "\r\n" >> "\r\n", header);
+        base_type::buffer_.consume(beg - boost::asio::buffer_cast<char const *>(base_type::buffer_.data()));  // content だけ残す
+
+        std::shared_ptr<base_type> socket;
+        switch(req) {
+            case 1:
+                socket = client_->do_connect(detail::get(), uri(url, boost::blank(), header), retry_, false);
+                break;
+            case 2:
+                socket = client_->do_connect(detail::non_encoded_post<buffer_type const &>(base_type::buffer_), uri(url, boost::blank(), header), retry_, false);
+                break;
+        }
+        base_type::temp_buffer().consume(base_type::temp_buffer().size());
+        base_type::move_start(*socket);
+    }
+
+    template <typename String>
+    void scheme_name(typename Client::http_socket const *, String & url) const
+    {
+        url += "http://";
+    }
+
+    template <typename String>
+    void scheme_name(typename Client::https_socket const *, String & url) const
+    {
+        url += "https://";
+    }
+
+    template <typename String>
+    void port_name(typename Client::http_socket const *, String & url) const
+    {
+        int port = base_type::endpoint_.port();
+        if (port != 80) {
+            url += ':';
+            url += std::to_string(port);
+        }
+    }
+
+    template <typename String>
+    void port_name(typename Client::https_socket const *, String & url) const
+    {
+        int port = base_type::endpoint_.port();
+        if (port != 443) {
+            url += ':';
+            url += std::to_string(port);
+        }
+    }
+
+    void on_error(boost::system::error_code const & error, char const * func)
+    {
+        (void) func;
         timer_.cancel();
-        //std::cout << "on_error " << error.message() << ' ' << location << std::endl;
+        //std::cout << "on_error " << error.message() << ' ' << func << std::endl;
         base_type::callback(error, socket_.get_io_service());
     }
 
@@ -461,10 +563,10 @@ private:
     Client * client_;
     socket_type socket_;
     timer_type timer_;
+    int retry_;
     std::atomic<bool> is_ready_;
     char buffer1_;
     std::shared_ptr<client_socket> reuse_;
-    int retry_;
 };
 
 

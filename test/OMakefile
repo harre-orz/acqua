@@ -1,6 +1,6 @@
 CXXFLAGS += -O0 -g -DACQUA_USE_BACKTRACE -rdynamic 
 #CXXFLAGS += -O2
-.SUBDIRS: utility exception container text network asio webclient
+.SUBDIRS: utility exception container text network asio webclient 
 
 clean:
 	rm -f *.omc
