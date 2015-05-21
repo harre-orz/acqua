@@ -137,18 +137,41 @@ private:
         if (it == uri.end() || *it != '/')
             os << '/';
         std::copy(it, uri.end(), std::ostreambuf_iterator<char>(os));
-        uri.query(os);
+        write_query(os, uri, (typename Uri::query_type *)(nullptr) );
         os << " "
             "HTTP/1.1\r\n"
-            "Host: " << host << "\r\n"
+            "Host: " << host << "\r\n";  // 3xxの移動系の情報必要なため、必ずヘッダーの最初に記述する
+        write_header(os, uri, (typename Uri::header_type *)(nullptr));
+        req.content(os);
+
+        return socket;
+    }
+
+    template <typename Uri, typename T>
+    void write_query(std::ostream & os, Uri const & uri, T const *)
+    {
+        uri.query(os);
+    }
+
+    template <typename Uri>
+    void write_query(std::ostream &, Uri const &, boost::blank const *)
+    {
+    }
+
+    template <typename Uri, typename T>
+    void write_header(std::ostream & os, Uri const & uri, T const *)
+    {
+        uri.header(os);
+    }
+
+    template <typename Uri>
+    void write_header(std::ostream & os, Uri const &, boost::blank const *)
+    {
+        os <<
             "Connection: " << (enabled_keep_alive_ ? "Keep-Alive" : "Close") << "\r\n"
             "Accept: */*\r\n"
             "Accept-Encoding: compress, gzip\r\n"
             ;
-        uri.header(os);
-        req.content(os);
-
-        return socket;
     }
 
     void lock_wait(bool mode)

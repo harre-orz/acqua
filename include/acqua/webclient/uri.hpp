@@ -49,6 +49,8 @@ class non_encoded_uri
 {
 public:
     using const_iterator = typename std::decay<Uri>::type::const_iterator;
+    using query_type = typename std::decay<Query>::type;
+    using header_type = typename std::decay<Header>::type;
 
     explicit non_encoded_uri(Uri uri, Query query, Header header)
         : uri_(uri), query_(query), header_(header) {}
@@ -74,9 +76,6 @@ public:
     }
 
 private:
-    void query(std::ostream &, boost::blank) const {}
-    void header(std::ostream &, boost::blank) const {}
-
     template <typename Map, typename Map::mapped_type * = nullptr>
     void query(std::ostream & os, Map const & map) const
     {

@@ -430,26 +430,41 @@ private:
         qi::symbols<char, int> sym;
         int req, maj, min;
         sym.add("GET", 1)("POST", 2);
-        qi::parse(beg, end, sym >> qi::omit[ *qi::space >> +(qi::char_ - qi::space) >> *qi::space ] >> "HTTP/" >> qi::int_ >> '.' >> qi::int_ >> "\r\n", req, maj, min);
 
+        // 前回送信したリクエストラインからメソッドを抽出する
+        qi::parse(beg, end,
+                  sym  // http method
+                  >> qi::omit[ *qi::space >> +(qi::char_ - qi::space) >> *qi::space ]  // url
+                  >> "HTTP/" >> qi::int_ >> '.' >> qi::int_ >> "\r\n"  // HTTP/1.1
+                  , req, maj, min);
+        // status_code が 303 のときは、必ず GET
+        if (base_type::status_code() == 303)
+            req = 1;
+
+        // 転送先URLを作成
         String url;
-        if (maj == 1 && min == 1 && (loc.empty() || loc[0] == '/')) {
+        if ((loc.empty() || loc[0] == '/')) {
+            // Location: が / から始まるときは、同一ホスト内の移動を解釈する
             scheme_name(this, url);
-            qi::parse(beg, end, "Host:" >> qi::omit[ *qi::space ] >> *(qi::char_ - '\r') >> "\r\n", url);
+            // HACK: HTTP/1.1 のときは、送信時に Host ヘッダーを最初にセットしているので、 beg は Host ヘッダーの位置のはず
+            if (!qi::parse(beg, end, "Host:" >> qi::omit[ *qi::space ] >> *(qi::char_ - '\r') >> "\r\n", url)) {
+                on_error(boost::system::error_code(EINVAL, boost::system::generic_category()), "qi::parse request_header");
+                return;
+            }
             port_name(this, url);
         } else {
             beg = std::find(beg, end, '\n')+1;
         }
-        beg = std::find(beg, end, '\n')+1; // Connection の次に移動しておく
-        beg = std::find(beg, end, '\n')+1; // Accept の次に移動しておく
-        beg = std::find(beg, end, '\n')+1; // Accept-Encoding の次に移動しておく
         url += loc;
         header.clear(); // loc の内容が消えるので注意
+
+        // 前回送信したリクエストヘッダー（Host を除く）を header に格納
         qi::parse(beg, end, (
                       *(qi::char_ - ':') >> ':' >> qi::omit[ *qi::space ] >> *(qi::char_ - "\r\n")
                   ) % "\r\n" >> "\r\n", header);
         base_type::buffer_.consume(beg - boost::asio::buffer_cast<char const *>(base_type::buffer_.data()));  // content だけ残す
 
+        // 新しいソケットで再接続
         std::shared_ptr<base_type> socket;
         switch(req) {
             case 1:
@@ -460,6 +475,8 @@ private:
                 break;
         }
         base_type::temp_buffer().consume(base_type::temp_buffer().size());
+
+        // 今のソケットに、新しいソケットを付け替える
         base_type::move_start(*socket);
     }
 
