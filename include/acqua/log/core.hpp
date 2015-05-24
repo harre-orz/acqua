@@ -13,6 +13,7 @@
 #include <acqua/log/detail/logging_buffer.hpp>
 #include <acqua/log/detail/loggable_buffer.hpp>
 #include <acqua/log/sinks/logger_sink.hpp>
+#include <acqua/log/sinks/console_sink.hpp>
 
 namespace acqua { namespace log {
 
@@ -29,8 +30,11 @@ class core
     using mutex_type = std::mutex;
 
     core()
+        : default_logger_(new logger())
+        , cout_sink_(std::cout)
+        , cerr_sink_(std::cerr)
     {
-        find_or_construct(std::type_index(typeid(default_tag)));
+        default_logger_->push(cout_sink_);
     }
 
 public:
@@ -44,36 +48,43 @@ public:
 
     //! ロガー
     class logger
+        : public std::enable_shared_from_this<logger>
     {
     public:
         using char_type = core::char_type;
         using mutex_type = core::mutex_type;
         using string_type = std::basic_string<char_type>;
 
-        logger(core & core_)
-            : name_(core_.name_) {}
+        // template <typename Sink>
+        // void push(Sink const & sink)
+        // {
+        //     // TODO: スレッドセーフでない
+        //     sinks_.emplace_back(new Sink(sink));
+        // }
 
-        std::string const & logger_name() const
+        void push(sinks::console_sink<char_type, mutex_type> & sink)
         {
-            return name_;
-        }
-
-        void logger_name(std::string const & name)
-        {
-            name_ = name;
-        }
-
-        template <typename Sink>
-        void push(Sink const & sink)
-        {
-            // TODO: スレッドセーフでない
-            sinks_.emplace_back(new Sink(sink));
+            auto it = std::find(sinks_.begin(), sinks_.end(), &sink);
+            if (it == sinks_.end())
+                sinks_.emplace_back(&sink);
         }
 
         void pop()
         {
-            // TODO: スレッドセーフでない
-            sinks_.pop_back();
+            auto core_ = &singleton::get_mutable_instance();
+
+            if (!sinks_.empty()) {
+                auto * sink = sinks_.back();
+                sinks_.pop_back();
+                if (sink != &core_->cout_sink_ || sink != &core_->cerr_sink_)
+                    delete sink;
+            }
+        }
+
+        template <typename Tag>
+        void alias()
+        {
+            singleton::get_mutable_instance().alias((Tag *)(nullptr), this->shared_from_this());
         }
 
         logging_line_logger make_line_logger(severity_type level, char const * func, char const * file, unsigned int line)
@@ -97,10 +108,9 @@ public:
             buf->format(os, format_);
             os.flush();
 
-            std::cout << dest << std::endl;
-            //for(auto const & sink : sinks_) {
-            //    sink->write(dest.c_str(), dest.size());
-            //}
+            for(auto const & sink : sinks_) {
+               sink->write(dest.c_str(), dest.size());
+            }
         }
 
         void set_format(string_type const & format)
@@ -114,20 +124,25 @@ public:
         }
 
     private:
-        std::string name_;
         string_type format_ = "%F %T.%U [%L] - %v";
-        std::vector< std::unique_ptr< sinks::logger_sink<char_type, mutex_type> > > sinks_;
+        std::vector<sinks::logger_sink<char_type, mutex_type> *> sinks_;
     };
 
     template <typename Tag>
-    static logger & get()
+    static std::shared_ptr<logger> get()
     {
-        return singleton::get_mutable_instance().find_or_construct(std::type_index(typeid(Tag)));
+        return singleton::get_mutable_instance().find_or_construct((Tag *)(nullptr));
     }
 
-    static logger & get_default()
+    static std::shared_ptr<logger> get_default()
     {
         return get<default_tag>();
+    }
+
+    template <typename Tag>
+    static bool remove()
+    {
+        return singleton::get_mutable_instance().remove((Tag *)(nullptr));
     }
 
     static std::string const & project_name()
@@ -141,20 +156,62 @@ public:
     }
 
 private:
-    logger & find_or_construct(std::type_index const & idx)
+    template <typename Tag>
+    std::shared_ptr<logger> find_or_construct(Tag const *)
     {
         std::lock_guard<decltype(mutex_)> lock(mutex_);
 
-        auto it = loggers_.find(idx);
-        if (it == loggers_.end()) {
-            it = loggers_.emplace_hint(it, idx, *this);
-        }
+        auto it = loggers_.find(std::type_index(typeid(Tag)));
+        if (it == loggers_.end())
+            it = loggers_.emplace_hint(it, std::type_index(typeid(Tag)), std::shared_ptr<logger>(new logger()));
         return it->second;
     }
 
+    std::shared_ptr<logger> find_or_construct(default_tag const *)
+    {
+        return default_logger_;
+    }
+
+    template <typename Tag>
+    bool remove(Tag *)
+    {
+        std::lock_guard<decltype(mutex_)> lock(mutex_);
+
+        auto it = loggers_.find(std::type_index(typeid(Tag)));
+        if (it == loggers_.end())
+            return false;
+        loggers_.erase(it);
+        return true;
+    }
+
+    bool remove(default_tag *)
+    {
+        return false;
+    }
+
+    template <typename Tag>
+    void alias(Tag const *, std::shared_ptr<logger> that)
+    {
+        std::lock_guard<decltype(mutex_)> lock(mutex_);
+
+        auto it = loggers_.find(std::type_index(typeid(Tag)));
+        if (it != loggers_.end() && it->second != that)
+            it->second = that;
+        else
+            loggers_.emplace_hint(it, std::type_index(typeid(Tag)), that);
+    }
+
+    void alias(default_tag *, std::shared_ptr<logger> that)
+    {
+        if (default_logger_ != that)
+            default_logger_ = that;
+    }
+
 private:
-    // logger は削除できない
-    std::unordered_map<std::type_index, logger> loggers_;
+    std::shared_ptr<logger> default_logger_;
+    sinks::console_sink<char_type, mutex_type> cout_sink_;
+    sinks::console_sink<char_type, mutex_type> cerr_sink_;
+    std::unordered_map<std::type_index, std::shared_ptr<logger> > loggers_;
     std::string name_;
     mutable mutex_type mutex_;
 };

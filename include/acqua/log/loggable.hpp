@@ -10,7 +10,7 @@ class loggable
 protected:
     static core::loggable_line_logger detail_logging(koenig_lookup_tag, severity_type level, char const * func, char const * file, unsigned int line)
     {
-        return core::get<Tag>().make_line_logger(level, func, file, line, typeid(Derived));
+        return core::get<Tag>()->make_line_logger(level, func, file, line, typeid(Derived));
     }
 };
 
