@@ -113,4 +113,11 @@ BOOST_AUTO_TEST_CASE(sequenced_map_erase)
     BOOST_CHECK(it == map.begin());
 }
 
+BOOST_AUTO_TEST_CASE(sequenced_map_iterator)
+{
+    const acqua::container::sequenced_map<std::string, std::string> map;
+    for(auto it = map.begin(); it != map.end(); ++it) {
+    }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

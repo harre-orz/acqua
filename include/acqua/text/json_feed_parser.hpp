@@ -25,7 +25,7 @@ class any_parser
 {
 public:
     template <typename CharT, typename Parser>
-    bool parse(CharT const & ch, Parser & next)
+    bool operator()(CharT const & ch, Parser & next)
     {
         switch(ch) {
             case '\0':
@@ -84,7 +84,7 @@ public:
         : l_(l), lit_(c_str()) {}
 
     template <typename CharT, typename Parser>
-    bool parse(CharT const & ch, Parser & next)
+    bool operator()(CharT const & ch, Parser & next)
     {
         if (*++lit_ == '\0') {
             switch(l_) {
@@ -122,7 +122,7 @@ public:
         : decimal_(decimal), fraction_(1), exponent_(0), sign_(sign) {}
 
     template <typename CharT, typename Parser>
-    bool parse(CharT const & ch, Parser & next)
+    bool operator()(CharT const & ch, Parser & next)
     {
         switch(n_) {
             case n_decimal:
@@ -217,7 +217,7 @@ private:
 
 public:
     template <typename CharT, typename Parser>
-    bool parse(CharT const & ch, Parser & next)
+    bool operator()(CharT const & ch, Parser & next)
     {
         if (escape_) {
             if (hex_[0] == 0) {
@@ -309,9 +309,9 @@ class array_parser
 
 public:
     template <typename CharT>
-    bool parse(CharT const & ch, Parser & next)
+    bool operator()(CharT const & ch, Parser & next)
     {
-        if (data_ && data_->progress()) {
+        if (data_ && !data_->is_complete()) {
             return data_->parse(ch);
         } else if (ch == ']') {
             next.complete();
@@ -339,7 +339,7 @@ class object_parser
     struct string : string_parser<String>
     {
         explicit string(Parser & parent) : parent_(parent) {}
-        bool progress() const { return !compl_; }
+        bool is_complete() const { return compl_; }
         template <typename T>
         void complete(T const &) { compl_ = true; }
         void failure() { parent_.failure(); }
@@ -353,10 +353,10 @@ class object_parser
 
 public:
     template <typename CharT>
-    bool parse(CharT const & ch, Parser & next)
+    bool operator()(CharT const & ch, Parser & next)
     {
         if (val_) {
-            if (val_->progress())
+            if (!val_->is_complete())
                 return val_->parse(ch);
             if (ch == '}') {
                 next.complete();
@@ -377,8 +377,8 @@ public:
                 key_.reset(new string(next));
                 return true;
             }
-        } else if (key_->progress()) {
-            return key_->parse(ch, *key_);
+        } else if (!key_->is_complete()) {
+            return (*key_)(ch, *key_);
         } else if (ch == ':') {
             val_ = next.child(key_->str());
             return true;
@@ -393,21 +393,21 @@ public:
 };
 
 
-template <typename CharT, typename Destinate>
+template <typename CharT, typename Dest>
 class feed_parser
     : public boost::variant< any_parser, literal_parser, number_parser,
                              string_parser< std::basic_string<CharT> >,
-                             array_parser< feed_parser<CharT, Destinate> >,
-                             object_parser< feed_parser<CharT, Destinate>, std::basic_string<CharT> > >
+                             array_parser< feed_parser<CharT, Dest> >,
+                             object_parser< feed_parser<CharT, Dest>, std::basic_string<CharT> > >
 {
     using any_type  = any_parser;
     using literal_type = literal_parser;
     using number_type = number_parser;
     using string_type = string_parser< std::basic_string<CharT> >;
-    using array_type = array_parser< feed_parser<CharT, Destinate> >;
-    using object_type = object_parser< feed_parser<CharT, Destinate>, std::basic_string<CharT> >;
+    using array_type = array_parser< feed_parser<CharT, Dest> >;
+    using object_type = object_parser< feed_parser<CharT, Dest>, std::basic_string<CharT> >;
     using base_type = boost::variant<any_type, literal_type, number_type, string_type, array_type, object_type>;
-    using adaptor_type = parse_adaptor<Destinate>;
+    using adaptor_type = parse_adaptor<Dest>;
 
     struct parse_visitor : boost::static_visitor<bool>
     {
@@ -417,18 +417,18 @@ class feed_parser
             : next_(next), ch_(ch) {}
 
         template <typename Parser>
-        bool operator()(Parser & data) const
+        bool operator()(Parser & parser) const
         {
-            return data.parse(ch_, next_);
+            return parser(ch_, next_);
         }
     };
 
 public:
     using char_type = CharT;
-    using destinate_type = Destinate;
+    using dest_type = Dest;
 
 public:
-    feed_parser(Destinate & dest, boost::system::error_code & error)
+    feed_parser(Dest & dest, boost::system::error_code & error)
         : base_type(), adapt_(dest), error_(error) {}
 
     feed_parser(feed_parser const & rhs)
@@ -502,9 +502,9 @@ public:
     }
 
     //! パースが進行中であれば true を返す
-    bool progress() const
+    bool is_complete() const
     {
-        return !compl_;
+        return compl_;
     }
 
     //! 現在のパースが成功にして値 T を保存し、入れ子パーサを返す
@@ -514,7 +514,7 @@ public:
         return std::unique_ptr<feed_parser>(new feed_parser(adapt_.parse_child(t), error_));
     }
 
-    boost::system::error_code const & error() const
+    boost::system::error_code const & get_error_code() const
     {
         return error_;
     }
@@ -533,44 +533,44 @@ private:
 
   バッファを持たずに状態を保持しながら逐次的にパースする
  */
-template <typename CharT, typename Destinate>
+template <typename CharT, typename Dest>
 class json_feed_parser
 {
-    using data_type = json_impl::feed_parser<CharT, Destinate>;
+    using parser_type = json_impl::feed_parser<CharT, Dest>;
 
 public:
-    json_feed_parser(Destinate & dest)
-        : data_(dest, error_) {}
+    json_feed_parser(Dest & dest)
+        : parser_(dest, error_) {}
 
     //! パースの処理中であれば true を返す
-    bool progress() const
+    bool is_complete() const
     {
-        return !data_.error() && data_.progress();
+        return !parser_.get_error_code() && !parser_.is_complete();
     }
 
     //! パースが継続できないとき、error に値が入る
-    boost::system::error_code const & error() const
+    boost::system::error_code const & get_error_code() const
     {
-        return data_.error();
+        return parser_.get_error_code();
     }
 
     //! ch をストリーミングパースする
     json_feed_parser & parse(CharT ch)
     {
-        while(!data_.parse(ch));
+        while(!parser_.parse(ch));
         return *this;
     }
 
     //! is がEOFになるか、パースが正常/異常終了するまで、is から文字を取得し続ける
-    friend std::basic_istream<CharT> & operator>>(std::basic_istream<CharT> & is, json_feed_parser<CharT, Destinate> & rhs)
+    friend std::basic_istream<CharT> & operator>>(std::basic_istream<CharT> & is, json_feed_parser<CharT, Dest> & rhs)
     {
         CharT ch;
-        while(is.get(ch).good() && rhs.parse(ch).progress());
+        while(is.get(ch).good() && !rhs.parse(ch).is_complete());
         return is;
     }
 
 private:
-    data_type data_;
+    parser_type parser_;
     boost::system::error_code error_;
 };
 
