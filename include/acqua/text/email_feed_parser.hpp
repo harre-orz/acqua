@@ -22,26 +22,28 @@ public:
     template <typename Parser>
     bool operator()(String const & line, Parser & next)
     {
+        std::size_t pos = 0;
         if (line.empty()) {
             next.body();
-        } else if (!std::isspace(line[0], std::locale::classic())) {
-            auto pos = line.find(':');
+        } else if (!std::isspace(line[pos++], std::locale::classic())) {
+            pos = line.find(':');
             if (pos == line.npos) {
                 next.body();
                 return false;
             }
-
             name_.assign(line.c_str(), pos);
-            while(std::isspace(line[++pos], std::locale::classic()));
-            next.email.header(name_).append(line.begin()+pos, line.end());
-        } else if (!name_.empty()) {
-            next.email.header(name_).append(line);
-        } else {
-            next.body(ascii_decoding("UTF-8"), "hello", boundary_);
-            return false;
         }
-
+        while(std::isspace(line[++pos], std::locale::classic()));
+        apply_values(next.email.header, line.begin()+pos, line.end());
         return true;
+    }
+
+    template <typename Header, typename It>
+    void apply_values(Header & header, It beg, It end)
+    {
+        constexpr char seps[] = { ';', ' ', '\t' };
+        auto pos = std::find_first_of(beg, end, seps, seps + 3);
+        header(name_).assign(beg, pos);
     }
 
 private:
@@ -182,6 +184,8 @@ class email_feed_parser
 public:
     using value_type = String;
     using char_type = typename String::value_type;
+    using traits_type = typename String::traits_type;
+    using istream_type = std::basic_istream<char_type, traits_type>;
     using size_type = typename String::size_type;
 
 public:
@@ -197,6 +201,20 @@ public:
     boost::system::error_code const & get_error_code() const
     {
         return error_;
+    }
+
+    email_feed_parser & parse(char_type ch)
+    {
+        if (ch == '\r' || ch == '\n') {
+            if (prev_ != '\r') {
+                parser_.parse(line_);
+                line_.clear();
+            }
+        } else {
+            line_.push_back(ch);
+        }
+        prev_ = ch;
+        return *this;
     }
 
     email_feed_parser & parse(char_type const * beg, size_type size)
@@ -224,6 +242,14 @@ public:
         }
 
         return *this;
+    }
+
+    friend istream_type & operator>>(istream_type & is, email_feed_parser & rhs)
+    {
+        char_type ch;
+        while(!rhs.is_complete() && is.get(ch))
+            rhs.parse(ch);
+        return is;
     }
 
 private:
