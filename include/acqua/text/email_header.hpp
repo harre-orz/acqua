@@ -21,7 +21,7 @@ private:
         }
     };
 
-    using map_type = acqua::container::sequenced_map<
+    using map_type = acqua::container::sequenced_multimap<
         value_type,
         std::pair<
             value_type,
@@ -73,6 +73,11 @@ public:
     value_type & operator()(value_type const & name, value_type const & param)
     {
         return header_[name].second[param];
+    }
+
+    typename map_type::mapped_type & insert(value_type const & name)
+    {
+        return header_.emplace_hint(header_.begin(), name, typename map_type::mapped_type())->second;
     }
 
     bool empty() const
@@ -156,7 +161,10 @@ public:
     void dump(std::ostream & os) const
     {
         for(auto it = header_.begin(); it != header_.end(); ++it) {
-            os << it->first << ':' << ' ' << it->second.first << std::endl;
+            os << it->first << ':' << ' ' << it->second.first;
+            for(auto const & e : it->second.second)
+                std::cout << ' ' << e.first << '=' << e.second;
+            os << std::endl;
         }
     }
 

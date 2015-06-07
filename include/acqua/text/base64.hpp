@@ -8,80 +8,73 @@
 
 #pragma once
 
-#include <sstream>
-#include <boost/locale/encoding.hpp>
-#include <acqua/text/linefeed.hpp>
-#include <acqua/text/detail/base64_impl.hpp>
+#include <algorithm>
 
-namespace acqua { namespace text {
+namespace acqua { namespace text { namespace detail {
 
-template <typename CharT>
-class base64_encoder
+struct base64_base
 {
-public:
-    explicit base64_encoder(std::string const & charset = "UTF-8", linefeed_type linefeed = linefeed_type::crln, std::size_t indent = 0, std::size_t width = 80)
-        : impl_(width, indent), charset_(charset), linefeed_(linefeed) {}
-
-    void push(std::basic_string<CharT> const & str)
+    char tbl(char ch) const
     {
-        if (str.empty())
-            return;
-
-        std::string buf = boost::locale::conv::from_utf(str, charset_);
-        std::size_t i = 0;
-
-        do {
-            std::streamsize rest = impl_.write(oss_, buf.c_str() + i, buf.size() - i);
-            if (rest < 0)
-                return;
-            i += rest;
-            if (i >= buf.size())
-                return;
-            oss_ << linefeed_;
-        } while(true);
+        return 0 <= ch && ch < npos ? tbl_[static_cast<int>(ch)] : 0;
     }
 
-    std::string str()
+    char find(char ch) const
     {
-        impl_.flush(oss_);
-        return oss_.str();
+        return std::find(tbl_, tbl_ + npos, ch) - tbl_;
+    }
+
+    char const * tbl_ = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const char npos = 64;
+};
+
+}
+
+class base64 : detail::base64_base
+{
+public:
+    static void decode(std::string const & in, std::string & out)
+    {
+        base64().do_decode(in.begin(), in.end(), std::back_inserter(out));
     }
 
 private:
-    detail::base64_encoder_impl impl_;
-    std::string charset_;
-    linefeed_type linefeed_;
-    std::ostringstream oss_;
-};
-
-
-template <typename CharT>
-class base64_decoder
-{
-public:
-    explicit base64_decoder(std::string const & charset = "UTF-8")
-        : charset_(charset) {}
-
-    void push(std::string const & str)
+    template <typename It, typename Out>
+    void do_decode(It it, It end, Out out)
     {
-        std::streamsize rest;
-        for(std::size_t i = 0; i < str.size(); i += rest) {
-            rest = impl_.write(oss_, str.c_str() + i, str.size() - i);
-            if (rest < 0)
-                return;
+        char ch;
+        for(; it != end; ++it) {
+            switch(*it) {
+                case '=':
+                    prev_ = 0;
+                    ++i_;
+                    //break;
+                case '\r': case '\n':
+                    break;
+                default:
+                    if ((ch = find(*it)) == npos)
+                        return;
+                    switch(i_ % 4) {
+                        case 1:
+                            *out++ = (char)((prev_ & 0x3f) << 2 | (ch & 0x30) >> 4);
+                            break;
+                        case 2:
+                            *out++ = (char)((prev_ & 0x0f) << 4 | (ch & 0x3c) >> 2);
+                            break;
+                        case 3:
+                            *out++ = (char)((prev_ & 0x0f) << 6 | (ch & 0x3f) >> 0);
+                            break;
+                    }
+                    prev_ = ch;
+                    ++i_;
+                    break;
+            }
         }
     }
 
-    std::basic_string<CharT> str()
-    {
-        impl_.flush(oss_);
-        return boost::locale::conv::to_utf<CharT>(oss_.str(), charset_);
-    }
-
 private:
-    detail::base64_decoder_impl impl_;
-    std::string charset_;
-    std::ostringstream oss_;
+    std::size_t i_ = 0;
+    char prev_ = '\0';
 };
 
 } }

@@ -8,80 +8,42 @@
 
 #pragma once
 
-#include <sstream>
-#include <boost/locale/encoding.hpp>
-#include <acqua/text/linefeed.hpp>
-#include <acqua/text/detail/qprint_impl.hpp>
+#include <locale>
 
 namespace acqua { namespace text {
 
-template <typename CharT>
-class qprint_encoder
+class qprint
 {
 public:
-    explicit qprint_encoder(std::string const & charset = "UTF-8", linefeed_type linefeed = linefeed_type::crln, std::size_t indent = 0, std::size_t width = 80)
-        : impl_(width, indent), charset_(charset), linefeed_(linefeed) {}
-
-    void push(std::basic_string<CharT> const & str)
+    static void decode(std::string const & in, std::string & out)
     {
-        if (str.empty())
-            return;
-
-        std::string buf = boost::locale::conv::from_utf(str, charset_);
-        std::size_t i = 0, n = buf.size();
-
-        do {
-            std::streamsize rest = impl_.write(oss_, buf.c_str() + i, buf.size() - i);
-            if (rest < 0)
-                return;
-            i += rest;
-            if (i >= n)
-                return;
-            oss_ << linefeed_;
-        } while(true);
-    }
-
-    std::string str()
-    {
-        impl_.flush(oss_);
-        return oss_.str();
+        qprint().do_decode(in.begin(), in.end(), std::back_inserter(out));
     }
 
 private:
-    detail::qprint_encoder_impl impl_;
-    std::string charset_;
-    linefeed_type linefeed_;
-    std::ostringstream oss_;
-};
-
-
-template <typename CharT>
-class qprint_decoder
-{
-public:
-    explicit qprint_decoder(std::string const & charset = "UTF-8")
-        : charset_(charset) {}
-
-    void push(std::string const & str)
+    template <typename It, typename Out>
+    void do_decode(It it, It end, Out out)
     {
-        std::streamsize rest;
-        for(std::size_t i = 0; i < str.size(); i += rest) {
-            rest = impl_.write(oss_, str.c_str() + i, str.size() - i);
-            if (rest < 0)
-                return;
+        for(; it != end; ++it) {
+            if (*it == '=') {
+                if (++it >= end) {
+                    break;
+                }
+                char tmp[] = { 0,0,0 };
+                if (!std::isxdigit(*it, std::locale::classic())) {
+                    break;
+                }
+                tmp[0] = *it;
+                if (++it >= end || !std::isxdigit(*it, std::locale::classic())) {
+                    break;
+                }
+                tmp[1] = *it;
+                *out++ = std::strtol(tmp, nullptr, 16);
+            } else {
+                *out++ = *it;
+            }
         }
     }
-
-    std::basic_string<CharT> str()
-    {
-        impl_.flush(oss_);
-        return boost::locale::conv::to_utf<CharT>(oss_.str(), charset_);
-    }
-
-private:
-    detail::qprint_decoder_impl impl_;
-    std::string charset_;
-    std::ostringstream oss_;
 };
 
 } }

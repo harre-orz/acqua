@@ -3,6 +3,8 @@
 #include <iostream>
 #include <locale>
 #include <boost/system/error_code.hpp>
+#include <acqua/text/mime_header.hpp>
+#include <acqua/text/base64.hpp>
 #include <acqua/text/encoding.hpp>
 #include <acqua/text/email_header.hpp>
 #include <acqua/text/email_message.hpp>
@@ -11,154 +13,88 @@ namespace acqua { namespace text {
 
 namespace email_impl {
 
-template <typename String>
+class no_boundary
+{
+};
+
+template <typename Boundary>
 class head_parser
 {
 public:
-    explicit head_parser(String const & boundary = String())
-        : boundary_(boundary)
-    {}
-
     template <typename Parser>
-    bool operator()(String const & line, Parser & next)
+    bool operator()(std::string const & line, Parser & next)
     {
-        std::size_t pos = 0;
+        auto it = line.begin();
         if (line.empty()) {
+            apply(next);
             next.body();
-        } else if (!std::isspace(line[pos++], std::locale::classic())) {
-            pos = line.find(':');
-            if (pos == line.npos) {
+            return true;
+        } else if (line.size() == 1 && line[0] == '.') {
+            apply(next);
+            next.complete();
+            return true;;
+        } else if (!std::isspace(*it, std::locale::classic())) {
+            // 次のヘッダー
+            if ((it = std::find(it, line.end(), ':')) == line.end()) {
+                // ヘッダーに不備がある場合は、ヘッダー解析終了
                 next.body();
                 return false;
             }
-            name_.assign(line.c_str(), pos);
+            apply(next);
+            buffer_.clear();
+            name_.assign(line.begin(), it);
         }
-        while(std::isspace(line[++pos], std::locale::classic()));
-        apply_values(next.email.header, line.begin()+pos, line.end());
+
+        while(std::isspace(*++it, std::locale::classic()));
+        if (!buffer_.empty()) buffer_.push_back(' ');
+        buffer_.append(it, line.end());
         return true;
     }
 
-    template <typename Header, typename It>
-    void apply_values(Header & header, It beg, It end)
+    template <typename Parser>
+    void apply(Parser & next) const
     {
-        constexpr char seps[] = { ';', ' ', '\t' };
-        auto pos = std::find_first_of(beg, end, seps, seps + 3);
-        header(name_).assign(beg, pos);
-    }
-
-private:
-    String name_;
-    String boundary_;
-};
-
-
-template <typename String, typename Decoding, typename Parser>
-class body_parser
-{
-public:
-    explicit body_parser(Decoding decoding, String const & multipart_boundary, String const & parent_boundary)
-        : decoding_(decoding), multipart_boundary_(multipart_boundary), parent_boundary_(parent_boundary) {}
-
-    bool operator()(String const & line, Parser & next)
-    {
-        if (in_multipart_ && !in_multipart_->is_complete()) {
-            in_multipart_->parse(line);
-        } else if (is_boundary_begin(line, multipart_boundary_)) {
-            in_multipart_.reset(new Parser(next, multipart_boundary_));
-        } else if (is_boundary_end(line, parent_boundary_)) {
-            decoding_.flush(std::cout);
-            next.complete();
-        } else {
-            decoding_.write(next.email, line);
+        if (!name_.empty() && !buffer_.empty()) {
+            auto & pair = next.email.header.insert(name_);
+            if (boost::istarts_with(name_, "Content-")) {
+                acqua::text::mime_header::decode(buffer_.begin(), buffer_.end(), pair.first, pair.second);
+            } else {
+                acqua::text::mime_header::decode(buffer_.begin(), buffer_.end(), pair.first);
+            }
         }
-
-        return true;
     }
 
 private:
-    static bool is_boundary_begin(String const & line, String const & boundary)
-    {
-        return (boundary.size() && line.size() == boundary.size()+2 &&
-                line[0] == '-' && line[1] == '-' &&
-                std::equal(line.begin()+2, line.end(), boundary.begin()));
-    }
-
-    static bool is_boundary_end(String const & line, String const & boundary)
-    {
-        return (boundary.size() && line.size() == boundary.size()+4 &&
-                line[0] == '-' && line[1] == '-' && line[line.size()-1] == '-' && line[line.size()-2] == '-' &&
-                std::equal(line.begin()+2, line.end()-2, boundary.begin()));
-    }
-
-private:
-    Decoding decoding_;
-    String multipart_boundary_;
-    String parent_boundary_;
-    std::unique_ptr<Parser> in_multipart_;
+    std::string name_;
+    std::string buffer_;
 };
 
 
-template <typename String>
-class feed_parser
-    : public boost::variant< head_parser<String>,
-                             body_parser<String, no_decoding, feed_parser<String> >,
-                             body_parser<String, ascii_decoding, feed_parser<String> >,
-                             body_parser<String, quoted_decoding, feed_parser<String> >,
-                             body_parser<String, base64_file_decoding, feed_parser<String> >,
-                             body_parser<String, base64_text_decoding, feed_parser<String> >
-                             >
+template <typename Email>
+class feed_parser : public boost::variant< head_parser<no_boundary> >
 {
-    using base_type = boost::variant<
-        head_parser<String>,
-        body_parser<String, no_decoding, feed_parser<String> >,
-        body_parser<String, ascii_decoding, feed_parser<String> >,
-        body_parser<String, quoted_decoding, feed_parser<String> >,
-        body_parser<String, base64_file_decoding, feed_parser<String> >,
-        body_parser<String, base64_text_decoding, feed_parser<String> >
-        >;
-
     struct feed_visitor : boost::static_visitor<>
     {
-        String const & line_;
+        std::string const & line_;
         feed_parser & next_;
-        explicit feed_visitor(String const & line, feed_parser & next)
+
+        explicit feed_visitor(std::string const & line, feed_parser & next)
             : line_(line), next_(next) {}
 
         template <typename Parser>
         void operator()(Parser & parser) const
         {
-            if (line_.size() == 0 && line_[0] == '.')
-                next_.complete();
-            else
-                while(!parser(line_, next_));
+            while(!parser(line_, next_));
         }
     };
 
-    using email_type = email_message<String>;
-
 public:
-    feed_parser(email_type & email)
-        : base_type(head_parser<String>(String()))
-        , email(email) {}
-
-    feed_parser(feed_parser & parent, String const & str)
-        : base_type(head_parser<String>(str))
-        , email(parent.email) {}
+    explicit feed_parser(boost::system::error_code & error, Email & email)
+        : error_(error), email(email) {}
 
     bool is_complete() const
     {
         return is_compl_;
-    }
-
-    void body()
-    {
-        *static_cast<base_type *>(this) = body_parser<String, no_decoding, feed_parser>(no_decoding(), "", "");
-    }
-
-    template <typename Decoding>
-    void body(Decoding decoding, String const & multipart, String const & parent)
-    {
-        *static_cast<base_type *>(this) = body_parser<String, Decoding, feed_parser>(decoding, multipart, parent);
     }
 
     void complete()
@@ -166,36 +102,39 @@ public:
         is_compl_ = true;
     }
 
-    void parse(String const & line)
+    void body()
+    {
+        complete();
+    }
+
+    void parse(std::string const & line)
     {
         boost::apply_visitor(feed_visitor(line, *this), *this);
     }
 
-    email_type & email;
 private:
-    bool is_compl_;
+    bool is_compl_ = false;
+    boost::system::error_code & error_;
+
+public:
+    Email & email;
 };
 
 }  // email_impl
 
-template <typename String>
+template <typename Email>
 class email_feed_parser
 {
-public:
-    using value_type = String;
-    using char_type = typename String::value_type;
-    using traits_type = typename String::traits_type;
-    using istream_type = std::basic_istream<char_type, traits_type>;
-    using size_type = typename String::size_type;
+private:
+    using parser_type = email_impl::feed_parser<Email>;
 
 public:
-    template <typename Email>
     explicit email_feed_parser(Email & email)
-        : parser_(email) {}
+        : parser_(error_, email) {}
 
     bool is_complete() const
     {
-        return false;
+        return error_ || parser_.is_complete();
     }
 
     boost::system::error_code const & get_error_code() const
@@ -203,7 +142,7 @@ public:
         return error_;
     }
 
-    email_feed_parser & parse(char_type ch)
+    email_feed_parser & parse(char ch)
     {
         if (ch == '\r' || ch == '\n') {
             if (prev_ != '\r') {
@@ -217,36 +156,9 @@ public:
         return *this;
     }
 
-    email_feed_parser & parse(char_type const * beg, size_type size)
+    friend std::istream & operator>>(std::istream & is, email_feed_parser & rhs)
     {
-        if (size > 0) {
-            if (prev_ == '\r' && *beg == '\n')
-                ++beg;
-            char_type const * end = beg + size;
-            prev_ = end[-1];
-
-            do {
-                constexpr char crln[] = { '\r', '\n' };
-                auto pos = std::find_first_of(beg, end, crln, crln + sizeof(crln)/sizeof(crln[0]));
-                line_.append(beg, pos);
-                if (pos < end) {
-                    parser_.parse(line_);
-                    line_.clear();
-                    if (*pos == '\r')
-                        ++pos;
-                    if (pos < end && *pos == '\n')
-                        ++pos;
-                }
-                beg = pos;
-            } while(beg < end);
-        }
-
-        return *this;
-    }
-
-    friend istream_type & operator>>(istream_type & is, email_feed_parser & rhs)
-    {
-        char_type ch;
+        char ch;
         while(!rhs.is_complete() && is.get(ch))
             rhs.parse(ch);
         return is;
@@ -254,9 +166,9 @@ public:
 
 private:
     boost::system::error_code error_;
-    email_impl::feed_parser<value_type> parser_;
-    value_type line_;
-    char_type prev_ = '\0';
+    parser_type parser_;
+    std::string line_;
+    char prev_ = '\0';
 };
 
 } }
