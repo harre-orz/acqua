@@ -27,15 +27,15 @@ public:
 
 public:
     email_message()
+        : buffer_(new std::basic_stringbuf<char_type, traits_type, allocator_type>())
     {
-        buffer_.reset(new std::basic_stringbuf<char_type, traits_type, allocator_type>());
-        //base_type::rdbuf(&*buffer_);
+        base_type::rdbuf(&*buffer_);
     }
 
-    email_message(value_type const & filename)
+    void open(value_type const & filename)
     {
         buffer_.reset(new std::basic_filebuf<char_type, traits_type>(filename));
-        //base_type::rdbuf(&*buffer_);
+        base_type::rdbuf(&*buffer_);
     }
 
     header_type header;

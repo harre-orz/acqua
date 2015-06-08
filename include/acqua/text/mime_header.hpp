@@ -1,12 +1,14 @@
 #pragma once
 
 #include <iterator>
+#include <functional>
 #include <boost/locale.hpp>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/xpressive/xpressive.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <acqua/text/base64.hpp>
 #include <acqua/text/qprint.hpp>
+#include <acqua/text/percent.hpp>
 
 namespace acqua { namespace text {
 
@@ -16,7 +18,7 @@ public:
     template <typename It, typename CharT, typename Map>
     static void decode(It beg, It end, std::basic_string<CharT> & out, Map & map)
     {
-        auto it = std::find(beg, end, ';');
+        auto it = std::find_if(beg, end, [](typename It::value_type const & v){return v == ';' || v ==' ' || v == '\t'; });
         do_decode<CharT>(beg, it, std::back_inserter(out));
         if (it != end) {
             ++it;
@@ -83,7 +85,7 @@ private:
             boost::optional<boost::fusion::vector<boost::optional<int> > > idx;
 
             if (qi::parse(beg, end, +(qi::char_ - '*'-'=') >> -('*' >> -(qi::int_ >> '*')) >> '='
-                          >> ('"' >> *(qi::char_ - '"') >> '"'| +(qi::char_ - qi::space)), key, idx, val)) {
+                          >> ('"' >> *(qi::char_ - '"') >> '"' | +(qi::char_ - qi::space)), key, idx, val)) {
                 if (!idx) {
                     to_utf<CharT>(key_, encoded, charset, map);
                     do_decode<CharT>(val.begin(), val.end(), std::back_inserter(map[key]));
@@ -105,7 +107,7 @@ private:
                         }
                         key_ = key;
                     }
-                    encoded.append(val);
+                    percent::decode(val, encoded);
                 }
             }
         }
