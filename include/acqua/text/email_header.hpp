@@ -9,167 +9,99 @@ template <typename String>
 class email_header
 {
 public:
-    using value_type = String;
-    using size_type = typename value_type::size_type;
+    using key_type = String;
+    using data_type = String;
 
 private:
     struct iequal_to
     {
-        bool operator()(value_type const & lhs, value_type const & rhs) const
+        bool operator()(key_type const & lhs, key_type const & rhs) const
         {
-            return boost::iequals(lhs, rhs);
+            return boost::algorithm::iequals(lhs, rhs);
         }
     };
 
-    using map_type = acqua::container::sequenced_multimap<
-        value_type,
-        std::pair<
-            value_type,
-            acqua::container::sequenced_map<
-                value_type,
-                value_type,
-                iequal_to
-                >
-            >,
-        iequal_to
-        >;
+public:
+    class disposition
+    {
+    private:
+        using char_type = typename String::value_type;
+        using traits_type = typename String::traits_type;
+        using ostream_type = std::basic_ostream<char_type, traits_type>;
+        using map_type = acqua::container::sequenced_map<key_type, data_type, iequal_to>;
+
+    public: // data operations
+        disposition & operator=(data_type const & data)
+        {
+            data_ = data;
+            return *this;
+        }
+
+        friend bool operator==(disposition const & lhs, key_type const & rhs)
+        {
+            return lhs.data_ == rhs;
+        }
+
+        friend ostream_type & operator<<(ostream_type & os, disposition const & rhs)
+        {
+            os << rhs.data_;
+            return os;
+        }
+
+    public: // map operations
+        using iterator = typename map_type::iterator;
+        using const_iterator = typename map_type::const_iterator;
+
+        iterator begin() { return map_.begin(); }
+        const_iterator begin() const { return map_.begin(); }
+        iterator end() { return map_.end(); }
+        const_iterator end() const { return map_.end(); }
+
+        data_type & operator[](key_type const & name)
+        {
+            return map_[name];
+        }
+
+    private:
+        data_type data_;
+        map_type map_;
+    };
 
 private:
-    static value_type const & s_empty()
-    {
-        static value_type empty;
-        return empty;
-    }
+    using multimap_type = acqua::container::sequenced_multimap<key_type, disposition, iequal_to>;
 
 public:
-    using iterator = typename map_type::iterator;
-    using const_iterator = typename map_type::const_iterator;
-    using param_iterator = typename map_type::mapped_type::second_type::iterator;
-    using const_param_iterator = typename map_type::mapped_type::second_type::const_iterator;
-
-public:
-    value_type & operator()(value_type const & name)
-    {
-        return header_[name].first;
-    }
-
-    value_type const & operator()(value_type const & name) const
-    {
-        auto it = header_.find(name);
-        return (it != header_.end() ? it->second : s_empty());
-    }
-
-    value_type const & operator()(value_type const & name, value_type const & param) const
-    {
-        auto it1 = header_.find(name);
-        if (it1 == header_.end())
-            return empty();
-        auto it2 = it1->second.find(param);
-        if (it2 == it1->second.end())
-            return empty();
-        return it2->second;
-    }
-
-    value_type & operator()(value_type const & name, value_type const & param)
-    {
-        return header_[name].second[param];
-    }
-
-    typename map_type::mapped_type & insert(value_type const & name)
-    {
-        return header_.emplace_hint(header_.begin(), name, typename map_type::mapped_type())->second;
-    }
-
-    bool empty() const
-    {
-        return header_.empty();
-    }
-
-    bool empty(value_type const & name) const
-    {
-        auto it = header_.find(name);
-        return (it != header_.end() ? it->second.empty() : true);
-    }
-
-    size_type size() const
-    {
-        return header_.size();
-    }
-
-    size_type size(value_type const & name) const
-    {
-        auto it = header_.find(name);
-        return (it != header_.end() ? it->second.size() + 1 : 0);
-    }
-
-    void clear()
-    {
-        header_.clear();
-    }
-
-    void clear(value_type const & name)
-    {
-        auto it = header_.find(name);
-        if (it != header_.end())
-            header_.erase(it);
-    }
+    using size_type = typename multimap_type::size_type;
+    using iterator = typename multimap_type::iterator;
+    using const_iterator = typename multimap_type::const_iterator;
 
     iterator begin()
     {
-        return header_.begin();
+        return multimap_.begin();
     }
 
     const_iterator begin() const
     {
-        return header_.begin();
-    }
-
-    param_iterator begin(value_type const & name)
-    {
-        auto it = header_.find(name);
-        return (it != header_.end() ? it->second.begin() : iterator());
-    }
-
-    const_param_iterator begin(value_type const & name) const
-    {
-        auto it = header_.find(name);
-        return (it != header_.end() ? it->second.begin() : const_iterator());
+        return multimap_.begin();
     }
 
     iterator end()
     {
-        return header_.end();
+        return multimap_.end();
     }
 
     const_iterator end() const
     {
-        return header_.end();
+        return multimap_.end();
     }
 
-    param_iterator end(value_type const & name)
+    disposition & operator[](key_type const & name)
     {
-        auto it = header_.find(name);
-        return (it != header_.end() ? it->second.end() : iterator());
-    }
-
-    const_param_iterator end(value_type const & name) const
-    {
-        auto it = header_.find(name);
-        return (it != header_.end() ? it->second.end() : const_iterator());
-    }
-
-    void dump(std::ostream & os) const
-    {
-        for(auto it = header_.begin(); it != header_.end(); ++it) {
-            os << it->first << ':' << ' ' << it->second.first;
-            for(auto const & e : it->second.second)
-                std::cout << ' ' << e.first << '=' << e.second;
-            os << std::endl;
-        }
+        return multimap_[name];
     }
 
 private:
-    mutable map_type header_;
+    multimap_type multimap_;
 };
 
 } }
