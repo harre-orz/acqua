@@ -10,7 +10,6 @@
 
 #include <deque>
 #include <list>
-#include <acqua/container/detail/container_tag.hpp>
 #include <acqua/container/detail/sequenced_map_base.hpp>
 
 namespace acqua { namespace container {

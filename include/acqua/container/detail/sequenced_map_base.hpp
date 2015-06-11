@@ -14,6 +14,9 @@
 
 namespace acqua { namespace container { namespace detail {
 
+class unique_tag {};
+class non_unique_tag {};
+
 template <typename Tag, typename Key, typename Value, typename Pred, typename Allocator,
           template <typename T, typename A> class Container>
 class sequenced_map_base
@@ -33,7 +36,7 @@ private:
         wrapped_value_type(Args... args)
             : std::pair<key_type, mapped_type>(args...) {}
         operator value_type &() { return *reinterpret_cast<value_type *>(this); }
-        operator value_type const &() const { return *reinterpret_cast<value_type const *>(this); }
+        operator value_type &() const { return *reinterpret_cast<value_type *>(const_cast<wrapped_value_type *>(this)); }
     };
     using data_type = Container<wrapped_value_type, typename Allocator::template rebind<wrapped_value_type>::other>;
 
