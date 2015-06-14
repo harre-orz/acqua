@@ -132,46 +132,11 @@ protected:
     char const * tbl_ = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 };
 
-class base64_file_decoding : base64_base
+
+class base64_message_decoding : base64_base
 {
 public:
-    template <typename Sink, typename String>
-    void write(Sink & sink, String const & line)
-    {
-        char ch;
-        for(auto it = line.begin(); it != line.end(); ++it) {
-            if (*it == '\r' || *it == '\n' || *it == '=' || (ch = find(*it)) == 64)
-                continue;
-            switch(i_ % 4) {
-                case 1:
-                    sink << ((p_ & 0x3f) << 2 | (ch & 0x30) >> 4);
-                    break;
-                case 2:
-                    sink << ((p_ & 0x0f) << 4 | (ch & 0x3c) >> 2);
-                    break;
-                case 3:
-                    sink << ((p_ & 0x0f) << 6 | (ch & 0x3f) >> 0);
-                    break;
-            }
-            p_ = ch;
-        }
-    }
-
-    template <typename Sink>
-    void flush(Sink &)
-    {
-    }
-
-private:
-    std::size_t i_ = 0;
-    char p_;
-};
-
-
-class base64_text_decoding : base64_base
-{
-public:
-    explicit base64_text_decoding(std::string const & charset)
+    explicit base64_message_decoding(std::string const & charset)
         : charset_(charset) {}
 
     template <typename Sink, typename String>
@@ -224,6 +189,42 @@ private:
     std::size_t i_ = 0;
     char p_;
     char prev_;
+};
+
+
+class base64_binary_decoding : base64_base
+{
+public:
+    template <typename Sink, typename String>
+    void write(Sink & sink, String const & line)
+    {
+        char ch;
+        for(auto it = line.begin(); it != line.end(); ++it) {
+            if (*it == '\r' || *it == '\n' || *it == '=' || (ch = find(*it)) == 64)
+                continue;
+            switch(i_ % 4) {
+                case 1:
+                    sink << ((p_ & 0x3f) << 2 | (ch & 0x30) >> 4);
+                    break;
+                case 2:
+                    sink << ((p_ & 0x0f) << 4 | (ch & 0x3c) >> 2);
+                    break;
+                case 3:
+                    sink << ((p_ & 0x0f) << 6 | (ch & 0x3f) >> 0);
+                    break;
+            }
+            p_ = ch;
+        }
+    }
+
+    template <typename Sink>
+    void flush(Sink &)
+    {
+    }
+
+private:
+    std::size_t i_ = 0;
+    char p_;
 };
 
 } } }

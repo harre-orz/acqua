@@ -15,26 +15,23 @@ namespace acqua { namespace text {
 class mime_header
 {
 public:
-    template <typename It, typename CharT, typename Map>
-    static void decode(It beg, It end, std::basic_string<CharT> & out, Map & map)
-    {
-        auto it = std::find_if(beg, end, [](typename It::value_type const & v){return v == ';' || v ==' ' || v == '\t'; });
-        do_decode<CharT>(beg, it, std::back_inserter(out));
-        if (it != end) {
-            ++it;
-            do_decode_params<CharT>(it, end, map);
-        }
-    }
-
     template <typename It, typename CharT>
     static void decode(It beg, It end, std::basic_string<CharT> & out)
     {
-        do_decode<CharT>(beg, end, std::back_inserter(out));
+        rfc2047_decode<CharT>(beg, end, std::back_inserter(out));
+    }
+
+    template <typename It, typename CharT, typename Map>
+    static void decode(It beg, It end, std::basic_string<CharT> & out, Map & map)
+    {
+        auto it = std::find_if(beg, end, [](typename It::value_type const & v) { return v == ';' || v ==' ' || v == '\t'; });
+        rfc2047_decode<CharT>(beg, it, std::back_inserter(out));
+        if (it != end) rfc2231_decode<CharT>(++it, end, map);
     }
 
 private:
     template <typename CharT, typename It, typename Out>
-    static void do_decode(It beg, It end, Out out)
+    static void rfc2047_decode(It beg, It end, Out out)
     {
         std::string encoded;
         std::string charset;
@@ -69,7 +66,7 @@ private:
     }
 
     template <typename CharT, typename It, typename Map>
-    static void do_decode_params(It beg, It end, Map & map)
+    static void rfc2231_decode(It beg, It end, Map & map)
     {
         std::string charset;
         std::string key_;
@@ -88,10 +85,7 @@ private:
                           >> ('"' >> *(qi::char_ - '"') >> '"' | +(qi::char_ - qi::space)), key, idx, val)) {
                 if (!idx) {
                     to_utf<CharT>(key_, encoded, charset, map);
-                    do_decode<CharT>(val.begin(), val.end(), std::back_inserter(map[key]));
-                } else if (!boost::fusion::at_c<0>(*idx)) {
-                    to_utf<CharT>(key_, encoded, charset, map);
-                    map[key] = val;
+                    rfc2047_decode<CharT>(val.begin(), val.end(), std::back_inserter(map[key]));
                 } else {
                     if (key_ != key) {
                         to_utf<CharT>(key_, encoded, charset, map);
@@ -101,8 +95,8 @@ private:
                         if (it1 != val.end()) {
                             auto it2 = std::find(++it1, val.end(), '\'');
                             if (it2 != val.end()) {
-                                charset.assign(val.begin(), --it1);
-                                val.erase(it2);
+                                charset.assign(val.begin(), it1);
+                                val.erase(val.begin(), ++it2);
                             }
                         }
                         key_ = key;
@@ -120,8 +114,13 @@ private:
     {
         if (charset.empty())
             boost::range::copy(in, out);
-        else
-            boost::range::copy(boost::locale::conv::to_utf<CharT>(in, charset), out);
+        else {
+            try {
+                boost::range::copy(boost::locale::conv::to_utf<CharT>(in, charset), out);
+            } catch(...) {
+                boost::range::copy(in, out);
+            }
+        }
     }
 
     template <typename CharT, typename Map>
