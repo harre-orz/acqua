@@ -13,6 +13,7 @@
 #include <atomic>
 #include <type_traits>
 #include <boost/utility.hpp>
+#include <boost/blank.hpp>
 #include <boost/asio.hpp>
 #include <acqua/exception/throw_error.hpp>
 
@@ -27,7 +28,7 @@ template <
     typename Derived,
     typename Connector,
     typename Protocol,
-    typename Tag = void,
+    typename Tag = boost::blank,
     typename Enabler = void
     >
 class simple_server_base
@@ -123,7 +124,7 @@ private:
                 std::bind(&simple_server_base::on_disconnect, this, std::placeholders::_1)
             );
             acceptor_.async_accept(
-                lowest_layer_socket(conn->socket()),
+                lowest_layer_socket(static_cast<Derived *>(this)->server_socket(conn, Tag())),
                 std::bind(&simple_server_base::on_accept, this, std::placeholders::_1, conn)
             );
         } else {
@@ -139,16 +140,14 @@ private:
     {
         if (!error) {
             async_accept();
-            conn->start();
+            static_cast<Derived *>(this)->connection_start(conn, Tag());
         } else if (is_running_.exchange(false) == true) {
             acqua::exception::throw_error(error, "accept");
         }
     }
 
-    using socket_type = typename Protocol::socket;
-
-    // for basic_socket
-    static socket_type & lowest_layer_socket(socket_type & socket)
+    template <typename SocketService>
+    static boost::asio::basic_stream_socket<Protocol, SocketService> & lowest_layer_socket(boost::asio::basic_stream_socket<Protocol, SocketService> & socket)
     {
         return socket;
     }

@@ -49,6 +49,39 @@ public:
     static void set_option_v6(Acceptor &, boost::system::error_code &)
     {
     }
+
+    template <typename Socket>
+    Socket & socket(T * t)
+    {
+        return t->socket();
+    }
+
+    template <typename Socket>
+    Socket & socket_v4(T * t)
+    {
+        return socket<Socket>(t);
+    }
+
+    template <typename Socket>
+    Socket & socket_v6(T * t)
+    {
+        return socket<Socket>(t);
+    }
+
+    void start(T * t)
+    {
+        t->start();
+    }
+
+    void start_v4(T * t)
+    {
+        start(t);
+    }
+
+    void start_v6(T * t)
+    {
+        start(t);
+    }
 };
 
 } }

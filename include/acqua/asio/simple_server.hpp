@@ -9,7 +9,6 @@
 #pragma once
 
 #include <boost/asio/io_service.hpp>
-
 #include <acqua/exception/throw_error.hpp>
 #include <acqua/asio/detail/simple_server_base.hpp>
 #include <acqua/asio/server_traits.hpp>
@@ -95,6 +94,16 @@ private:
     Connector * construct(boost::asio::io_service & io_service)
     {
         return static_cast<Traits *>(this)->construct(io_service);
+    }
+
+    typename Protocol::socket & server_socket(std::shared_ptr<Connector> & conn, boost::blank const &)
+    {
+        return static_cast<Traits *>(this)->template socket<typename Protocol::socket>(&*conn);
+    }
+
+    void connection_start(std::shared_ptr<Connector> & conn, boost::blank const &)
+    {
+        static_cast<Traits *>(this)->start(&*conn);
     }
 
 private:
