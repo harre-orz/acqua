@@ -1,14 +1,14 @@
 
 #CXX = g++-mp-4.9
-CXXFLAGS += -std=c++11 -W -Wall
+CXXFLAGS += -std=c++14 -W -Wall
 ASFLAGS +=
 LDFLAGS += -lstdc++ -lpthread -lm -lcrypto  -lssl
 LDFLAGS += -lboost_system -lboost_thread -lboost_locale -lboost_date_time -lboost_iostreams
-INCLUDES += ../../include/ /opt/local/include
+INCLUDES += /opt/local/include
 
 .PHONY: build clean doc
 .DEFAULT: build
-.SUBDIRS: test
+.SUBDIRS: test example
 
 doc:
 	./gen_todo.sh ./include > ./.TODO.md
