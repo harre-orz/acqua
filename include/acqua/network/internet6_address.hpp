@@ -250,8 +250,9 @@ public:
 private:
     char * inet_ntop(char * buf) const
     {
-        return const_cast<char *>(::inet_ntop(AF_INET6, bytes_.data(), buf, 40));
-        return buf;
+        if (::inet_ntop(AF_INET6, bytes_.data(), buf, 40) == nullptr)
+            *buf = '\0';
+        return buf + std::strlen(buf);
     }
 
     template <typename T, typename std::enable_if<std::is_integral<T>::value>::type * = nullptr>
