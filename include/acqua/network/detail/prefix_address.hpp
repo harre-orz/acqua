@@ -34,7 +34,7 @@ public:
     prefix_address(address_type const & address, masklen_type masklen) noexcept
         : masklen_(std::min(masklen, max_masklen())), address_()
     {
-                auto iit = address.bytes_.begin();
+        auto iit = address.bytes_.begin();
         auto oit = address_.bytes_.begin();
         for(masklen = masklen_; masklen > 8; masklen -= 8)
             *oit++ = *iit++;
