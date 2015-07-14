@@ -44,12 +44,12 @@ public:
 
     T & operator*() const
     {
-        return root_ ? *root_ : *depth_.top();
+        return depth_.empty() ? *root_ : *depth_.top();
     }
 
     T * operator->() const
     {
-        return root_ ? &*root_ : &*depth_.top();
+        return depth_.empty() ? &*root_ : &*depth_.top();
     }
 
     std::size_t depth() const
