@@ -2,7 +2,8 @@
           $(CXXProgram test_sequenced_map, test_sequenced_map) \
           $(CXXProgram test_sequenced_multimap, test_sequenced_multimap) \
           $(CXXProgram test_recursive_iterator, test_recursive_iterator) \
-          $(CXXProgram test_lru_set, test_lru_set)
+          $(CXXProgram test_lru_set, test_lru_set) \
+          $(CXXProgram test_lru_map, test_lru_map)
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc
