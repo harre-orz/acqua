@@ -1,7 +1,9 @@
 .PHONY: build clean
 .DEFAULT: build
 
-build: $(CXXProgram test_message, test_message) $(CXXProgram test_envelope, test_envelope)
+build: $(CXXProgram test_message, test_message) \
+       $(CXXProgram test_envelope, test_envelope) \
+       $(CXXProgram test_feed_parser, test_feed_parser)
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc
