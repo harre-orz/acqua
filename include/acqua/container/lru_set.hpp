@@ -1,3 +1,11 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 #include <acqua/container/detail/lru_cache.hpp>
@@ -26,6 +34,9 @@ private:
 
         node(value_type const & v)
             : value_(v) {}
+
+        node(value_type && v)
+            : value_(std::move(v)) {}
 
         friend bool operator==(node const & lhs, node const & rhs)
         {
@@ -58,6 +69,7 @@ public:
         : base_(bucket_size, alloc) {}
 
     void clear() { base_.clear(); }
+    bool empty() const { return base_.empty(); }
     size_type size() const { return base_.size(); }
     iterator begin() { return base_.begin(); }
     const_iterator begin() const { return base_.begin(); }
@@ -67,7 +79,8 @@ public:
     const_reverse_iterator rbegin() const { return base_.rbegin(); }
     reverse_iterator rend() { return base_.rend(); }
     const_reverse_iterator rend() const { return base_.rend(); }
-    void push(value_type const & v) { return base_.push(v); }
+    void push(value_type const & v) { base_.push(v); }
+    void push(value_type && v) { base_.push(std::move(v)); }
     void pop() { base_.pop(); }
     value_type & front() { return base_.front(); }
     value_type const & front() const { return base_.front(); }
@@ -78,8 +91,8 @@ public:
     iterator erase(const_iterator it) { return base_.erase(it); }
     iterator erase(const_iterator beg, const_iterator end) { return base_.erase(beg, end); }
 
-    size_type reserve() const { return base_.reserve(); }
-    void reserve(size_type size) { base_.reserve(size); }
+    size_type max_size() const { return base_.max_size(); }
+    void max_size(size_type size) { base_.max_size(size); }
 private:
     base_type base_;
 };

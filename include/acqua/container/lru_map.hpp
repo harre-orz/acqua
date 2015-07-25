@@ -47,6 +47,7 @@ private:
 
         node & operator=(value_type && rhs)
         {
+            const_cast<key_type &>(value_.first) = std::move(rhs.first);
             value_.second = std::move(rhs.second);
             return *this;
         }
@@ -82,6 +83,7 @@ public:
         : base_(bucket_size, alloc) {}
 
     void clear() { base_.clear(); }
+    bool empty() const { return base_.empty(); }
     size_type size() const { return base_.size(); }
     iterator begin() { return base_.begin(); }
     const_iterator begin() const { return base_.begin(); }
@@ -91,7 +93,8 @@ public:
     const_reverse_iterator rbegin() const { return base_.rbegin(); }
     reverse_iterator rend() { return base_.rend(); }
     const_reverse_iterator rend() const { return base_.rend(); }
-    void push(value_type const & v) { return base_.push(v); }
+    void push(value_type const & v) { base_.push(v); }
+    void push(value_type && v) { base_.push(std::move(v)); }
     void pop() { base_.pop(); }
     value_type & front() { return base_.front(); }
     value_type const & front() const { return base_.front(); }
@@ -101,8 +104,8 @@ public:
     const_iterator find(key_equal const & k) const { return base_.find(k, hasher(), key_node_equal()); }
     iterator erase(const_iterator it) { return base_.erase(it); }
     iterator erase(const_iterator beg, const_iterator end) { return base_.erase(beg, end); }
-    size_type reserve() const { return base_.reserve(); }
-    void reserve(size_type size) { base_.reserve(size); }
+    size_type max_size() const { return base_.max_size(); }
+    void max_size(size_type size) { base_.max_size(size); }
 private:
     base_type base_;
 };

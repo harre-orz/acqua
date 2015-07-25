@@ -48,15 +48,18 @@ class lru_cache
         node(value_type const & v)
             : Node(v) {}
 
-        node & operator=(value_type const & rhs)
+        node(value_type && v)
+            : Node(std::move(v)) {}
+
+        node & operator=(value_type const & v)
         {
-            Node::operator=(rhs);
+            Node::operator=(v);
             return *this;
         }
 
-        node & operator=(value_type && rhs)
+        node & operator=(value_type && v)
         {
-            Node::operator=(rhs);
+            Node::operator=(std::move(v));
             return *this;
         }
     };
@@ -101,6 +104,15 @@ class lru_cache
         node_allocator alloc(get_allocator());
         node * ptr = alloc.allocate(1);
         alloc.construct(ptr, val);
+        return *ptr;
+    }
+
+
+    node & new_node(value_type && val)
+    {
+        node_allocator alloc(get_allocator());
+        node * ptr = alloc.allocate(1);
+        alloc.construct(ptr, std::move(val));
         return *ptr;
     }
 
@@ -200,7 +212,7 @@ public:
 
     lru_cache(size_type bucket_size, allocator_type alloc)
         : allocator_type(alloc)
-        , reserve_size_(std::numeric_limits<size_type>::max())
+        , max_size_(std::numeric_limits<size_type>::max())
     {
         init_buckets(get_allocator(), bucket_size);
     }
@@ -241,7 +253,7 @@ public:
             list_.erase(list_.iterator_to(val));
             val = t;
             list_.push_front(val);
-        } else if (reserve_size_ <= list_.size()) {
+        } else if (max_size_ <= list_.size()) {
             auto & val = list_.back();
             list_.erase(list_.iterator_to(val));
             hash_->erase(hash_->iterator_to(val));
@@ -250,6 +262,28 @@ public:
             list_.push_front(val);
         } else {
             auto & val = new_node(t);
+            hash_->insert(val);
+            list_.push_front(val);
+        }
+    }
+
+    void push(T && t)
+    {
+        auto it = hash_->find(t);
+        if (it != hash_->end()) {
+            auto & val = *it;
+            list_.erase(list_.iterator_to(val));
+            val = std::move(t);
+            list_.push_front(val);
+        } else if (max_size_ <= list_.size()) {
+            auto & val = list_.back();
+            list_.erase(list_.iterator_to(val));
+            hash_->erase(hash_->iterator_to(val));
+            val = std::move(t);
+            hash_->insert(val);
+            list_.push_front(val);
+        } else {
+            auto & val = new_node(std::move(t));
             hash_->insert(val);
             list_.push_front(val);
         }
@@ -322,20 +356,20 @@ public:
         return end;
     }
 
-    size_type reserve()
+    size_type max_size()
     {
-        return reserve_size_;
+        return max_size_;
     }
 
-    void reserve(size_type reserve_size)
+    void max_size(size_type max_size)
     {
-        while (list_.size() > reserve_size)
+        while (list_.size() > max_size)
             pop();
-        reserve_size_ = reserve_size;
+        max_size_ = max_size;
     }
 
 private:
-    size_type reserve_size_;
+    size_type max_size_;
     list_type list_;
     boost::optional<hash_type> hash_;
 };
