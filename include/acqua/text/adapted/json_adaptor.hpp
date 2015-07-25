@@ -2,22 +2,22 @@
 
 #include <string>
 
-namespace acqua { namespace text { namespace adapt {
+namespace acqua { namespace text { namespace adapted {
 
 template <typename T>
-class parse_adaptor {};
+class json_adaptor {};
 
 template <typename CharT>
-class parse_adaptor< std::basic_string<CharT> >
+class json_adaptor< std::basic_string<CharT> >
 {
     using self_type = std::basic_string<CharT>;
     self_type & self_;
 
 public:
-    explicit parse_adaptor(self_type & self)
+    explicit json_adaptor(self_type & self)
         : self_(self) {}
 
-    void parse_value(self_type & val)
+    void data(self_type & val)
     {
         self_ = val;
     }

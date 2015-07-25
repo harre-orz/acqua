@@ -1,5 +1,5 @@
 #include <acqua/text/json_feed_parser.hpp>
-#include <acqua/text/adapt/boost_ptree.hpp>
+#include <acqua/text/adapted/boost_ptree_json.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
 int main(int, char **)
