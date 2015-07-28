@@ -3,12 +3,7 @@
 
 build: $(CXXProgram test_base64, test_base64) \
        $(CXXProgram test_quoted_printable, test_quoted_printable) \
-       $(CXXProgram test_rfc2047, test_rfc2047) \
-       $(CXXProgram test_json_parser, test_json_parser) \
-       $(CXXProgram test_email_address, test_email_address) \
-       $(CXXProgram test_email_header, test_email_header) \
-       $(CXXProgram test_email_message, test_email_message) \
-       $(CXXProgram test_email, test_email)
+       $(CXXProgram test_rfc2047, test_rfc2047) 
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc

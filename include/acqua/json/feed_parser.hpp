@@ -11,26 +11,29 @@
 #include <iostream>
 #include <memory>
 #include <boost/system/error_code.hpp>
-#include <acqua/text/adapted/json_adaptor.hpp>
-#include <acqua/text/impl/json_feed_parser_state.hpp>
+#include <acqua/json/adapted_proto.hpp>
 
-namespace acqua { namespace text {
+namespace acqua { namespace json {
 
-template <typename CharT, typename Json, typename Adapt = acqua::text::adapted::json_adaptor<Json> >
-class json_feed_parser
+template <
+    typename CharT,
+    typename Json,
+    typename Adapt = adapted<Json>
+    >
+class feed_parser
 {
-    using state_type = acqua::text::impl::json_feed_parser_state<CharT, Json, Adapt>;
+    class impl;
 
 public:
-    json_feed_parser(Json & json)
-        : state_(new state_type(error_, json)) {}
+    feed_parser(Json & json)
+        : impl_(new impl(error_, json)) {}
 
     /*!
       パースが終了したか.
      */
     bool is_terminated() const
     {
-        return (bool)error_ || state_->is_terminated();
+        return (bool)error_ || impl_->is_terminated();
     }
 
     /*!
@@ -44,9 +47,9 @@ public:
     /*!
       1文字パースする.
     */
-    json_feed_parser & parse(CharT ch)
+    feed_parser & parse(CharT ch)
     {
-        while(!state_->do_parse_1(ch))
+        while(!impl_->do_parse_1(ch))
             ;
         return *this;
     }
@@ -54,7 +57,7 @@ public:
     /*!
       is がEOFになるか、パースが正常/異常終了するまで、is から文字を取得し続ける.
     */
-    friend std::basic_istream<CharT> & operator>>(std::basic_istream<CharT> & is, json_feed_parser<CharT, Json, Adapt> & rhs)
+    friend std::basic_istream<CharT> & operator>>(std::basic_istream<CharT> & is, feed_parser<CharT, Json, Adapt> & rhs)
     {
         CharT ch;
         while(!rhs.is_terminated() && is.get(ch))
@@ -64,9 +67,9 @@ public:
 
 private:
     boost::system::error_code error_;
-    std::unique_ptr<state_type> state_;
+    std::unique_ptr<impl> impl_;
 };
 
 } }
 
-#include <acqua/text/impl/json_feed_parser_state.ipp>
+#include <acqua/json/impl/feed_parser_impl.ipp>

@@ -1,18 +1,26 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 #include <boost/property_tree/ptree.hpp>
-#include <acqua/text/adapted/json_adaptor.hpp>
+#include <acqua/json/adapted_proto.hpp>
 
-namespace acqua { namespace text { namespace adapted {
+namespace acqua { namespace json {
 
 template <typename Key, typename Data, typename KeyCompare>
-class json_adaptor< boost::property_tree::basic_ptree<Key, Data, KeyCompare> >
+class adapted< boost::property_tree::basic_ptree<Key, Data, KeyCompare> >
 {
     using self_type = boost::property_tree::basic_ptree<Key, Data, KeyCompare>;
     self_type & self_;
 
 public:
-    explicit json_adaptor(self_type & self) : self_(self) {}
+    explicit adapted(self_type & self) : self_(self) {}
 
     void data(std::nullptr_t const &) const
     {
@@ -50,4 +58,4 @@ public:
     }
 };
 
-} } }
+} }

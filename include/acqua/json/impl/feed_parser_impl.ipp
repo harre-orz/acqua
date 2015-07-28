@@ -1,18 +1,28 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 #include <limits>
-#include <boost/locale.hpp>
+#include <memory>
 #include <boost/variant.hpp>
+#include <boost/locale.hpp>
+#include <acqua/json/feed_parser.hpp>
 
-namespace acqua { namespace text { namespace impl {
+namespace acqua { namespace json { namespace detail {
 
 enum literal { l_null, l_true, l_false };
 
 class any_parser
 {
 public:
-    template <typename CharT, typename State>
-    bool operator()(CharT const & ch, State & state)
+    template <typename CharT, typename Impl>
+    bool operator()(CharT const & ch, Impl & impl)
     {
         switch(ch) {
             case '\0':
@@ -20,31 +30,30 @@ public:
             case ' ': case '\t': case '\r': case '\n':
                 return true;
             case 'n': case 'N':
-                state.next_null();
+                impl.to_null();
                 return true;
             case 't': case 'T':
-                state.next_boolean(true);
+                impl.to_bool(true);
                 return true;
             case 'f': case 'F':
-                state.next_boolean(false);
+                impl.to_bool(false);
                 return true;
             case '"':
-                state.next_string();
+                impl.to_string();
                 return true;
             case '[':
-                state.next_array();
+                impl.to_array();
                 return true;
             case '{':
-                state.next_object();
+                impl.to_object();
                 return true;
             // case '-': case '+':
             // case '0' ... '9':
             default:
-                state.next_number(ch);
+                impl.to_number(ch);
                 return true;
         }
-
-        state.failure();
+        impl.failure();
         return true;
     }
 };
@@ -70,27 +79,26 @@ public:
     literal_parser(literal l)
         : l_(l), lit_(c_str()) {}
 
-    template <typename CharT, typename State>
-    bool operator()(CharT const & ch, State & state)
+    template <typename CharT, typename Impl>
+    bool operator()(CharT const & ch, Impl & impl)
     {
         if (*++lit_ == '\0') {
             switch(l_) {
                 case l_null:
-                    state.next_terminated(nullptr);
+                    impl.to_terminated(nullptr);
                     break;
                 case l_true:
-                    state.next_terminated(true);
+                    impl.to_terminated(true);
                     break;
                 case l_false:
-                    state.next_terminated(false);
+                    impl.to_terminated(false);
                     break;
             }
             return false;
         } else if (std::tolower(ch, std::locale::classic()) == *lit_) {
             return true;
         }
-
-        state.failure();
+        impl.failure();
         return true;
     }
 };
@@ -108,8 +116,8 @@ public:
     number_parser(int decimal, bool sign = false)
         : decimal_(decimal), fraction_(1), exponent_(0), sign_(sign) {}
 
-    template <typename CharT, typename State>
-    bool operator()(CharT const & ch, State & state)
+    template <typename CharT, typename Impl>
+    bool operator()(CharT const & ch, Impl & impl)
     {
         switch(n_) {
             case n_decimal:
@@ -128,7 +136,7 @@ public:
                 }
 
                 if (sign_) decimal_ *= -1;
-                state.next_terminated(decimal_);
+                impl.to_terminated(decimal_);
                 return false;
             case n_fraction:
                 if (ch == 'e' || ch == 'E') {
@@ -143,7 +151,7 @@ public:
                 }
 
                 if (sign_) decimal_ *= -1;
-                state.next_terminated((double)decimal_ / (double)fraction_);
+                impl.to_terminated((double)decimal_ / (double)fraction_);
                 return false;
             case n_exp:
                 switch(ch) {
@@ -166,11 +174,11 @@ public:
                     return true;
                 }
                 if (sign_) exponent_ *= -1;
-                state.next_terminated((double)decimal_ * std::pow(10, exponent_) / (double)fraction_);
+                impl.to_terminated((double)decimal_ * std::pow(10, exponent_) / (double)fraction_);
                 return false;
         }
 
-        state.failure();
+        impl.failure();
         return true;
     }
 };
@@ -179,32 +187,9 @@ public:
 template <typename String>
 class string_parser
 {
-    bool escape_ = false;
-    char hex_[6];
-
-protected:
-    String str_;
-
-private:
-    static void unescape(char16_t ch, std::basic_string<char16_t> & s)
-    {
-        s += ch;
-    }
-
-    template <typename Ch>
-    static void unescape(char16_t ch, std::basic_string<Ch> & s)
-    {
-        namespace utf = boost::locale::utf;
-
-        char16_t * it = &ch;
-        utf::code_point cp = utf::utf_traits<char16_t>::decode(it, it + 1);
-        if (cp != utf::illegal && cp != utf::incomplete)
-            utf::utf_traits<Ch>::encode(cp, std::back_inserter(s));
-    }
-
 public:
-    template <typename CharT, typename State>
-    bool operator()(CharT const & ch, State & state)
+    template <typename CharT, typename Impl>
+    bool operator()(CharT const & ch, Impl & impl)
     {
         if (escape_) {
             if (hex_[0] == 0) {
@@ -238,7 +223,7 @@ public:
                         hex_[1] = 0;
                         return true;
                     default:
-                        state.failure();
+                        impl.failure();
                         return true;
                 }
                 escape_ = false;
@@ -271,7 +256,7 @@ public:
                 }
             }
         } else if (ch == '"') {
-            state.next_terminated(std::move(str_));
+            impl.to_terminated(std::move(str_));
             return true;
         } else if (ch == '\\') {
             escape_ = true;
@@ -282,71 +267,95 @@ public:
             return true;
         }
 
-        state.failure();
+        impl.failure();
         return true;
     }
+
+private:
+    static void unescape(char16_t ch, std::basic_string<char16_t> & s)
+    {
+        s += ch;
+    }
+
+    template <typename Ch>
+    static void unescape(char16_t ch, std::basic_string<Ch> & s)
+    {
+        namespace utf = boost::locale::utf;
+
+        char16_t * it = &ch;
+        utf::code_point cp = utf::utf_traits<char16_t>::decode(it, it + 1);
+        if (cp != utf::illegal && cp != utf::incomplete)
+            utf::utf_traits<Ch>::encode(cp, std::back_inserter(s));
+    }
+
+private:
+    bool escape_ = false;
+    char hex_[6];
+
+protected:
+    String str_;
 };
 
 
-template <typename State>
+template <typename Impl>
 class array_parser
 {
-    std::unique_ptr<State> data_;
+    std::unique_ptr<Impl> data_;
     int index_ = 0;
 
 public:
     template <typename CharT>
-    bool operator()(CharT const & ch, State & state)
+    bool operator()(CharT const & ch, Impl & impl)
     {
         if (data_ && !data_->is_terminated()) {
             return data_->do_parse_1(ch);
         } else if (ch == ']') {
-            state.next_terminated();
+            impl.to_terminated();
             return true;
         } else if (!data_) {
-            state.next_child(index_++, data_);
+            impl.to_child(index_++, data_);
             return data_->do_parse_1(ch);
         } else if (ch == ',') {
-            state.next_child(index_++, data_);
+            impl.to_child(index_++, data_);
             return true;
         }
 
         if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
             return true;
 
-        state.failure();
+        impl.failure();
         return true;
     }
 };
 
 
-template <typename State, typename String>
+template <typename Impl, typename String>
 class object_parser
 {
     struct string : string_parser<String>
     {
-        explicit string(State & parent) : parent_(parent) {}
+        explicit string(Impl & parent) : parent_(parent) {}
         bool is_terminated() const { return is_terminated_; }
         template <typename T>
-        void next_terminated(T const &) { is_terminated_ = true; }
+        void to_terminated(T const &) { is_terminated_ = true; }
         void failure() { parent_.failure(); }
-        State & parent_;
+        Impl & parent_;
         bool is_terminated_ = false;
         using string_parser<String>::str_;
     };
     std::unique_ptr<string> key_;
-    std::unique_ptr<State> val_;
+    std::unique_ptr<Impl> val_;
     bool first_ = true;
 
 public:
     template <typename CharT>
-    bool operator()(CharT const & ch, State & state)
+    bool operator()(CharT const & ch, Impl & impl)
     {
         if (val_) {
             if (!val_->is_terminated())
                 return val_->do_parse_1(ch);
             if (ch == '}') {
-                state.next_terminated();
+                impl.to_terminated();
                 return true;
             }
             if (ch == ',') {
@@ -356,63 +365,66 @@ public:
             }
         } else if (!key_) {
             if (first_ && ch == '}') {
-                state.next_terminated();
+                impl.to_terminated();
                 return true;
             }
             if (ch == '"') {
                 first_ = false;
-                key_.reset(new string(state));
+                key_.reset(new string(impl));
                 return true;
             }
         } else if (!key_->is_terminated()) {
             return (*key_)(ch, *key_);
         } else if (ch == ':') {
-            state.next_child(std::move(key_->str_), val_);
+            impl.to_child(std::move(key_->str_), val_);
             return true;
         }
         if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
             return true;
-        state.failure();
+        impl.failure();
         return true;
     }
 };
 
+}
+
+using namespace acqua::json::detail;
 
 template <typename CharT, typename Json, typename Adapt>
-class json_feed_parser_state
-    : public boost::variant<any_parser, literal_parser, number_parser,
+class feed_parser<CharT, Json, Adapt>::impl
+    : private Adapt
+    , public boost::variant<any_parser, literal_parser, number_parser,
                             string_parser<std::basic_string<CharT> >,
-                            array_parser<json_feed_parser_state<CharT, Json, Adapt> >,
-                            object_parser<json_feed_parser_state<CharT, Json, Adapt>, std::basic_string<CharT> > >
-    , Adapt
+                            array_parser<impl>, object_parser<impl, std::basic_string<CharT> >
+                            >
 {
 private:
-    using any_type = any_parser;
-    using literal_type = literal_parser;
-    using number_type = number_parser;
-    using string_type = string_parser< std::basic_string<CharT> >;
-    using array_type = array_parser< json_feed_parser_state<CharT, Json, Adapt> >;
-    using object_type = object_parser< json_feed_parser_state<CharT, Json, Adapt>, std::basic_string<CharT> >;
-    using base_type = boost::variant<any_type, literal_type, number_type, string_type, array_type, object_type>;
+    using any = any_parser;
+    using lit = literal_parser;
+    using num = number_parser;
+    using str = string_parser<std::basic_string<CharT> >;
+    using arr = array_parser<impl>;
+    using obj = object_parser<impl, std::basic_string<CharT> >;
+    using base_type = boost::variant<any, lit, num, str, arr, obj>;
 
     struct feed_visitor : boost::static_visitor<bool>
     {
         CharT const & ch_;
-        json_feed_parser_state & state_;
-
-        feed_visitor(CharT const & ch, json_feed_parser_state & state)
-            : ch_(ch), state_(state) {}
-
+        impl & impl_;
+        feed_visitor(CharT const & ch, impl & impl)
+            : ch_(ch), impl_(impl) {}
         template <typename Parser>
         bool operator()(Parser & parser) const
         {
-            return parser(ch_, state_);
+            return parser(ch_, impl_);
         }
     };
 
 public:
-    json_feed_parser_state(boost::system::error_code & error, Json & json)
-        : Adapt(json), error_(error) {}
+    impl(boost::system::error_code & error, Json & json)
+        : Adapt(json), error_(error)
+    {
+    }
 
     bool is_terminated() const
     {
@@ -424,73 +436,74 @@ public:
         return boost::apply_visitor(feed_visitor(ch, *this), *this);
     }
 
-    void next_null()
+    void to_null()
     {
-        *static_cast<base_type *>(this) = literal_type(l_null);
+        *static_cast<base_type *>(this) = lit(literal::l_null);
     }
 
-    void next_boolean(bool val)
+    void to_bool(bool val)
     {
-        *static_cast<base_type *>(this) = literal_type(val ? l_true : l_false);
+        *static_cast<base_type *>(this) = lit(val ? literal::l_true : literal::l_false);
     }
 
-    void next_number(char ch)
+    void to_number(char ch)
     {
         *static_cast<base_type *>(this)
-            = (ch == '-') ? number_type(0, true)
-            : (ch == '+') ? number_type(0, false)
-            :               number_type(ch - '0', false);
+            = (ch == '-') ? num(0, true)
+            : (ch == '+') ? num(0, false)
+            :               num(ch - '0', false);
     }
 
-    void next_string()
+    void to_string()
     {
-        *static_cast<base_type *>(this) = string_type();
+        *static_cast<base_type *>(this) = str();
     }
 
-    void next_array()
+    void to_array()
     {
-        *static_cast<base_type *>(this) = array_type();
+        *static_cast<base_type *>(this) = arr();
     }
 
-    void next_object()
+    void to_object()
     {
-        *static_cast<base_type *>(this) = object_type();
-    }
-
-    template <typename T>
-    void next_child(T const & t, std::unique_ptr<json_feed_parser_state> & state)
-    {
-        state.reset(new json_feed_parser_state(error_, static_cast<Adapt *>(this)->add_child(t)));
+        *static_cast<base_type *>(this) = obj();
     }
 
     template <typename T>
-    void next_child(T && t, std::unique_ptr<json_feed_parser_state> & state)
+    void to_child(T const & t, std::unique_ptr<impl> & impl_)
     {
-        state.reset(new json_feed_parser_state(error_, static_cast<Adapt *>(this)->add_child(std::move(t))));
+        impl_.reset(new impl(error_, static_cast<Adapt *>(this)->add_child(t)));
     }
 
-    void next_terminated()
+    template <typename T>
+    void to_child(T && t, std::unique_ptr<impl> & impl_)
     {
-        *static_cast<base_type *>(this) = any_type();
+        impl_.reset(new impl(error_, static_cast<Adapt *>(this)->add_child(std::move(t))));
+    }
+
+    void to_terminated()
+    {
+        *static_cast<base_type *>(this) = any();
         is_terminated_ = true;
     }
 
     template <typename T>
-    void next_terminated(T const & t)
+    void to_terminated(T const & t)
     {
         static_cast<Adapt *>(this)->data(t);
-        next_terminated();
+        to_terminated();
     }
 
     template <typename T>
-    void next_terminated(T && t)
+    void to_terminated(T && t)
     {
         static_cast<Adapt *>(this)->data(std::move(t));
-        next_terminated();
+        to_terminated();
     }
 
     void failure()
     {
+        // TODO: 適切なエラーコードとメッセージを定義する
         error_.assign(EIO, boost::system::generic_category());
     }
 
@@ -499,4 +512,4 @@ private:
     bool is_terminated_ = false;
 };
 
-} } }
+} }
