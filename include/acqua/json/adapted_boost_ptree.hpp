@@ -20,6 +20,8 @@ class adapted< boost::property_tree::basic_ptree<Key, Data, KeyCompare> >
     self_type & self_;
 
 public:
+    using char_type = typename Key::value_type;
+
     explicit adapted(self_type & self) : self_(self) {}
 
     void data(std::nullptr_t const &) const

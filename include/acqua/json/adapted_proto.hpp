@@ -22,6 +22,8 @@ class adapted< std::basic_string<CharT> >
     self_type & self_;
 
 public:
+    using char_type = CharT;
+
     adapted(self_type & self)
         : self_(self) {}
 

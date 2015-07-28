@@ -16,9 +16,9 @@
 namespace acqua { namespace json {
 
 template <
-    typename CharT,
     typename Json,
-    typename Adapt = adapted<Json>
+    typename Adapt = adapted<Json>,
+    typename CharT = typename Adapt::char_type
     >
 class feed_parser
 {
@@ -57,7 +57,7 @@ public:
     /*!
       is がEOFになるか、パースが正常/異常終了するまで、is から文字を取得し続ける.
     */
-    friend std::basic_istream<CharT> & operator>>(std::basic_istream<CharT> & is, feed_parser<CharT, Json, Adapt> & rhs)
+    friend std::basic_istream<CharT> & operator>>(std::basic_istream<CharT> & is, feed_parser & rhs)
     {
         CharT ch;
         while(!rhs.is_terminated() && is.get(ch))

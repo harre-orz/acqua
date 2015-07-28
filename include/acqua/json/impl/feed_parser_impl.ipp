@@ -390,8 +390,8 @@ public:
 
 using namespace acqua::json::detail;
 
-template <typename CharT, typename Json, typename Adapt>
-class feed_parser<CharT, Json, Adapt>::impl
+template <typename Json, typename Adapt, typename CharT>
+class feed_parser<Json, Adapt, CharT>::impl
     : private Adapt
     , public boost::variant<any_parser, literal_parser, number_parser,
                             string_parser<std::basic_string<CharT> >,
