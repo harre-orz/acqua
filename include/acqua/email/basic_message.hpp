@@ -45,6 +45,10 @@ public:
     using const_subpart_iterator = typename subpart_type::const_iterator;
 
 public:
+    virtual ~basic_message()
+    {
+    }
+
     /*!
      */
     void dump(std::ostream & os) const

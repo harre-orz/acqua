@@ -2,7 +2,7 @@ CXXFLAGS += -O0 -g -DACQUA_USE_BACKTRACE -rdynamic
 #CXXFLAGS += -O2
 INCLUDES += ../../include/
 
-.SUBDIRS: utility exception container text network asio webclient email
+.SUBDIRS: utility exception container text network asio webclient email json
 
 clean:
 	rm -f *.omc

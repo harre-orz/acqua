@@ -15,10 +15,10 @@ BOOST_AUTO_TEST_CASE(feed_parser)
         "Hogehoge\r\n"
         ".\r\n"
     );
-    acqua::email::basic_message<std::string> message;
-    acqua::email::feed_parser<decltype(message)> feed(message);
+    acqua::email::basic_message<std::string> email;
+    acqua::email::feed_parser<decltype(email)> feed(email);
     iss >> feed;
-    message.dump(std::cout);
+    email.dump(std::cout);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

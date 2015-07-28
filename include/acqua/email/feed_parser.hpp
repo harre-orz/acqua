@@ -1,30 +1,25 @@
 #pragma once
 
-#include <iostream>
-#include <locale>
 #include <boost/system/error_code.hpp>
-#include <acqua/email/basic_message.hpp>
-#include <acqua/email/detail/literals.hpp>
-#include <acqua/email/detail/feed_parser_state.hpp>
 
 namespace acqua { namespace email {
 
 template <
-    typename EMail,
-    typename Literals = acqua::email::detail::literals<typename EMail::char_type>
+    typename EMail
     >
 class feed_parser
 {
-private:
-    using state_type = acqua::email::detail::feed_parser_state<EMail, Literals>;
+    class impl;
 
 public:
-    explicit feed_parser(EMail & email)
-        : state_(error_, email) {}
+    feed_parser(EMail & email)
+        : impl_(new impl(error_, email))
+    {
+    }
 
     bool is_terminated() const
     {
-        return error_ || state_.is_terminated();
+        return (bool)error_ || impl_->is_terminated();
     }
 
     boost::system::error_code const & get_error_code() const
@@ -36,7 +31,7 @@ public:
     {
         if (ch == '\r' || ch == '\n') {
             if (prev_ != '\r') {
-                state_.do_parse_oneline(line_);
+                impl_->do_parse_line(line_);
                 line_.clear();
             }
         } else {
@@ -56,9 +51,11 @@ public:
 
 private:
     boost::system::error_code error_;
-    state_type state_;
+    std::unique_ptr<impl> impl_;
     std::string line_;
     char prev_ = '\0';
 };
 
 } }
+
+#include <acqua/email/impl/feed_parser_impl.ipp>

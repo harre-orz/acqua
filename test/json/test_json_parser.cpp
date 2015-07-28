@@ -6,7 +6,7 @@ int main(int, char **)
 {
 
     boost::property_tree::ptree pt;
-    acqua::json::feed_parser<char, decltype(pt)> feed(pt);
+    acqua::json::feed_parser<decltype(pt)> feed(pt);
     std::cin >> feed;
     boost::property_tree::write_json(std::cout, pt, true);
 

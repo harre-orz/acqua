@@ -1,8 +1,7 @@
 .PHONY: build clean
 .DEFAULT: build
 
-build: $(CXXProgram test_message, test_message) \
-       $(CXXProgram test_envelope, test_envelope) \
+build: $(CXXProgram test_email, test_email) \
        $(CXXProgram test_feed_parser, test_feed_parser)
 
 clean:
