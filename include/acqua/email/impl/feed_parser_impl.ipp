@@ -1,3 +1,11 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 #include <boost/algorithm/string.hpp>
@@ -106,16 +114,16 @@ public:
 private:
     bool is_child_multipart_begin(std::string const & line) const
     {
-        return (child_boundary_ && child_boundary_->size() == line.size() + 2 &&
+        return (child_boundary_ && child_boundary_->size() + 2 == line.size() &&
                 line[0] == '-' && line[1] == '-' &&
                 std::equal(line.begin()+2, line.end(), child_boundary_->begin()));
     }
 
     bool is_parent_multipart_end(std::string const & line) const
     {
-        return (parent_boundary_ && parent_boundary_->size() == line.size() + 4 &&
-                line[0] == '-' && line[1] == '-' && line[2] == '-' && line[3] == '-' &&
-                std::equal(line.begin()+2, line.end()-2, child_boundary_->begin()));
+        return (parent_boundary_ && parent_boundary_->size() + 4 == line.size() &&
+                line[0] == '-' && line[1] == '-' && line[line.size()-1] == '-' && line[line.size()-2] == '-' &&
+                std::equal(line.begin()+2, line.end()-2, parent_boundary_->begin()));
     }
 
 private:
@@ -240,9 +248,9 @@ public:
                 it2 = it->second.find("format");
                 if (it2 != it->second.end())
                     is_format_flowed = boost::algorithm::iequals(it2->second, "flowed");
+                it2 = it->second.find("delsp");
                 if (it2 != it->second.end())
-                    it2 = it->second.find("delsp");
-                is_delete_space = boost::algorithm::iequals(it2->second, "yes");
+                    is_delete_space = boost::algorithm::iequals(it2->second, "yes");
             }
         }
 
@@ -250,8 +258,10 @@ public:
         if (it != email_.end()) {
             if (boost::algorithm::iequals(it->second.str(), "base64")) {
                 if (text_mode) {
+                    std::cout << "base64txt " << charset << std::endl;
                     next = base64txt(base64_text_decoder(charset), child_boundary, boundary);
                 } else {
+                    std::cout << "base64bin " << std::endl;
                     next = base64bin(base64_binary_decoder(), child_boundary, boundary);
                 }
                 return;
@@ -276,7 +286,7 @@ public:
     void to_subpart(std::unique_ptr<impl> & subpart, std::string const * boundary)
     {
         if (subpart) boost::apply_visitor(flush_visitor(*subpart), *subpart);
-        subpart.reset(new impl(error_, email_, boundary));
+        subpart.reset(new impl(error_, email_.add_subpart(), boundary));
     }
 
     void to_terminated()

@@ -1,3 +1,11 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 #include <iostream>
@@ -35,6 +43,7 @@ private:
     using streambuf_type = std::basic_streambuf<char_type, traits_type>;
     using stringbuf_type = std::basic_stringbuf<char_type, traits_type, allocator_type>;
     using filebuf_type = std::basic_filebuf<char_type, traits_type>;
+    using ostream_type = std::basic_ostream<char_type, traits_type>;
 
 public:
     using size_type = typename multimap_type::size_type;
@@ -135,6 +144,21 @@ public:
         }
     }
 
+    /*!
+      filename に保存する.
+     */
+    bool save_as(std::string const & filename)
+    {
+        std::ofstream ofs(filename);
+        if (body_) {
+            body_->pubseekpos(0, std::ios_base::in);
+            ofs << &*body_;
+            return ofs.good();
+        } else {
+            return false;
+        }
+    }
+
     bool empty() const { return header_.empty(); }
     size_type size() const { return header_.size(); }
     void clear() { header_.clear(); }
@@ -164,6 +188,11 @@ public:
     using const_recursive_iterator = acqua::container::preordered_recursive_iterator<
         basic_message const, const_subpart_iterator, &basic_message::begin, &basic_message::end>;
 
+    recursive_iterator recbegin() { return recursive_iterator(*this); }
+    const_recursive_iterator recbegin() const { return const_recursive_iterator(*this); }
+    recursive_iterator recend() { return recursive_iterator(); }
+    const_recursive_iterator recend() const { return const_recursive_iterator(); }
+
 private:
     std::unique_ptr<streambuf_type> body_;
     multimap_type header_;
@@ -191,7 +220,7 @@ public:
     operator value_type const &() const { return data_; }
     friend bool operator==(disposition const & lhs, value_type const & rhs) { return lhs.data_ == rhs; }
     friend bool operator<(disposition const & lhs, value_type const & rhs) { return lhs.data_ < rhs; }
-
+    friend ostream_type & operator<<(ostream_type & os, disposition const & rhs) { return os << rhs.str(); }
     value_type & str() { return data_; }
     value_type const & str() const { return data_; }
     void assign(char_type ch) { data_.assign(ch); }

@@ -100,19 +100,20 @@ public:
     template <typename Sink>
     void write(Sink & sink, std::string const & line)
     {
+        std::cout << line << std::endl;
         char ch;
         for(auto it = line.begin(); it != line.end(); ++it) {
             if (*it == '\r' || *it == '\n' || *it == '=' || (ch = find(*it)) == 64)
                 continue;
-            switch(i_ % 4) {
+            switch(i_++ % 4) {
                 case 1:
-                    sink << ((p_ & 0x3f) << 2 | (ch & 0x30) >> 4);
+                    sink.put((p_ & 0x3f) << 2 | (ch & 0x30) >> 4);
                     break;
                 case 2:
-                    sink << ((p_ & 0x0f) << 4 | (ch & 0x3c) >> 2);
+                    sink.put((p_ & 0x0f) << 4 | (ch & 0x3c) >> 2);
                     break;
                 case 3:
-                    sink << ((p_ & 0x0f) << 6 | (ch & 0x3f) >> 0);
+                    sink.put((p_ & 0x0f) << 6 | (ch & 0x3f) >> 0);
                     break;
             }
             p_ = ch;

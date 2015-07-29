@@ -26,7 +26,7 @@ public:
     {
         auto it = std::find_if(beg, end, [](typename It::value_type const & v) { return v == ';' || v ==' ' || v == '\t'; });
         rfc2047_decode<CharT>(beg, it, std::back_inserter(out));
-        if (it != end) rfc2231_decode<CharT>(++it, end, map);
+        if (it != end) rfc2231_decode<CharT>(it, end, map);
     }
 
 private:
@@ -74,8 +74,10 @@ private:
 
         namespace qi = boost::spirit::qi;
         while(beg != end) {
-            while(std::isspace(*beg, std::locale::classic()))
+            if (std::isspace(*beg, std::locale::classic()) || *beg == ';') {
                 ++beg;
+                continue;
+            }
 
             std::string key;
             std::string val;
