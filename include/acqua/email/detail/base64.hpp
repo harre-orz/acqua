@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <boost/locale.hpp>
 #include <acqua/string_cast.hpp>
+#include <acqua/text/base64.hpp>
 
 namespace acqua { namespace email { namespace detail {
 

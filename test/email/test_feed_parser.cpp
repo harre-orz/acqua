@@ -9,16 +9,11 @@ BOOST_AUTO_TEST_SUITE(email)
 
 BOOST_AUTO_TEST_CASE(feed_parser)
 {
-    std::istringstream iss(
-        "Content-Type: text/plain\r\n"
-        "\r\n"
-        "Hogehoge\r\n"
-        ".\r\n"
-    );
     acqua::email::basic_message<std::string> email;
     acqua::email::feed_parser<decltype(email)> feed(email);
-    iss >> feed;
+    std::cin >> feed;
     email.dump(std::cout);
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()

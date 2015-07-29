@@ -2,9 +2,9 @@
 
 #include <boost/algorithm/string.hpp>
 #include <acqua/text/mime_header.hpp>
-#include <acqua/email/detail/noop.hpp>
-#include <acqua/email/detail/ascii.hpp>
-#include <acqua/email/detail/qprint.hpp>
+#include <acqua/email/detail/noop_decoder.hpp>
+#include <acqua/email/detail/ascii_decoder.hpp>
+#include <acqua/email/detail/qprint_decoder.hpp>
 #include <acqua/email/detail/base64.hpp>
 
 namespace acqua { namespace email { namespace detail {
@@ -43,7 +43,6 @@ public:
             name_.assign(line.begin(), it);
             buffer_.clear();
         }
-
         while(std::isspace(*++it, std::locale::classic()))
             ;
         if (!buffer_.empty())
@@ -198,7 +197,7 @@ public:
      */
     void do_parse_line(std::string const & line)
     {
-        while(!is_terminated() && boost::apply_visitor(feed_visitor(line, *this), *this))
+        while(!is_terminated() && !boost::apply_visitor(feed_visitor(line, *this), *this))
             ;
     }
 
