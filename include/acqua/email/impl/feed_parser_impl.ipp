@@ -137,8 +137,8 @@ private:
 
 using namespace acqua::email::detail;
 
-template <typename EMail>
-class feed_parser<EMail>::impl
+template <typename Mail>
+class feed_parser<Mail>::impl
     : public boost::variant< head_parser,
                              body_parser<impl, noop_decoder>,
                              body_parser<impl, ascii_decoder>,
@@ -179,7 +179,8 @@ private:
         }
     };
 
-    using ostream_type = std::basic_ostream<typename EMail::char_type, typename EMail::traits_type>;
+    using message_type = basic_message<typename Mail::value_type>;
+    using ostream_type = std::basic_ostream<typename Mail::char_type, typename Mail::traits_type>;
 
 public:
     using noop = body_parser<impl, noop_decoder>;
@@ -189,8 +190,8 @@ public:
     using base64bin = body_parser<impl, base64_binary_decoder>;
     using base_type = boost::variant< head_parser, noop, ascii, qprint, base64txt, base64bin >;
 
-    impl(boost::system::error_code & error, EMail & email, std::string const * boundary = nullptr)
-        : base_type(head_parser(boundary)), error_(error), email_(email), os_(email_) {}
+    impl(boost::system::error_code & error, message_type & mail, std::string const * boundary = nullptr)
+        : base_type(head_parser(boundary)), error_(error), mail_(mail), os_(mail_) {}
 
     /*!
       解析が終了したか？.
@@ -210,9 +211,9 @@ public:
     }
 
     template <typename Key>
-    typename EMail::disposition & header(Key const & key)
+    typename Mail::disposition & header(Key const & key)
     {
-        return email_[key];
+        return mail_[key];
     }
 
     ostream_type & body()
@@ -232,8 +233,8 @@ public:
         bool is_delete_space = false;
 
         auto & next = *static_cast<base_type *>(this);
-        auto it = email_.find("Content-Type");
-        if (it != email_.end()) {
+        auto it = mail_.find("Content-Type");
+        if (it != mail_.end()) {
             // バウンダリを探す
             auto it2 = it->second.find("boundary");
             if (it2 != it->second.end())
@@ -254,8 +255,8 @@ public:
             }
         }
 
-        it = email_.find("Content-Transfer-Encoding");
-        if (it != email_.end()) {
+        it = mail_.find("Content-Transfer-Encoding");
+        if (it != mail_.end()) {
             if (boost::algorithm::iequals(it->second.str(), "base64")) {
                 if (text_mode) {
                     std::cout << "base64txt " << charset << std::endl;
@@ -286,7 +287,7 @@ public:
     void to_subpart(std::unique_ptr<impl> & subpart, std::string const * boundary)
     {
         if (subpart) boost::apply_visitor(flush_visitor(*subpart), *subpart);
-        subpart.reset(new impl(error_, email_.add_subpart(), boundary));
+        subpart.reset(new impl(error_, mail_.add_subpart(), boundary));
     }
 
     void to_terminated()
@@ -296,7 +297,7 @@ public:
 
 private:
     boost::system::error_code & error_;
-    EMail & email_;
+    message_type & mail_;
     ostream_type os_;
     bool is_terminated_ = false;
 };

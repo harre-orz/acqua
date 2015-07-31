@@ -13,6 +13,7 @@
 #include <boost/spirit/include/qi.hpp>
 #include <boost/assign.hpp>
 #include <boost/assign/list_inserter.hpp>
+#include <acqua/email/email_fwd.hpp>
 
 namespace acqua { namespace email {
 

@@ -9,19 +9,20 @@
 #pragma once
 
 #include <boost/system/error_code.hpp>
+#include <acqua/email/email_fwd.hpp>
 
 namespace acqua { namespace email {
 
 template <
-    typename EMail
+    typename Mail
     >
 class feed_parser
 {
     class impl;
 
 public:
-    feed_parser(EMail & email)
-        : impl_(new impl(error_, email))
+    feed_parser(Mail & mail)
+        : impl_(new impl(error_, mail))
     {
     }
 

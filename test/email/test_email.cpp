@@ -1,6 +1,7 @@
 #define BOOST_TEST_MAIN    // main関数を定義
 
-#include <acqua/email/basic_email.hpp>
+#include <acqua/email/email.hpp>
+#include <acqua/email/feed_parser.hpp>
 #include <boost/test/included/unit_test.hpp>
 #include <iostream>
 
@@ -9,8 +10,9 @@ BOOST_AUTO_TEST_SUITE(email)
 BOOST_AUTO_TEST_CASE(basics)
 {
 
-    acqua::email::basic_email<std::string> email;
-    email.dump(std::cout);
+    acqua::email::email email;
+    acqua::email::feed_parser<decltype(email)> feed(email);
+    std::cin >> feed;
 
     //email["Content-Type"] = "text/plain";
     //acqua::email::basic_email<std::string>::const_recursive_iterator it(email);

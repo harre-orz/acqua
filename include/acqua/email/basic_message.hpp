@@ -17,6 +17,7 @@
 #include <acqua/container/sequenced_map.hpp>
 #include <acqua/exception/throw_error.hpp>
 #include <acqua/container/recursive_iterator.hpp>
+#include <acqua/email/email_fwd.hpp>
 
 namespace acqua { namespace email {
 
@@ -28,6 +29,9 @@ public:
     using traits_type = typename String::traits_type;
     using allocator_type = typename String::allocator_type;
     using value_type = String;
+    using streambuf_type = std::basic_streambuf<char_type, traits_type>;
+    using istream_type = std::basic_istream<char_type, traits_type>;
+    using ostream_type = std::basic_ostream<char_type, traits_type>;
     class disposition;
 
 private:
@@ -40,10 +44,8 @@ private:
     };
 
     using multimap_type = acqua::container::sequenced_multimap<value_type, disposition, is_iequal>;
-    using streambuf_type = std::basic_streambuf<char_type, traits_type>;
     using stringbuf_type = std::basic_stringbuf<char_type, traits_type, allocator_type>;
     using filebuf_type = std::basic_filebuf<char_type, traits_type>;
-    using ostream_type = std::basic_ostream<char_type, traits_type>;
 
 public:
     using size_type = typename multimap_type::size_type;
@@ -63,16 +65,13 @@ public:
     void dump(std::ostream & os) const
     {
         for(auto const & a : header_) {
-            os << a.first << ':' << ' ' << a.second.str();
+            os << a.first << ':' << ' ' << a.second;
             for(auto const & b : a.second)
                 os << ' ' << b.first << '=' << '"' << b.second << '"';
             os << std::endl;
         }
-        os << std::endl;
-        auto body = str();
-        os << body;
-        if (!body.empty() && body.back() != '\n') os << std::endl;
-        os << '.' << std::endl;
+        os << std::endl
+           << str() << std::endl;
     }
 
     /*!
@@ -171,6 +170,11 @@ public:
     iterator erase(const_iterator it) { return header_.erase(it); }
     iterator erase(const_iterator beg, const_iterator end) { return header_.erase(beg, end); }
     disposition & operator[](value_type const & name) { return header_[name]; }
+
+    bool has_subpart() const
+    {
+        return !subpart_.empty();
+    }
 
     basic_message & add_subpart()
     {
