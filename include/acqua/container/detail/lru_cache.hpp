@@ -21,14 +21,20 @@
 namespace acqua { namespace container { namespace detail {
 
 template <
-    typename Node,
     typename T,
+    typename Node,
+    typename Clock,
+    typename ValueHash,
+    typename NodeEqual,
     typename Allocator
     >
 class lru_cache
     : private Allocator
 {
     using value_type = T;
+    using clock_type = Clock;
+    using duration_type = typename clock_type::duration;
+    using time_point_type = typename clock_type::time_point;
     using size_type = std::size_t;
     using allocator_type = Allocator;
     using void_pointer = typename std::allocator_traits<allocator_type>::void_pointer;
@@ -44,23 +50,24 @@ class lru_cache
     {
         list_hook list_;
         hash_hook hash_;
+        time_point_type time_;
 
-        node(value_type const & v)
-            : Node(v) {}
+        node(value_type const & v, time_point_type const & time)
+            : Node(v), time_(time) {}
 
-        node(value_type && v)
-            : Node(std::move(v)) {}
+        node(value_type && v, time_point_type const & time)
+            : Node(std::move(v)), time_(time) {}
 
-        node & operator=(value_type const & v)
+        void assign(value_type const & v, time_point_type const & time)
         {
             Node::operator=(v);
-            return *this;
+            time_ = time;
         }
 
-        node & operator=(value_type && v)
+        void assign(value_type && v, time_point_type const & time)
         {
             Node::operator=(std::move(v));
-            return *this;
+            time_ = time;
         }
     };
     using node_allocator = typename allocator_type::template rebind<node>::other;
@@ -99,20 +106,20 @@ class lru_cache
         alloc.deallocate(ptr, size);
     }
 
-    node & new_node(value_type const & val)
+    node & new_node(value_type const & val, time_point_type const & now)
     {
         node_allocator alloc(get_allocator());
         node * ptr = alloc.allocate(1);
-        alloc.construct(ptr, val);
+        alloc.construct(ptr, val, now);
         return *ptr;
     }
 
 
-    node & new_node(value_type && val)
+    node & new_node(value_type && val, time_point_type const & now)
     {
         node_allocator alloc(get_allocator());
         node * ptr = alloc.allocate(1);
-        alloc.construct(ptr, std::move(val));
+        alloc.construct(ptr, std::move(val), now);
         return *ptr;
     }
 
@@ -213,6 +220,7 @@ public:
     lru_cache(size_type bucket_size, allocator_type alloc)
         : allocator_type(alloc)
         , max_size_(std::numeric_limits<size_type>::max())
+        , max_duration_(duration_type::max())
     {
         init_buckets(get_allocator(), bucket_size);
     }
@@ -245,48 +253,53 @@ public:
     reverse_iterator rend() { return list_.rend(); }
     const_reverse_iterator rend() const { return list_.rend(); }
 
-    void push(T const & t)
+    template <typename V, typename H, typename P>
+    void push(V v, H h, P p)
     {
-        auto it = hash_->find(t);
-        if (it != hash_->end()) {
-            auto & val = *it;
-            list_.erase(list_.iterator_to(val));
-            val = t;
-            list_.push_front(val);
-        } else if (max_size_ <= list_.size()) {
-            auto & val = list_.back();
-            list_.erase(list_.iterator_to(val));
-            hash_->erase(hash_->iterator_to(val));
-            val = t;
-            hash_->insert(val);
-            list_.push_front(val);
-        } else {
-            auto & val = new_node(t);
-            hash_->insert(val);
-            list_.push_front(val);
-        }
-    }
+        auto now = clock_type::now();
+        if (list_.empty()) {
+            if (max_size_ == 0)
+                return;
 
-    void push(T && t)
-    {
-        auto it = hash_->find(t);
+            auto & val = new_node(v, now);
+            hash_->insert(val);
+            list_.push_front(val);
+            return;
+        }
+
+        auto it = hash_->find(v, h, p);
         if (it != hash_->end()) {
             auto & val = *it;
             list_.erase(list_.iterator_to(val));
-            val = std::move(t);
+            val.assign(v, now);
             list_.push_front(val);
-        } else if (max_size_ <= list_.size()) {
+            return;
+        }
+
+        if (max_size_ <= list_.size()) {
             auto & val = list_.back();
             list_.erase(list_.iterator_to(val));
             hash_->erase(hash_->iterator_to(val));
-            val = std::move(t);
+            val.assign(v, now);
             hash_->insert(val);
             list_.push_front(val);
-        } else {
-            auto & val = new_node(std::move(t));
-            hash_->insert(val);
-            list_.push_front(val);
+            return;
         }
+
+        if ((now - list_.back().time_) > max_duration_) {
+            auto & val = list_.back();
+            list_.erase(list_.iterator_to(val));
+            hash_->erase(hash_->iterator_to(val));
+            val.assign(v, now);
+            hash_->insert(val);
+            list_.push_front(val);
+            return;
+        }
+
+        auto & val = new_node(v, now);
+        hash_->insert(val);
+        list_.push_front(val);
+        return;
     }
 
     void pop()
@@ -361,15 +374,26 @@ public:
         return max_size_;
     }
 
-    void max_size(size_type max_size)
+    void max_size(size_type size)
     {
-        while (list_.size() > max_size)
+        while (list_.size() > size)
             pop();
-        max_size_ = max_size;
+        max_size_ = size;
+    }
+
+    void max_duration(duration_type const & dura)
+    {
+        max_duration_ = dura;
+    }
+
+    duration_type const & max_duration() const
+    {
+        return max_duration_;
     }
 
 private:
     size_type max_size_;
+    duration_type max_duration_;
     list_type list_;
     boost::optional<hash_type> hash_;
 };

@@ -8,12 +8,14 @@
 
 #pragma once
 
+#include <chrono>
 #include <acqua/container/detail/lru_cache.hpp>
 
 namespace acqua { namespace container {
 
 template <
     typename T,
+    typename Clock = std::chrono::steady_clock,
     typename Hash = std::hash<T>,
     typename Pred = std::equal_to<T>,
     typename Allocator = std::allocator<T>
@@ -26,6 +28,9 @@ public:
     using key_equal = Pred;
     using allocator_type = Allocator;
     using size_type = std::size_t;
+    using clock_type = Clock;
+    using time_point_type = typename clock_type::time_point;
+    using duration_type = typename clock_type::duration;
 
 private:
     struct node
@@ -57,7 +62,7 @@ private:
         }
     };
 
-    using base_type = detail::lru_cache<node, value_type, allocator_type>;
+    using base_type = detail::lru_cache<value_type, node, std::chrono::steady_clock, Hash, value_node_equal, allocator_type>;
 
 public:
     using iterator = typename base_type::iterator;
@@ -79,20 +84,23 @@ public:
     const_reverse_iterator rbegin() const { return base_.rbegin(); }
     reverse_iterator rend() { return base_.rend(); }
     const_reverse_iterator rend() const { return base_.rend(); }
-    void push(value_type const & v) { base_.push(v); }
-    void push(value_type && v) { base_.push(std::move(v)); }
+    void push(value_type const & v) { base_.push(v, Hash(), value_node_equal()); }
+    //void push(value_type && v) { base_.push(std::move(v)); }
     void pop() { base_.pop(); }
     value_type & front() { return base_.front(); }
     value_type const & front() const { return base_.front(); }
     value_type & back() { return base_.back(); }
     value_type const & back() const { return base_.back(); }
-    iterator find(value_type const & k) { return base_.find(k, hasher(), value_node_equal()); }
-    const_iterator find(key_equal const & k) const { return base_.find(k, hasher(), value_node_equal()); }
+    iterator find(value_type const & k) { return base_.find(k, Hash(), value_node_equal()); }
+    const_iterator find(key_equal const & k) const { return base_.find(k); }
     iterator erase(const_iterator it) { return base_.erase(it); }
     iterator erase(const_iterator beg, const_iterator end) { return base_.erase(beg, end); }
 
     size_type max_size() const { return base_.max_size(); }
     void max_size(size_type size) { base_.max_size(size); }
+    duration_type const & max_duration() const { return base_.max_duration(); }
+    void max_duration(duration_type const & dura) { base_.max_duration(dura); }
+
 private:
     base_type base_;
 };
