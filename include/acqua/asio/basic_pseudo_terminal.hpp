@@ -6,20 +6,20 @@
 namespace acqua { namespace asio {
 
 template <typename PseudoTerminalService>
-class basic_pseudo_terminal_base
+class basic_pseudo_terminal
     : public boost::asio::basic_io_object<PseudoTerminalService>
 {
 public:
     using native_handle_type = typename PseudoTerminalService::native_handle_type;
-    using lowest_layer_type = basic_pseudo_terminal_base<PseudoTerminalService>;
+    using lowest_layer_type = basic_pseudo_terminal<PseudoTerminalService>;
 
 public:
-    explicit basic_pseudo_terminal_base(boost::asio::io_service & io_service)
+    explicit basic_pseudo_terminal(boost::asio::io_service & io_service)
         : boost::asio::basic_io_object<PseudoTerminalService>(io_service)
     {
     }
 
-    explicit basic_pseudo_terminal_base(boost::asio::io_service & io_service, native_handle_type const & native_pseudo_terminal)
+    explicit basic_pseudo_terminal(boost::asio::io_service & io_service, native_handle_type const & native_pseudo_terminal)
         : boost::asio::basic_io_object<PseudoTerminalService>(io_service)
     {
         boost::system::error_code ec;
@@ -28,7 +28,7 @@ public:
     }
 
 protected:
-    ~basic_pseudo_terminal_base() = default;
+    ~basic_pseudo_terminal() = default;
 
 public:
     lowest_layer_type & lowest_layer()
@@ -39,6 +39,11 @@ public:
     lowest_layer_type const & lowest_layer() const
     {
         return *this;
+    }
+
+    native_handle_type native_handle() const
+    {
+        return this->get_service().native_handle(this->get_implementation());
     }
 
     bool is_open() const
@@ -56,6 +61,18 @@ public:
     boost::system::error_code close(boost::system::error_code & ec)
     {
         return this->get_service().close(this->get_implementation(), ec);
+    }
+
+    void cancel()
+    {
+        boost::system::error_code ec;
+        this->get_service().cancel(this->get_implementation(), ec);
+        boost::asio::detail::throw_error(ec, "cancel");
+    }
+
+    boost::system::error_code cancel(boost::system::error_code & ec)
+    {
+        return this->get_service().cancel(this->get_implementation(), ec);
     }
 
     template <typename ConstBufferSequence>
@@ -76,7 +93,7 @@ public:
     template <typename ConstBufferSequence, typename Handler>
     void async_write_some(ConstBufferSequence const & buffers, Handler handler)
     {
-        this->get_service().async_read_some(buffers, handler);
+        this->get_service().async_write_some(this->get_implementation(), buffers, handler);
     }
 
     template <typename MutableBufferSequence>
@@ -91,7 +108,7 @@ public:
     template <typename MutableBufferSequence>
     std::size_t read_some(MutableBufferSequence const & buffers, boost::system::error_code & ec)
     {
-        return this->get_service().read_some(this->get_io_service(), buffers, ec);
+        return this->get_service().read_some(this->get_implementation(), buffers, ec);
     }
 
     template <typename MutableBufferSequence, typename Handler>
@@ -108,7 +125,7 @@ class basic_pseudo_terminal_slave;
 
 template <typename PseudoTerminalService>
 class basic_pseudo_terminal_master
-    : public basic_pseudo_terminal_base<PseudoTerminalService>
+    : public basic_pseudo_terminal<PseudoTerminalService>
 {
     friend basic_pseudo_terminal_slave<PseudoTerminalService>;
 
@@ -119,17 +136,17 @@ public:
     using lowest_layer_type = basic_pseudo_terminal_master<PseudoTerminalService>;
 
     explicit basic_pseudo_terminal_master(boost::asio::io_service & io_service)
-        : basic_pseudo_terminal_base<PseudoTerminalService>(io_service)
+        : basic_pseudo_terminal<PseudoTerminalService>(io_service)
     {
     }
 
     explicit basic_pseudo_terminal_master(boost::asio::io_service & io_service, native_handle_type handle)
-        : basic_pseudo_terminal_base<PseudoTerminalService>(io_service, handle)
+        : basic_pseudo_terminal<PseudoTerminalService>(io_service, handle)
     {
     }
 
     explicit basic_pseudo_terminal_master(boost::asio::io_service & io_service, open_mode)
-        : basic_pseudo_terminal_base<PseudoTerminalService>(io_service)
+        : basic_pseudo_terminal<PseudoTerminalService>(io_service)
     {
         open();
     }
@@ -168,7 +185,7 @@ public:
 
 template <typename PseudoTerminalService>
 class basic_pseudo_terminal_slave
-    : public basic_pseudo_terminal_base<PseudoTerminalService>
+    : public basic_pseudo_terminal<PseudoTerminalService>
 {
 public:
     using native_handle_type = typename PseudoTerminalService::native_handle_type;
@@ -176,19 +193,25 @@ public:
     using master_type = basic_pseudo_terminal_master<PseudoTerminalService>;
 
     explicit basic_pseudo_terminal_slave(boost::asio::io_service & io_service)
-        : basic_pseudo_terminal_base<PseudoTerminalService>(io_service)
+        : basic_pseudo_terminal<PseudoTerminalService>(io_service)
     {
     }
 
     explicit basic_pseudo_terminal_slave(boost::asio::io_service & io_service, native_handle_type handle)
-        : basic_pseudo_terminal_base<PseudoTerminalService>(io_service, handle)
+        : basic_pseudo_terminal<PseudoTerminalService>(io_service, handle)
     {
     }
 
     explicit basic_pseudo_terminal_slave(boost::asio::io_service & io_service, master_type const & master)
-        : basic_pseudo_terminal_base<PseudoTerminalService>(io_service)
+        : basic_pseudo_terminal<PseudoTerminalService>(io_service)
     {
         open(master);
+    }
+
+    explicit basic_pseudo_terminal_slave(boost::asio::io_service & io_service, std::string const & device)
+        : basic_pseudo_terminal<PseudoTerminalService>(io_service)
+    {
+        open(device);
     }
 
     void open(master_type const & master)
@@ -208,7 +231,19 @@ public:
             return this->get_service().open(this->get_implementation(), device, false, ec);
         return ec;
     }
-};
 
+    void open(std::string const & device)
+    {
+        boost::system::error_code ec;
+        this->get_service().open(this->get_implementation(), device.c_str(), false, ec);
+        boost::asio::detail::throw_error(ec, "open");
+    }
+
+    boost::system::error_code open(std::string const & device, boost::system::error_code & ec)
+    {
+        return this->get_service().open(this->get_implementation(), device.c_str(), false, ec);
+    }
+
+};
 
 } }

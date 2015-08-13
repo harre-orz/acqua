@@ -1,10 +1,14 @@
 #pragma once
 
+extern "C" {
+#include <termios.h>
+#include <unistd.h>
+}
+
 #include <boost/asio/error.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/detail/descriptor_ops.hpp>
 #include <boost/asio/detail/reactive_descriptor_service.hpp>
-
 
 namespace acqua { namespace asio {
 
@@ -56,7 +60,7 @@ public:
         }
 
         boost::asio::detail::descriptor_ops::state_type state = 0;
-        int fd = boost::asio::detail::descriptor_ops::open(device, O_RDWR, ec);
+        int fd = boost::asio::detail::descriptor_ops::open(device, O_RDWR | O_NONBLOCK | O_NOCTTY, ec);
         if (fd < 0)
             return ec;
 
@@ -70,6 +74,20 @@ public:
                 ec = boost::asio::error::bad_descriptor;
                 return ec;
             }
+        }
+
+
+        struct termios c;
+        if (::tcgetattr(fd, &c) != 0) {
+            ec = boost::asio::error::bad_descriptor;
+            return ec;
+        }
+        c.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
+        c.c_oflag = 0;
+        c.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+        if (::tcsetattr(fd, TCSAFLUSH, &c) != 0) {
+            ec = boost::asio::error::bad_descriptor;
+            return ec;
         }
 
         if (descriptor_service_.assign(impl, fd, ec)) {
@@ -95,7 +113,7 @@ public:
         return descriptor_service_.close(impl, ec);
     }
 
-    native_handle_type native_handle(implementation_type & impl)
+    native_handle_type native_handle(implementation_type const & impl) const
     {
         return descriptor_service_.native_handle(impl);
     }
@@ -131,14 +149,14 @@ public:
         descriptor_service_.async_write_some(impl, buffers, handler);
     }
 
-    template <typename MuttableBufferSequence>
-    std::size_t read_some(implementation_type & impl, MuttableBufferSequence const & buffers, boost::system::error_code & ec)
+    template <typename MutableBufferSequence>
+    std::size_t read_some(implementation_type & impl, MutableBufferSequence const & buffers, boost::system::error_code & ec)
     {
         return descriptor_service_.read_some(impl, buffers, ec);
     }
 
-    template <typename MuttableBufferSequence, typename Handler>
-    void async_read_some(implementation_type & impl, MuttableBufferSequence const & buffers, Handler & handler)
+    template <typename MutableBufferSequence, typename Handler>
+    void async_read_some(implementation_type & impl, MutableBufferSequence const & buffers, Handler & handler)
     {
         descriptor_service_.async_read_some(impl, buffers, handler);
     }
