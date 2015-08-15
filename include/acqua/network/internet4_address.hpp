@@ -54,14 +54,14 @@ public:
         bytes_.fill(0);
     }
 
-    internet4_address(internet4_address const &) noexcept = default;
-
-    internet4_address(internet4_address &&) noexcept= default;
+    internet4_address(internet4_address const & rhs) noexcept
+        : bytes_(rhs.bytes_) {}
 
     internet4_address(bytes_type const & bytes) noexcept
-        : bytes_(bytes)
-    {
-    }
+        : bytes_(bytes) {}
+
+    internet4_address(boost::asio::ip::address_v4 const & addr) noexcept
+        : bytes_(addr.to_bytes()) {}
 
     internet4_address(char const addr[4]) noexcept
     {
@@ -89,28 +89,19 @@ public:
         copy_from(&num);
     }
 
-    internet4_address(boost::asio::ip::address_v4 const & addr) noexcept
-        : bytes_(addr.to_bytes())
+    friend bool operator==(internet4_address const & lhs, internet4_address const & rhs) noexcept
     {
+        return lhs.bytes_ == rhs.bytes_;
     }
 
-    internet4_address & operator=(internet4_address const &) = default;
-
-    internet4_address & operator=(internet4_address &&) = default;
-
-    bool operator==(internet4_address const & rhs) const noexcept
+    friend bool operator==(internet4_address const & lhs, boost::asio::ip::address_v4 const & rhs) noexcept
     {
-        return bytes_ == rhs.bytes_;
+        return lhs.bytes_ == rhs.to_bytes();
     }
 
-    bool operator==(boost::asio::ip::address_v4 const & rhs) const noexcept
+    friend bool operator<(internet4_address const & lhs, internet4_address const & rhs) noexcept
     {
-        return bytes_ == rhs.to_bytes();
-    }
-
-    bool operator<(internet4_address const & rhs) const noexcept
-    {
-        return bytes_ < rhs.bytes_;
+        return lhs.bytes_ < rhs.bytes_;
     }
 
     internet4_address & operator++() noexcept
@@ -151,8 +142,7 @@ public:
 
     static internet4_address loopback()
     {
-        bytes_type bytes({ 127,0,0,1 });
-        return internet4_address(bytes);
+        return bytes_type({{ 127,0,0,1 }});
     }
 
     static internet4_address from_string(std::string const & str, boost::system::error_code & ec) noexcept

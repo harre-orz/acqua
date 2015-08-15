@@ -51,9 +51,9 @@ public:
     }
 
     template <typename Handler>
-    void async_notify(Handler handler)
+    void async_wait(Handler handler)
     {
-        this->service.async_notify(this->implementation, handler);
+        this->service.async_wait(this->implementation, handler);
     }
 };
 

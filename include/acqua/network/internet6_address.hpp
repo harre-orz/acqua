@@ -54,13 +54,14 @@ public:
         bytes_.fill(0);
     }
 
-    internet6_address(internet6_address const &) noexcept = default;
-    internet6_address(internet6_address &&) noexcept = default;
+    internet6_address(internet6_address const & rhs) noexcept
+        : bytes_(rhs.bytes_) {}
 
     internet6_address(bytes_type const & bytes) noexcept
-        : bytes_(bytes)
-    {
-    }
+        : bytes_(bytes) {}
+
+    internet6_address(boost::asio::ip::address_v6 const & rhs) noexcept
+        : bytes_(rhs.to_bytes()) {}
 
     internet6_address(char const addr[16]) noexcept
     {
@@ -82,27 +83,24 @@ public:
         copy_from(addr.s6_addr);
     }
 
-    internet6_address & operator=(internet6_address const &) noexcept = default;
-    internet6_address & operator=(internet6_address &&) noexcept = default;
-
-    bool operator==(internet6_address const & rhs) const noexcept
+    friend bool operator==(internet6_address const & lhs, internet6_address const & rhs) noexcept
     {
-        return bytes_ == rhs.bytes_;
+        return lhs.bytes_ == rhs.bytes_;
     }
 
-    bool operator==(boost::asio::ip::address_v6 const & rhs) const noexcept
+    friend bool operator==(internet6_address const & lhs, boost::asio::ip::address_v6 const & rhs) noexcept
     {
-        return bytes_ == rhs.to_bytes();
+        return lhs.bytes_ == rhs.to_bytes();
     }
 
-    bool operator<(internet6_address const & rhs) const noexcept
+    friend bool operator<(internet6_address const & lhs, internet6_address const & rhs) noexcept
     {
-        return bytes_ < rhs.bytes_;
+        return lhs.bytes_ < rhs.bytes_;
     }
 
-    bool operator<(boost::asio::ip::address_v6 const & rhs) const noexcept
+    friend bool operator<(internet6_address const & lhs, boost::asio::ip::address_v6 const & rhs)
     {
-        return bytes_ < rhs.to_bytes();
+        return lhs.bytes_ < rhs.to_bytes();
     }
 
     internet6_address & operator++() noexcept
@@ -152,12 +150,10 @@ public:
 
     static internet6_address loopback() noexcept
     {
-        internet6_address addr;
-        addr.bytes_[15] = 1;
-        return addr;
+        return bytes_type({{ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 }});
     }
 
-    static internet6_address from_string(std::string const & str, boost::system::error_code & ec) noexcept
+    static internet6_address from_string(std::string const & str, boost::system::error_code & ec)
     {
         return from_string(str.c_str(), ec);
     }
@@ -170,7 +166,7 @@ public:
         return addr;
     }
 
-    static internet6_address from_string(char const * str, boost::system::error_code & ec) noexcept
+    static internet6_address from_string(char const * str, boost::system::error_code & ec)
     {
         bytes_type bytes;
         if (::inet_pton(AF_INET6, str, bytes.data()) != 1)
@@ -186,17 +182,17 @@ public:
         return addr;
     }
 
-    bool is_unspecified() const noexcept
+    bool is_unspecified() const
     {
         return *this == any();
     }
 
-    bool is_loopback() const noexcept
+    bool is_loopback() const
     {
         return *this == loopback();
     }
 
-    bool is_netmask() const noexcept
+    bool is_netmask() const
     {
         auto it = bytes_.begin();
         while(it != bytes_.end()) {
@@ -236,7 +232,7 @@ public:
     template <typename Ch, typename Tr>
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, internet6_address const & rhs)
     {
-        char buf[5 * 8];
+        char buf[128];
         char * end = rhs.inet_ntop(buf);
         std::copy(buf, end, std::ostreambuf_iterator<Ch>(os));
         return os;
@@ -250,7 +246,7 @@ public:
 private:
     char * inet_ntop(char * buf) const
     {
-        if (::inet_ntop(AF_INET6, bytes_.data(), buf, 40) == nullptr)
+        if (::inet_ntop(AF_INET6, bytes_.data(), buf, 128) == nullptr)
             *buf = '\0';
         return buf + std::strlen(buf);
     }

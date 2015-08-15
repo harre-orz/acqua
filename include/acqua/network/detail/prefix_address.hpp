@@ -15,6 +15,22 @@ namespace acqua { namespace network {
 class internet4_address;
 class internet6_address;
 
+template <typename Address>
+inline typename Address::masklen_type netmask_length(Address const & addr)
+{
+    typename Address::masklen_type len = 0;
+    for(auto const & ch : addr.to_bytes()) {
+        if (ch == 255)
+            len += 8;
+        else {
+            for(int i = 7; i > 0 && (ch & (0x01 << i)); --i)
+                ++len;
+            break;
+        }
+    }
+    return len;
+}
+
 namespace detail {
 
 template <typename Address>
@@ -129,10 +145,6 @@ private:
         if ((*end = '0' + masklen_ /  10 % 10) != '0') end++;
         *end++ = '0' + masklen_ % 10;
         return end;
-    }
-
-    void fit(address_type const & address)
-    {
     }
 
     constexpr masklen_type max_masklen() const
