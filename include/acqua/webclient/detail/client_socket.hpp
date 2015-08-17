@@ -77,7 +77,7 @@ public:
 
     void cancel()
     {
-        lowest_layer_socket(socket_).cancel();
+        socket_.lowest_layer().cancel();
     }
 
     void async_connect(endpoint_type const & endpoint)
@@ -87,7 +87,7 @@ public:
         if (auto socket = client_->reuse(this)) {
             socket->async_reuse(this);
         } else {
-            lowest_layer_socket(socket_).async_connect(
+            socket_.lowest_layer().async_connect(
                 base_type::endpoint_,
                 std::bind(
                     &client_socket::on_connect1,
@@ -140,12 +140,6 @@ public:
     }
 
 private:
-    template <typename Protocol>
-    static socket_type & lowest_layer_socket(boost::asio::basic_stream_socket<Protocol> & socket)
-    {
-        return socket;
-    }
-
     template <typename T>
     static typename T::lowest_layer_type & lowest_layer_socket(T & socket, typename T::lowest_layer_type * = nullptr)
     {

@@ -36,42 +36,35 @@ public:
         bytes_.fill(0);
     }
 
-    linklayer_address(linklayer_address const &) noexcept = default;
-
-    linklayer_address(linklayer_address &&) noexcept = default;
+    linklayer_address(linklayer_address const & rhs) noexcept
+        : bytes_(rhs.bytes_) {}
 
     linklayer_address(bytes_type const & bytes) noexcept
-        : bytes_(bytes)
-    {
-    }
+        : bytes_(bytes) {}
 
     linklayer_address(char const addr[6]) noexcept
     {
         copy_from(addr);
     }
 
-    linklayer_address(unsigned char addr[6]) noexcept
+    linklayer_address(unsigned char const addr[6]) noexcept
     {
         copy_from(addr);
     }
 
-    linklayer_address(signed char addr[6]) noexcept
+    linklayer_address(signed char const addr[6]) noexcept
     {
         copy_from(addr);
     }
 
-    linklayer_address & operator=(linklayer_address const &) noexcept = default;
-
-    linklayer_address & operator=(linklayer_address &&) noexcept = default;
-
-    bool operator==(linklayer_address const & rhs) const noexcept
+    friend bool operator==(linklayer_address const & lhs, linklayer_address const & rhs) noexcept
     {
-        return bytes_ == rhs.bytes_;
+        return lhs.bytes_ == rhs.bytes_;
     }
 
-    bool operator<(linklayer_address const & rhs) const noexcept
+    friend bool operator<(linklayer_address const & lhs,  linklayer_address const & rhs) noexcept
     {
-        return bytes_ < rhs.bytes_;
+        return lhs.bytes_ < rhs.bytes_;
     }
 
     linklayer_address & operator++() noexcept

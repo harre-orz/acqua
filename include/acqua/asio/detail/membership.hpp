@@ -11,9 +11,7 @@ extern "C" {
 
 #include <acqua/asio/raw.hpp>
 
-namespace acqua { namespace asio {
-
-namespace detail {
+namespace acqua { namespace asio { namespace detail {
 
 template <int Level, int Name, int Type>
 class membership
@@ -23,14 +21,14 @@ public:
     {
         std::memset(&mr_, 0, sizeof(mr_));
         mr_.mr_type = Type;
-        mr_.mr_ifindex = ep.scope_id();
+        mr_.mr_ifindex = ep.id();
     }
 
     explicit membership(raw::endpoint const & ep, raw::address const & addr)
     {
         std::memset(&mr_, 0, sizeof(mr_));
         mr_.mr_type = Type;
-        mr_.mr_ifindex = ep.scope_id();
+        mr_.mr_ifindex = ep.id();
         mr_.mr_alen = 6;
         std::memcpy(mr_.mr_address, reinterpret_cast<char const *>(&addr), 6);
     }

@@ -1,3 +1,11 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 extern "C" {
@@ -6,6 +14,8 @@ extern "C" {
 
 #include <memory>
 #include <boost/system/error_code.hpp>
+#include <acqua/exception/throw_error.hpp>
+#include <acqua/network/linklayer_address.hpp>
 #include <acqua/network/internet4_address.hpp>
 #include <acqua/network/internet6_address.hpp>
 #include <acqua/network/detail/prefix_address.hpp>
@@ -62,7 +72,7 @@ public:
         return ifa_->ifa_flags & IFF_MULTICAST;
     }
 
-    bool is_packet() const
+    bool is_stats() const
     {
         return ifa_->ifa_addr->sa_family == AF_PACKET;
     }
@@ -133,11 +143,59 @@ public:
             : internet6_address();
     }
 
+    /*!
+      IPv6 の場合のみ スコープID を返し、それ以外は -1 を返す.
+     */
     int scope_id() const
     {
         return is_v6()
             ? reinterpret_cast<struct ::sockaddr_in6 const *>(ifa_->ifa_addr)->sin6_scope_id
             : -1;
+    }
+
+    /*!
+      物理アドレスを返す.
+     */
+    linklayer_address physical_address(boost::system::error_code & ec) const
+    {
+        struct ::ifreq ifr;
+        std::memset(&ifr, 0, sizeof(ifr));
+        std::strncpy(ifr.ifr_name, ifa_->ifa_name, sizeof(ifr.ifr_name)-1);
+
+        int fd;
+        if ((fd = ::socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+            ec.assign(errno, boost::system::generic_category());
+            return linklayer_address();
+        }
+
+        if (::ioctl(fd, SIOCGIFHWADDR, &ifr) != 0) {
+            ec.assign(errno, boost::system::generic_category());
+            ::close(fd);
+            return linklayer_address();
+        }
+        ::close(fd);
+        return linklayer_address(ifr.ifr_hwaddr.sa_data);
+    }
+
+    /*!
+      物理アドレスを返す.
+     */
+    linklayer_address physical_address() const
+    {
+        boost::system::error_code ec;
+        auto addr = physical_address(ec);
+        acqua::exception::throw_error(ec, "physical_address");
+        return addr;
+    }
+
+    friend bool operator==(interface const & lhs, interface const & rhs)
+    {
+        return lhs.ifa_ == rhs.ifa_;
+    }
+
+    friend bool operator!=(interface const & lhs, interface const & rhs)
+    {
+        return !(lhs == rhs);
     }
 
     friend std::ostream & operator<<(std::ostream & os, interface const & rhs)
@@ -163,14 +221,16 @@ private:
 
 class interface::iterator
 {
+    friend interface;
+
+    iterator(internal_value_type * ifa)
+        : base_(ifa, [](internal_value_type * ifa) { ::freeifaddrs(ifa); })
+        , value_(ifa) {}
+
 public:
     iterator()
         : base_(nullptr)
         , value_(nullptr) {}
-
-    iterator(interface const & ifa)
-        : base_(ifa.ifa_, [](internal_value_type * ifa) { ::freeifaddrs(ifa); })
-        , value_(ifa.ifa_) {}
 
     iterator(iterator const & rhs)
         : base_(rhs.base_)
@@ -188,12 +248,12 @@ public:
 
     friend bool operator==(iterator const & lhs, iterator const & rhs)
     {
-        return lhs.equal_to(rhs);
+        return lhs.value_ == rhs.value_;
     }
 
     friend bool operator!=(iterator const & lhs, iterator const & rhs)
     {
-        return !lhs.equal_to(rhs);
+        return !(lhs == rhs);
     }
 
     iterator & operator++()
@@ -210,11 +270,6 @@ public:
     }
 
 private:
-    bool equal_to(iterator const & rhs) const
-    {
-        return value_.ifa_ == rhs.value_.ifa_;
-    }
-
     std::shared_ptr<internal_value_type> base_;
     interface value_;
 };
@@ -224,7 +279,7 @@ inline interface::iterator interface::begin()
 {
     internal_value_type * ifa;
     ::getifaddrs(&ifa);
-    return interface(ifa);
+    return iterator(ifa);
 }
 
 
