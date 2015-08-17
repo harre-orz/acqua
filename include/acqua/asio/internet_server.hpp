@@ -43,13 +43,39 @@ public:
     using endpoint_type =  typename base_v4_type::endpoint_type;
 
 public:
+    template <typename... Args>
     explicit internet_server(boost::asio::io_service & io_service,
                              boost::optional<boost::asio::ip::address> const & address,
                              std::uint16_t port,
-                             std::size_t max_count = default_max_count,
-                             Traits traits = Traits(),
-                             bool reuse_addr = true)
-        : traits_type(std::move(traits))
+                             std::size_t max_count,
+                             bool reuse_addr,
+                             Args... args)
+        : traits_type(args...)
+        , base_v4_type(io_service, count_)
+        , base_v6_type(io_service, count_)
+        , count_(0)
+    {
+        boost::system::error_code ec;
+        if (!address) {
+            set_max_count(max_count, 2, ec);
+            listen_v4(base_v4_type::acceptor(), endpoint_type(boost::asio::ip::address_v4::any(), port), ec, reuse_addr);
+            listen_v6(base_v6_type::acceptor(), endpoint_type(boost::asio::ip::address_v6::any(), port), ec, reuse_addr);
+        } else if (address->is_v4()) {
+            set_max_count(max_count, 1, ec);
+            listen_v4(base_v4_type::acceptor(), endpoint_type(*address, port), ec, reuse_addr);
+        } else if (address->is_v6()) {
+            set_max_count(max_count, 1, ec);
+            listen_v6(base_v6_type::acceptor(), endpoint_type(*address, port), ec, reuse_addr);
+        }
+    }
+
+    explicit internet_server(boost::asio::io_service & io_service,
+                             boost::optional<boost::asio::ip::address> const & address,
+                             std::uint16_t port,
+                             std::size_t max_count,
+                             bool reuse_addr,
+                             traits_type traits = traits_type())
+        : traits_type(traits)
         , base_v4_type(io_service, count_)
         , base_v6_type(io_service, count_)
         , count_(0)
@@ -72,9 +98,9 @@ public:
                              boost::asio::ip::address_v4 const & address,
                              std::uint16_t port,
                              std::size_t max_count = default_max_count,
-                             Traits traits = Traits(),
-                             bool reuse_addr = true)
-        : traits_type(std::move(traits))
+                             bool reuse_addr = true,
+                             traits_type traits = traits_type())
+        : traits_type(traits)
         , base_v4_type(io_service, count_)
         , base_v6_type(io_service, count_)
         , count_(0)
@@ -88,9 +114,9 @@ public:
                              boost::asio::ip::address_v6 const & address,
                              std::uint16_t port,
                              std::size_t max_count = default_max_count,
-                             Traits traits = Traits(),
-                             bool reuse_addr = true)
-        : traits_type(std::move(traits))
+                             bool reuse_addr = true,
+                             traits_type traits = traits_type())
+        : traits_type(traits)
         , base_v4_type(io_service, count_)
         , base_v6_type(io_service, count_)
         , count_(0)
@@ -103,9 +129,9 @@ public:
     explicit internet_server(boost::asio::io_service & io_service,
                              endpoint_type const & endpoint,
                              std::size_t max_count = default_max_count,
-                             Traits traits = Traits(),
-                             bool reuse_addr = true)
-        : Traits(std::move(traits))
+                             bool reuse_addr = true,
+                             traits_type traits = traits_type())
+        : traits_type(traits)
         , base_v4_type(io_service, count_)
         , base_v6_type(io_service, count_)
         , count_(0)
@@ -123,9 +149,9 @@ public:
     explicit internet_server(boost::asio::io_service & io_service,
                              std::uint16_t port,
                              std::size_t max_count = default_max_count,
-                             Traits traits = Traits(),
-                             bool reuse_addr = true)
-        : Traits(std::move(traits))
+                             bool reuse_addr = true,
+                             traits_type traits = traits_type())
+        : traits_type(traits)
         , base_v4_type(io_service, count_)
         , base_v6_type(io_service, count_)
         , count_(0)
@@ -195,27 +221,27 @@ private:
 
     Connector * construct(boost::asio::io_service & io_service)
     {
-        return static_cast<Traits *>(this)->construct(io_service);
+        return static_cast<traits_type *>(this)->construct(io_service);
     }
 
     typename protocol_type::socket & server_socket(std::shared_ptr<Connector> & conn, detail::internet_v4_tag const &)
     {
-        return static_cast<Traits *>(this)->template socket_v4<typename protocol_type::socket>(&*conn);
+        return static_cast<traits_type *>(this)->template socket_v4<typename protocol_type::socket>(&*conn);
     }
 
     typename protocol_type::socket & server_socket(std::shared_ptr<Connector> & conn, detail::internet_v6_tag const &)
     {
-        return static_cast<Traits *>(this)->template socket_v6<typename protocol_type::socket>(&*conn);
+        return static_cast<traits_type *>(this)->template socket_v6<typename protocol_type::socket>(&*conn);
     }
 
     void connection_start(std::shared_ptr<Connector> & conn, detail::internet_v4_tag const &)
     {
-        static_cast<Traits *>(this)->start_v4(&*conn);
+        static_cast<traits_type *>(this)->start_v4(&*conn);
     }
 
     void connection_start(std::shared_ptr<Connector> & conn, detail::internet_v6_tag const &)
     {
-        static_cast<Traits *>(this)->start_v6(&*conn);
+        static_cast<traits_type *>(this)->start_v6(&*conn);
     }
 
     void set_max_count(std::size_t max_count, std::size_t lower_limit, boost::system::error_code & ec)

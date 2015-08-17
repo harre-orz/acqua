@@ -4,37 +4,39 @@
   Copyright (c) 2015 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
- */
+*/
 
 #pragma once
 
 #include <boost/asio/io_service.hpp>
-#include <acqua/exception/throw_error.hpp>
 #include <acqua/asio/detail/simple_server_base.hpp>
+#include <acqua/exception/throw_error.hpp>
 #include <acqua/asio/server_traits.hpp>
 
 namespace acqua { namespace asio {
 
 /*!
- accept がある度に Connector クラスを生成して、また accept が来るまで待つだけのシンプルなサーバ.
+  accept がある度に Connector クラスを生成して、また accept が来るまで待つだけのシンプルなサーバ.
 
- boost::asio::ip::tcp::acceptor もしくは boost::asio::local::stream_protocol::acceptor の待受ソケットを使い、コネクションクラスを自動生成することができる
+  boost::asio::ip::tcp::acceptor もしくは boost::asio::local::stream_protocol::acceptor の待受ソケットを使い、コネクションクラスを自動生成することができる
 
- \tparam Connector std::shared_ptr で管理されるので、Connector クラスは必ず std::enable_shared_from_this を継承していなければならない。
+  \tparam Connector std::shared_ptr で管理されるので、Connector クラスは必ず std::enable_shared_from_this を継承していなければならない。
 
- */
+*/
 template <
     typename Connector,
-    typename Protocol = typename Connector::protocol_type,
-    typename Traits = server_traits<Connector>
+    typename Traits = server_traits<Connector>,
+    typename Protocol = typename Connector::protocol_type
     >
 class simple_server
     : private Traits
-    , private detail::simple_server_base<simple_server<Connector, Protocol, Traits>, Connector, Protocol>
+    , private detail::simple_server_base<simple_server<Connector, Traits, Protocol>, Connector, Protocol>
 
 {
-    using base_type = detail::simple_server_base<simple_server<Connector, Protocol, Traits>, Connector, Protocol>;
+    using base_type = detail::simple_server_base<simple_server<Connector, Traits, Protocol>, Connector, Protocol>;
     friend base_type;
+
+    static const int default_max_count = 100;
 
 public:
     using traits_type = Traits;
@@ -43,8 +45,29 @@ public:
     using endpoint_type = typename base_type::endpoint_type;
 
 public:
-    explicit simple_server(boost::asio::io_service & io_service, endpoint_type const & endpoint, std::size_t max_count = 100, Traits traits = Traits(), bool reuse_addr = true)
-        : traits_type(std::move(traits))
+    template <typename... Args>
+    explicit simple_server(boost::asio::io_service & io_service,
+                           endpoint_type const & endpoint,
+                           std::size_t max_count,
+                           bool reuse_addr,
+                           Args... args)
+        : traits_type(args...)
+        , base_type(io_service, count_)
+        , max_count_(max_count)
+        , count_(0)
+    {
+        boost::system::error_code ec;
+        if (max_count_ <= 0)
+            throw boost::system::system_error(EINVAL, boost::system::generic_category());
+        listen(base_type::acceptor(), endpoint, ec, reuse_addr);
+    }
+
+    explicit simple_server(boost::asio::io_service & io_service,
+                           endpoint_type const & endpoint,
+                           std::size_t max_count = default_max_count,
+                           bool reuse_addr = true,
+                           traits_type traits = traits_type())
+        : traits_type(traits)
         , base_type(io_service, count_)
         , max_count_(max_count)
         , count_(0)
@@ -79,16 +102,16 @@ private:
     void listen(acceptor_type & acc, endpoint_type const & endpoint, boost::system::error_code & ec, bool reuse_addr)
     {
         acc.open(endpoint.protocol(), ec);
-       acqua::exception::throw_error(ec, "open");
+        acqua::exception::throw_error(ec, "open");
         if (reuse_addr) {
             acc.set_option(boost::asio::socket_base::reuse_address(true), ec);
-           acqua::exception::throw_error(ec, "set_option");
+            acqua::exception::throw_error(ec, "set_option");
         }
         static_cast<traits_type *>(this)->set_option(acc, ec);
         acc.bind(endpoint, ec);
-       acqua::exception::throw_error(ec, "bind");
+        acqua::exception::throw_error(ec, "bind");
         acc.listen(boost::asio::socket_base::max_connections, ec);
-       acqua::exception::throw_error(ec, "listen");
+        acqua::exception::throw_error(ec, "listen");
     }
 
     Connector * construct(boost::asio::io_service & io_service)
