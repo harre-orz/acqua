@@ -1,7 +1,8 @@
 .PHONY: build clean
 .DEFAULT: build
 
-build: $(CXXProgram test_email, test_email) \
+build: $(CXXProgram test_address, test_address) \
+       $(CXXProgram test_email, test_email) \
        $(CXXProgram test_feed_parser, test_feed_parser) \
        $(CXXProgram test_feed_generator, test_feed_generator)
 
