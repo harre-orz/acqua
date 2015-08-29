@@ -21,6 +21,11 @@ class unique_container_iterator : public acqua::container::detail::pointer_conta
     std::unique_ptr<T>
     >
 {
+    using base_type = typename unique_container_iterator::base_type;
+
+public:
+    using element_type = T;
+    using base_type::base_type;
 };
 
 template <typename T, typename Iter>
@@ -30,6 +35,12 @@ class unique_container_iterator<T const, Iter> : public acqua::container::detail
     std::unique_ptr<T>
     >
 {
+
+    using base_type = typename unique_container_iterator::base_type;
+
+public:
+    using element_type = T;
+    using base_type::base_type;
 };
 
 } }

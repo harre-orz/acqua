@@ -21,12 +21,16 @@ template <typename T, typename Iter, typename ManagedPtr>
 class pointer_container_iterator
     : public std::iterator<std::forward_iterator_tag, typename Iter::value_type>
 {
+protected:
+    using base_type = pointer_container_iterator;
+
 public:
     using iterator = Iter;
     using value_type = T;
     using pointer = value_type *;
     using reference = value_type &;
     using managed_ptr = ManagedPtr;
+    using element_type = typename managed_ptr::element_type;
 
 public:
     pointer_container_iterator() = default;
@@ -54,6 +58,13 @@ public:
     pointer_container_iterator(iterator it, managed_ptr && ptr)
         : ptr_(std::move(ptr))
         , it_(it)
+    {
+    }
+
+    template <typename U, typename std::enable_if<std::is_convertible<U, element_type>::value>::type * = nullptr>
+    pointer_container_iterator(U * ptr)
+        : ptr_(ptr)
+        , it_(ptr_->begin())
     {
     }
 
@@ -98,7 +109,7 @@ public:
         return it;
     }
 
-    pointer get() const
+    element_type * get() const
     {
         return ptr_.get();
     }

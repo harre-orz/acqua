@@ -10,7 +10,7 @@ extern "C" {
 #include <boost/asio/detail/descriptor_ops.hpp>
 #include <boost/asio/detail/reactive_descriptor_service.hpp>
 
-namespace acqua { namespace asio {
+namespace acqua { namespace asio { namespace detail {
 
 class pseudo_terminal_service
     : public boost::asio::detail::service_base<pseudo_terminal_service>
@@ -174,4 +174,4 @@ private:
 
 extern boost::asio::io_service::id pseudo_terminal_service::id;
 
-} }
+} } }

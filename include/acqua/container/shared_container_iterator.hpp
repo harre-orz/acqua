@@ -21,6 +21,10 @@ class unique_container_iterator : public acqua::container::detail::pointer_conta
     std::shared_ptr<T>
     >
 {
+    using base_type = typename shared_container_iterator;
+
+public:
+    using base_type::base_type;
 };
 
 template <typename T, typename Iter>
@@ -30,6 +34,10 @@ class unique_container_iterator<T const, Iter> : public acqua::container::detail
     std::shared_ptr<T>
     >
 {
+    using base_type = typename shared_container_iterator;
+
+public:
+    using base_type::base_type;
 };
 
 } }
