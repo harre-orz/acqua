@@ -9,7 +9,7 @@
 #pragma once
 
 #include <iterator>
-
+#include <iostream>
 namespace acqua { namespace container { namespace detail {
 
 /*!
@@ -37,21 +37,9 @@ public:
     pointer_container_iterator(pointer_container_iterator const & rhs) = default;
     pointer_container_iterator(pointer_container_iterator && rhs) = default;
 
-    pointer_container_iterator(managed_ptr const & ptr)
-        : ptr_(ptr)
-        , it_(ptr_->begin())
-    {
-    }
-
     pointer_container_iterator(iterator it, managed_ptr const & ptr)
         : ptr_(ptr)
         , it_(it)
-    {
-    }
-
-    pointer_container_iterator(managed_ptr && ptr)
-        : ptr_(std::move(ptr))
-        , it_(ptr_->begin())
     {
     }
 
@@ -108,17 +96,7 @@ public:
         ++it_;
         return it;
     }
-
-    element_type * get() const
-    {
-        return ptr_.get();
-    }
-
-    void release()
-    {
-        ptr_ = nullptr;
-    }
-
+    
 private:
     managed_ptr ptr_;
     iterator it_;

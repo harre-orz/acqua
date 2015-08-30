@@ -15,26 +15,26 @@
 namespace acqua { namespace container {
 
 template <typename T, typename Iter = typename T::iterator>
-class unique_container_iterator : public acqua::container::detail::pointer_container_iterator<
+class shared_container_iterator : public acqua::container::detail::pointer_container_iterator<
     typename T::value_type,
     Iter,
     std::shared_ptr<T>
     >
 {
-    using base_type = typename shared_container_iterator;
+    using base_type = typename shared_container_iterator::base_type;
 
 public:
     using base_type::base_type;
 };
 
 template <typename T, typename Iter>
-class unique_container_iterator<T const, Iter> : public acqua::container::detail::pointer_container_iterator<
+class shared_container_iterator<T const, Iter> : public acqua::container::detail::pointer_container_iterator<
     typename T::value_type const,
     Iter,
     std::shared_ptr<T>
     >
 {
-    using base_type = typename shared_container_iterator;
+    using base_type = typename shared_container_iterator::base_type;
 
 public:
     using base_type::base_type;

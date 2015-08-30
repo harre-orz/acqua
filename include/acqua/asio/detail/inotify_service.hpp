@@ -73,7 +73,7 @@ public:
 
         bool is(enum event_code code) const
         {
-            return mask_ & (int)code;;
+            return mask_ & (int)code;
         }
 
         bool is_directory() const
@@ -127,6 +127,7 @@ public:
     void construct(implementation_type & impl)
     {
         impl.fd_ = descriptor_type(this->get_io_service());
+        impl.beg_ = impl.end_ = impl.buffer_.begin();
     }
 
     void destroy(implementation_type & impl)
@@ -137,11 +138,21 @@ public:
     void move_construct(implementation_type & impl, implementation_type & other_impl)
     {
         impl.fd_ = std::move(other_impl.fd_);
+        std::copy(other_impl.beg_, other_impl.end_, impl.buffer_.data());
+        impl.beg_ = other_impl.beg_;
+        impl.end_ = other_impl.end_;
+        impl.files_ = std::move(other_impl.files_);
+        impl.cookies_ = std::move(other_impl.cookies_);
     }
 
     void move_assign(implementation_type & impl, inotify_service &, implementation_type & other_impl)
     {
         impl.fd_ = std::move(other_impl.fd_);
+        std::copy(other_impl.beg_, other_impl.end_, impl.buffer_.data());
+        impl.beg_ = other_impl.beg_;
+        impl.end_ = other_impl.end_;
+        impl.files_ = std::move(other_impl.files_);
+        impl.cookies_ = std::move(other_impl.cookies_);
     }
 
     bool is_open(implementation_type & impl)
@@ -194,10 +205,9 @@ public:
             impl.end_ = impl.beg_ + size;
         }
 
-
-        iterator_type it(new std::vector<event_type>);
-        do_notify(impl, *it.get());
-        return it;
+        std::unique_ptr< std::vector<event_type> > res(new std::vector<event_type>);
+        do_notify(impl, *res);
+        return iterator_type(res->begin(), std::move(res));;
     }
 
     template <typename Handler>
@@ -213,9 +223,9 @@ public:
                           handler)
             );
         } else {
-            iterator_type it(new std::vector<event_type>);
-            do_notify(impl, *it.get());
-            handler(boost::system::error_code(), std::move(it));
+            std::unique_ptr< std::vector<event_type> > res(new std::vector<event_type>);
+            do_notify(impl, *res);
+            handler(boost::system::error_code(), iterator_type(res->begin(), std::move(res)));
         }
     }
 
@@ -273,9 +283,9 @@ private:
             impl.beg_ = impl.buffer_.begin();
             impl.end_ = impl.buffer_.begin() + size;
 
-            iterator_type it(new std::vector<event_type>);
-            do_notify(impl, *it.get());
-            handler(error, std::move(it));
+            std::unique_ptr< std::vector<event_type> > res(new std::vector<event_type>);
+            do_notify(impl, *res);
+            handler(boost::system::error_code(), iterator_type(res->begin(), std::move(res)));
         }
     }
 
