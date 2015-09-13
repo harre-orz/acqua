@@ -8,17 +8,20 @@
 
 #pragma once
 
+#include <iostream>
+#include <memory>
 #include <boost/system/error_code.hpp>
-#include <acqua/email/email_fwd.hpp>
 
-namespace acqua { namespace email {
+namespace acqua { namespace email { namespace detail {
 
-template <
-    typename Mail
-    >
+template <typename Mail>
 class feed_parser
 {
     class impl;
+
+public:
+    using char_type = typename Mail::char_type;
+    using traits_type = typename Mail::traits_type;
 
 public:
     feed_parser(Mail & mail)
@@ -65,6 +68,6 @@ private:
     char prev_ = '\0';
 };
 
-} }
+} } }
 
-#include <acqua/email/impl/feed_parser_impl.ipp>
+#include <acqua/email/detail/impl/feed_parser_impl.ipp>

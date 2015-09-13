@@ -10,16 +10,23 @@
 
 #include <iterator>
 #include <boost/locale.hpp>
+#include <acqua/string_cast.hpp>
 
-namespace acqua { namespace email { namespace detail {
+namespace acqua { namespace email { namespace utils {
 
 /*!
   quoted-printable 形式のテキストからデコード.
  */
-class qprint_decoder
+template <typename CharT>
+class basic_qprint_decoder
 {
 public:
-    explicit qprint_decoder(std::string const & charset)
+    using char_type = CharT;
+
+    explicit basic_qprint_decoder()
+    {}
+
+    explicit basic_qprint_decoder(std::string const & charset)
         : charset_(charset) {}
 
     template <typename Sink>
@@ -56,7 +63,10 @@ public:
             }
         }
         if (line.empty() || *line.rbegin() != '=') {
-            sink << boost::locale::conv::to_utf<typename Sink::char_type>(buffer_, charset_) << std::endl;
+            if (charset_.empty())
+                sink << acqua::string_cast(buffer_);
+            else
+                sink << boost::locale::conv::to_utf<char_type>(buffer_, charset_) << std::endl;
             buffer_.clear();
         }
     }
@@ -65,7 +75,10 @@ public:
     void flush(Sink & sink)
     {
         if (!buffer_.empty()) {
-            sink << boost::locale::conv::to_utf<typename Sink::char_type>(buffer_, charset_) << std::endl;
+            if (charset_.empty())
+                sink << acqua::string_cast(buffer_);
+            else
+                sink << boost::locale::conv::to_utf<char_type>(buffer_, charset_) << std::endl;
             buffer_.clear();
         }
     };
@@ -74,5 +87,7 @@ private:
     std::string charset_;
     std::string buffer_;
 };
+
+using qprint_decoder = basic_qprint_decoder<char>;
 
 } } }

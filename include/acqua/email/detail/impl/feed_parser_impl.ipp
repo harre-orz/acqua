@@ -9,21 +9,23 @@
 #pragma once
 
 #include <boost/algorithm/string.hpp>
-#include <acqua/text/mime_header.hpp>
-#include <acqua/email/detail/noop_decoder.hpp>
-#include <acqua/email/detail/ascii_decoder.hpp>
-#include <acqua/email/detail/qprint_decoder.hpp>
-#include <acqua/email/detail/base64.hpp>
+#include <acqua/email/utils/mime_header.hpp>
+#include <acqua/email/utils/noop_decoder.hpp>
+#include <acqua/email/utils/ascii_decoder.hpp>
+#include <acqua/email/utils/qprint_decoder.hpp>
+#include <acqua/email/utils/base64_decoder.hpp>
 
 namespace acqua { namespace email { namespace detail {
 
-class head_parser
+using namespace acqua::email::utils;
+
+class header_parser
 {
 public:
-    head_parser()
+    header_parser()
         : boundary_(nullptr) {}
 
-    head_parser(std::string const * boundary)
+    header_parser(std::string const * boundary)
         : boundary_(boundary) {}
 
     template <typename Impl>
@@ -33,7 +35,7 @@ public:
         if (line.empty()) {
             // ヘッダーの終了
             append_to_header(impl);
-            impl.to_body(boundary_);
+            impl.to_payload(boundary_);
             return true;
         } else if (line.size() == 1 && line[0] == '.') {
             // メールの終了
@@ -44,7 +46,7 @@ public:
             // 最初のヘッダー名、もしくは次のヘッダー名
             if ((it = std::find(it, line.end(), ':')) == line.end()) {
                 // ヘッダー名と値を分けれない場合は、ヘッダー解析を打ち切り、line を本文として処理する
-                impl.to_body(boundary_);
+                impl.to_payload(boundary_);
                 return false;
             }
             append_to_header(impl);
@@ -66,9 +68,9 @@ private:
         if (!name_.empty() && !buffer_.empty()) {
             auto & disp = impl.header(name_);
             if (boost::istarts_with(name_, "Content-")) {
-                acqua::text::mime_header::decode(buffer_.begin(), buffer_.end(), disp.str(), disp);
+                mime_header::decode(buffer_.begin(), buffer_.end(), disp.str(), disp);
             } else {
-                acqua::text::mime_header::decode(buffer_.begin(), buffer_.end(), disp.str());
+                mime_header::decode(buffer_.begin(), buffer_.end(), disp.str());
             }
         }
     }
@@ -81,34 +83,36 @@ private:
 
 
 template <typename Impl, typename Decoder>
-class body_parser
+class payload_parser
+    : private Decoder
 {
 public:
-    body_parser(Decoder decode, std::string const * child_boundary, std::string const * parent_boundary)
-        : decode_(decode), child_boundary_(child_boundary), parent_boundary_(parent_boundary) {}
+    template <typename ... Args>
+    payload_parser(std::string const * child_boundary, std::string const * parent_boundary, Args... args)
+        : Decoder(args...), child_boundary_(child_boundary), parent_boundary_(parent_boundary) {}
 
     bool operator()(std::string const & line, Impl & impl)
     {
         if (line.size() == 1 && line[0] == '.') {
-            decode_.flush(impl.body());
+            Decoder::flush(impl.payload());
             impl.to_terminated();
             return false;
         } else if (is_child_multipart_begin(line)) {
             impl.to_subpart(subpart_, child_boundary_);
         } else if (is_parent_multipart_end(line)) {
-            decode_.flush(impl.body());
+            Decoder::flush(impl.payload());
             impl.to_terminated();
         } else if (subpart_ && !subpart_->is_terminated()) {
             subpart_->do_parse_line(line);
         } else {
-            decode_.write(impl.body(), line);
+            Decoder::write(impl.payload(), line);
         }
         return true;
     }
 
     void flush(Impl & impl)
     {
-        decode_.flush(impl.body());
+        Decoder::flush(impl.payload());
     }
 
 private:
@@ -127,25 +131,22 @@ private:
     }
 
 private:
-    Decoder decode_;
     std::string const * child_boundary_;
     std::string const * parent_boundary_;
     std::unique_ptr<Impl> subpart_;
 };
 
-}
-
-using namespace acqua::email::detail;
 
 template <typename Mail>
-class feed_parser<Mail>::impl
-    : public boost::variant< head_parser,
-                             body_parser<impl, noop_decoder>,
-                             body_parser<impl, ascii_decoder>,
-                             body_parser<impl, qprint_decoder>,
-                             body_parser<impl, base64_text_decoder>,
-                             body_parser<impl, base64_binary_decoder>
-                             >
+class feed_parser<Mail>::impl : public boost::variant<
+    header_parser,
+    payload_parser<impl, basic_noop_decoder<char_type> >,
+    payload_parser<impl, basic_ascii_decoder<char_type> >,
+    payload_parser<impl, basic_qprint_decoder<char_type> >,
+    payload_parser<impl, basic_base64_decoder<char_type> >,
+    payload_parser<impl, basic_base64_raw_decoder<char_type> >
+
+    >
 {
 private:
     struct feed_visitor : boost::static_visitor<bool>
@@ -168,30 +169,29 @@ private:
         flush_visitor(impl & impl)
             : impl_(impl) {}
 
-        void operator()(head_parser &) const
+        void operator()(header_parser &) const
         {
         }
 
         template <typename Decoder>
-        void operator()(body_parser<impl, Decoder> & parser) const
+        void operator()(payload_parser<impl, Decoder> & parser) const
         {
             parser.flush(impl_);
         }
     };
 
-    using message_type = basic_message<typename Mail::value_type>;
-    using ostream_type = std::basic_ostream<typename Mail::char_type, typename Mail::traits_type>;
+    using ostream_type = std::basic_ostream<char_type, traits_type>;
+    using head = header_parser;
+    using noop = payload_parser<impl, basic_noop_decoder<char_type> >;
+    using ascii = payload_parser<impl, basic_ascii_decoder<char_type> >;
+    using qprint = payload_parser<impl, basic_qprint_decoder<char_type> >;
+    using base64txt = payload_parser<impl, basic_base64_decoder<char_type> >;
+    using base64bin = payload_parser<impl, basic_base64_raw_decoder<char_type> >;
+    using base_type = boost::variant<header_parser, noop, ascii, qprint, base64txt, base64bin>;
 
 public:
-    using noop = body_parser<impl, noop_decoder>;
-    using ascii = body_parser<impl, ascii_decoder>;
-    using qprint = body_parser<impl, qprint_decoder>;
-    using base64txt = body_parser<impl, base64_text_decoder>;
-    using base64bin = body_parser<impl, base64_binary_decoder>;
-    using base_type = boost::variant< head_parser, noop, ascii, qprint, base64txt, base64bin >;
-
-    impl(boost::system::error_code & error, message_type & mail, std::string const * boundary = nullptr)
-        : base_type(head_parser(boundary)), error_(error), mail_(mail), os_(mail_) {}
+    explicit impl(boost::system::error_code & error, Mail & mail, std::string const * boundary = nullptr)
+        : base_type(head(boundary)), error_(error), mail_(mail), os_(mail_) {}
 
     /*!
       解析が終了したか？.
@@ -216,7 +216,7 @@ public:
         return mail_[key];
     }
 
-    ostream_type & body()
+    ostream_type & payload()
     {
         return os_;
     }
@@ -224,7 +224,7 @@ public:
     /*!
       パーサの状態を、本文解析に遷移する.
     */
-    void to_body(std::string const * boundary)
+    void to_payload(std::string const * boundary)
     {
         std::string const * child_boundary = nullptr;
         std::string charset = "us-ascii";
@@ -258,27 +258,19 @@ public:
         it = mail_.find("Content-Transfer-Encoding");
         if (it != mail_.end()) {
             if (boost::algorithm::iequals(it->second.str(), "base64")) {
-                if (text_mode) {
-                    std::cout << "base64txt " << charset << std::endl;
-                    next = base64txt(base64_text_decoder(charset), child_boundary, boundary);
-                } else {
-                    std::cout << "base64bin " << std::endl;
-                    next = base64bin(base64_binary_decoder(), child_boundary, boundary);
-                }
+                if (text_mode) next = base64txt(child_boundary, boundary, charset);
+                else           next = base64bin(child_boundary, boundary);
                 return;
             }
             if (boost::algorithm::iequals(it->second.str(), "quoted-printable")) {
-                // text-mode しかない
-                next = qprint(qprint_decoder(charset), child_boundary, boundary);
+                // text-mode のみ
+                next = qprint(child_boundary, boundary, charset);
                 return;
             }
         }
 
-        if (text_mode) {
-            next = ascii(ascii_decoder(charset, is_format_flowed, is_delete_space), child_boundary, boundary);
-        } else {
-            next = noop(noop_decoder(), child_boundary, boundary);
-        }
+        if (text_mode) next = ascii(child_boundary, boundary, charset, is_format_flowed, is_delete_space);
+        else           next = noop(child_boundary, boundary);
     }
 
     /*!
@@ -297,9 +289,9 @@ public:
 
 private:
     boost::system::error_code & error_;
-    message_type & mail_;
+    Mail & mail_;
     ostream_type os_;
     bool is_terminated_ = false;
 };
 
-} }
+} } }

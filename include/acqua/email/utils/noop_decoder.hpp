@@ -10,14 +10,17 @@
 
 #include <acqua/string_cast.hpp>
 
-namespace acqua { namespace email { namespace detail {
+namespace acqua { namespace email { namespace utils {
 
 /*!
   何もしないデコーダ.
  */
-class noop_decoder
+template <typename CharT>
+class basic_noop_decoder
 {
 public:
+    using char_type = CharT;
+
     template <typename Sink>
     void write(Sink & sink, std::string const & line)
     {
@@ -29,5 +32,7 @@ public:
     {
     }
 };
+
+using noop_decoder = basic_noop_decoder<char>;
 
 } } }

@@ -13,6 +13,7 @@
 #include <acqua/email/basic_message.hpp>
 #include <acqua/email/basic_address.hpp>
 #include <acqua/email/email_traits.hpp>
+#include <acqua/email/utils/parse_address.hpp>
 
 namespace acqua { namespace email {
 

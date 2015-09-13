@@ -80,5 +80,10 @@ bool parse_addresses(It beg, It end, Addrs & addrs)
     return qi::phrase_parse(beg, end, g % ',', ascii::space, addrs);
 }
 
+template <typename String, typename Addrs>
+bool parse_addresses(String const & str, Addrs & addrs)
+{
+    return parse_addresses(str.begin(), str.end(), addrs);
+}
 
 } } }

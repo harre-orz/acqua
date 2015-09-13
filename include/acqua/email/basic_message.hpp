@@ -56,8 +56,10 @@ public:
     using const_subpart_iterator = typename subpart_type::const_iterator;
 
 public:
-    virtual ~basic_message()
+    basic_message()
     {
+        header_["Content-Type"] = "text/plain";
+        header_["Content-Transfer-Encoding"] = "7bit";
     }
 
     /*!
