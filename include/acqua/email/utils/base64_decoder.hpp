@@ -23,9 +23,9 @@ public:
     {
         char ch;
         for(auto it = line.begin(); it != line.end(); ++it) {
-            if (*it == '\r' || *it == '\n' || *it == '=' || (ch = traits_type::find(*it)) == 64)
+            if (*it == '\r' || *it == '\n' || *it == '=' || (ch = traits_type::find(*it)) == traits_type::npos)
                 continue;
-            switch(i_ % 4) {
+            switch(i_++ % 4) {
                 case 1:
                     last_ = put(sink, (prior_ & 0x3f) << 2 | (ch & 0x30) >> 4);
                     break;
@@ -44,7 +44,6 @@ public:
     void flush(Sink & sink)
     {
         if (!buffer_.empty()) {
-
             if (charset_.empty())
                 sink << acqua::string_cast(buffer_);
             else
@@ -57,7 +56,7 @@ private:
     template <typename Sink>
     char put(Sink & sink, char ch)
     {
-        if (ch != '\r' || ch != '\n') {
+        if (ch != '\r' && ch != '\n') {
             buffer_.push_back(ch);
         } else if (last_ != '\r') {
             if (charset_.empty())
@@ -66,7 +65,6 @@ private:
                 sink << boost::locale::conv::to_utf<char_type>(buffer_, charset_) << std::endl;
             buffer_.clear();
         }
-
         return ch;
     }
 

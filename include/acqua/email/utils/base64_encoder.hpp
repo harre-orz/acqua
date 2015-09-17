@@ -59,6 +59,40 @@ public:
         }
     }
 
+    template <typename Source>
+    void read_one(Source const & str, std::string & line) const
+    {
+        std::size_t i = 0;
+        char prior;
+        for(char ch : charset_.empty() ? acqua::string_cast<std::string>(str) : boost::locale::conv::from_utf(str, charset_)) {
+            switch(i++ % 3) {
+                case 0:
+                    line += tbl[ (ch & 0xfc) >> 2 ];
+                    break;
+                case 1:
+                    line += tbl[ ((prior & 0x03) << 4) | ((ch & 0xf0) >> 4) ];
+                    break;
+                case 2:
+                    line += tbl[ ((prior & 0x0f) << 2) | ((ch & 0xc0) >> 6) ];
+                    line += tbl[ (ch & 0x3f) ];
+                    break;
+            }
+            prior = ch;
+        }
+
+        switch(i % 3) {
+            case 1:
+                line += tbl[ (prior & 0x03) << 4 ];
+                line += '=';
+                line += '=';
+                break;
+            case 2:
+                line += tbl[ (prior & 0x0f) << 2];
+                line += '=';
+                break;
+        }
+    }
+
 private:
     // 改行コードは消したくない
     template <typename Source, typename String>

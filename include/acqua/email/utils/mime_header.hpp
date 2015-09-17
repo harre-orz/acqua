@@ -8,6 +8,9 @@
 #include <boost/spirit/include/qi.hpp>
 #include <acqua/email/utils/qprint_decoder.hpp>
 #include <acqua/email/utils/base64_decoder.hpp>
+#include <acqua/email/utils/qprint_encoder.hpp>
+#include <acqua/email/utils/base64_encoder.hpp>
+
 
 namespace acqua { namespace email { namespace utils {
 
@@ -15,23 +18,43 @@ class mime_header
 {
 public:
     template <typename String, typename CharT>
-    static void encode(String & out, std::basic_string<CharT> const & key, std::basic_string<CharT> const & val)
+    static std::size_t encode(String & out, std::basic_string<CharT> const & key, std::basic_string<CharT> const & val)
     {
-        out += key;
+        std::locale locale = std::locale::classic();
+        if (!append_key(key, out))
+            return 0;
         out += ": ";
-        out += val;
+        return is_ascii_string(val, locale)
+            ? append_ascii_value(val, out, locale)
+            : append_rfc2047_value(val, out, locale);
     }
 
     template <typename String, typename CharT, typename Params>
     static void encode(String & out, std::basic_string<CharT> const & key, std::basic_string<CharT> const & val, Params const & params)
     {
-        encode(out, key, val);
-        for(auto const & kv : params) {
-            out += ';';
-            out += ' ';
-            out += kv.first;
-            out += '=';
-            out += kv.second;
+        std::locale locale = std::locale::classic();
+        std::size_t length = encode(out, key, val);
+        if (length) {
+            for(auto const & kv : params) {
+                if (length > 78) {
+                    length = 1;
+                    out += ";\r\n ";
+                } else {
+                    out += "; ";
+                    length += 2;
+                }
+                out += kv.first;
+                if (is_ascii_string(kv.second, locale)) {
+                    out += kv.first;
+                    out += '=';
+                    out += kv.second;
+                    length += kv.first.size() + kv.second.size() + 1;
+                } else {
+                    out += kv.first;
+                    out += "*=";
+                    length += append_rfc2231_value(kv.second, out, locale, length) + kv.first.size() + 2;
+                }
+            }
         }
     }
 
@@ -44,12 +67,115 @@ public:
     template <typename It, typename CharT, typename Params>
     static void decode(It beg, It end, std::basic_string<CharT> & out, Params & params)
     {
-        auto it = std::find_if(beg, end, [](typename It::value_type const & v) { return v == ';' || v == ' ' || v == '\t'; });
+        auto it = std::find_if(beg, end, [](auto const & v) { return v == ';' || v == ' ' || v == '\t'; });
         rfc2047_decode<CharT>(beg, it, std::back_inserter(out));
         if (it != end) rfc2231_decode<CharT>(it, end, params);
     }
 
 private:
+    template <typename String>
+    static bool is_ascii_string(String const & str, std::locale const & locale)
+    {
+        return std::find_if(str.begin(), str.end(), [&locale](auto const & ch) { return !std::isprint(ch, locale); }) == str.end();
+    }
+
+    template <typename In, typename Out>
+    static std::size_t append_key(In const & key, Out & out)
+    {
+        for(auto const & ch : key)
+            if (std::isalnum(ch, std::locale::classic()) || ch == '-')
+                out += ch;
+        return out.size();
+    }
+
+    template <typename In, typename Out>
+    static std::size_t append_ascii_value(In const & val, Out & out, std::locale const & locale, std::size_t line_break = 78)
+    {
+        // line_break を超えないようにしつつ val の空白文字で区切る
+        std::size_t length = out.size();
+        auto a = val.begin();
+        // 先頭に空白文字がある場合は飛ばす
+        auto b = std::find_if(a, val.end(), [&locale](auto const & ch) { return !std::isspace(ch, locale); });
+        b = std::find_if(b, val.end(), [&locale](auto const & ch) { return std::isspace(ch, locale); });
+        while(b != val.end()) {
+            // 次の空白でない文字を探す
+            auto c = std::find_if(b, val.end(), [&locale](auto const & ch) { return !std::isspace(ch, locale); });
+            if (c == val.end()) {
+                // 文字がないときは、空白文字も書き出して終わり
+                b = c;
+                break;
+            }
+
+            // さらに次の空白もしくは文字の終端を探す
+            auto d = std::find_if(c, val.end(), [&locale](auto const & ch) { return std::isspace(ch, locale); });
+            if (length + (d - a) < line_break) {
+                out.append(a, c);
+                length += (c - a);
+            } else {
+                out.append(a, b);
+                out += "\r\n";
+                out.append(b, c);
+                length = (c - b);
+            }
+            a = c;
+            b = d;
+        }
+
+        if ((a == val.begin()) && (length + val.size()) > line_break) {
+            // 無変換で folding できないときは rfc2047変換へ
+            return append_rfc2047_value(val, out, locale, line_break);
+        }
+
+        out.append(a, b);
+        length += (b - a);
+        return length;
+    }
+
+    template <typename In, typename Out>
+    static std::size_t append_rfc2047_value(In const & val, Out & out, std::locale const & locale, std::size_t line_break = 78)
+    {
+        using utf = boost::locale::utf::utf_traits<typename In::value_type>;
+        auto a = val.begin();
+        for(auto b = val.begin(); b != val.end();) {
+            switch(utf::width(*b)) {
+                case 4:
+                    if (++b == val.end())
+                        break;
+                case 3:
+                    if (++b == val.end())
+                        break;
+                case 2:
+                    if (++b == val.end())
+                        break;
+                case 1:
+                    if (++b == val.end())
+                        break;
+            }
+            if ((b - a) > (std::ptrdiff_t)line_break / 2) {
+                out += "=?ISO-2022-JP?B?";
+                acqua::email::utils::base64_encoder enc("ISO-2022-JP");
+                enc.read_one(std::string(a, b), out);
+                a = b;
+                out += "?=\r\n ";
+            }
+        }
+
+        if (a != val.end()) {
+            out += "=?ISO-2022-JP?B?";
+            acqua::email::utils::base64_encoder enc("ISO-2022-JP");
+            enc.read_one(std::string(a, val.end()), out);
+            out += "?=";
+        }
+        return 0;
+    }
+
+    template <typename In, typename Out>
+    static std::size_t append_rfc2231_value(In const & val, Out & out, std::locale const & locale, std::size_t line_break)
+    {
+        out += "'ISO-2022-JP''";
+        return percent_encode(val.begin(), val.end(), out, locale);
+    }
+
     template <typename CharT, typename It, typename Out>
     static void rfc2047_decode(It beg, It end, Out out)
     {
@@ -120,13 +246,16 @@ private:
                         if (it1 != val.end()) {
                             auto it2 = std::find(++it1, val.end(), '\'');
                             if (it2 != val.end()) {
-                                charset.assign(val.begin(), it1);
-                                val.erase(val.begin(), ++it2);
+                                it2 = std::find(++it2, val.end(), '\'');
+                                if (it2 != val.end()) {
+                                    charset.assign(val.begin(), it1);
+                                    val.erase(val.begin(), ++it2);
+                                }
                             }
                         }
                         key_ = key;
                     }
-                    percent_decode(val, oss);
+                    percent_decode(val.begin(), val.end(), oss, std::locale::classic());
                 }
             }
         }
@@ -159,23 +288,44 @@ private:
         }
     }
 
-    static void percent_decode(std::string const & in, std::ostream & os)
+    template <typename It>
+    static void percent_decode(It it, It end, std::ostream & os, std::locale const & locale)
     {
-        auto end = in.end();
-        for(auto it = in.begin(); it != end; ++it) {
+        while(it != end) {
             if (*it == '%') {
                 char hex[] = {0,0,0};
-                if (++it >= end && std::isxdigit(*it, std::locale::classic()))
+                if (++it >= end && std::isxdigit(*it, locale))
                     return;
                 hex[0] = *it;
-                if (++it >= end && std::isxdigit(*it, std::locale::classic()))
+                if (++it >= end && std::isxdigit(*it, locale))
                     return;
                 hex[1] = *it;
                 os << (char)std::strtol(hex, nullptr, 16);
             } else {
                 os << *it;
             }
+            ++it;
         }
+    }
+
+    template <typename It>
+    static std::size_t percent_encode(It it, It end, std::string & out, std::locale const & locale)
+    {
+        std::size_t size = out.size();
+        while(it != end) {
+            if (std::isgraph(*it, locale)) {
+                out += *it;
+            } else {
+                char hex;
+                out += '%';
+                hex = (*it >> 4) & 0x0f;
+                out += (hex < 10) ? hex + '0': hex + 'A' - 10;
+                hex = (*it) & 0x0f;
+                out += (hex < 10) ? hex + '0': hex + 'A' - 10;
+            }
+            ++it;
+        }
+        return out.size() - size;
     }
 };
 

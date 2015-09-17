@@ -27,6 +27,7 @@ public:
     feed_parser(Mail & mail)
         : impl_(new impl(error_, mail))
     {
+        mail.clear();
     }
 
     bool is_terminated() const
