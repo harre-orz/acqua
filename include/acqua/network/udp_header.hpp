@@ -59,42 +59,7 @@ class udp_header
     friend checkable;
 
 public:
-    friend std::ostream & operator<<(std::ostream & os, udp_header const & rhs)
-    {
-        os << "udp "
-           << " src:" << rhs.sourceable_and_destinable::source()
-           << " dst:" << rhs.sourceable_and_destinable::destinate()
-            ;
-        return os;
-    }
+    friend std::ostream & operator<<(std::ostream & os, udp_header const & rhs);
 };
 
 } }
-
-
-#include <acqua/network/ipv4_header.hpp>
-#include <acqua/network/ipv6_header.hpp>
-
-namespace acqua { namespace network { namespace detail {
-
-template <>
-class is_match_condition<ipv4_header, udp_header>
-{
-public:
-    bool operator()(ipv4_header const & from, udp_header const &) const noexcept
-    {
-        return from.protocol() == ipv4_header::udp;
-    }
-};
-
-template <>
-class is_match_condition<ipv6_header, udp_header>
-{
-public:
-    bool operator()(ipv6_header const & from, udp_header const &) const noexcept
-    {
-        return from.protocol() == ipv6_header::udp;
-    }
-};
-
-} } }

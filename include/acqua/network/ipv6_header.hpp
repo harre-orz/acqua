@@ -36,21 +36,14 @@ class ipv6_header
     using value_type = ::ip6_hdr;
 
 public:
-    typedef enum {
+    enum protocol_type {
         tcp = 6,
         udp = 17,
         icmpv6 = 58,
-    } protocol_type;
+    };
 
     template <typename It>
-    void shrink(It & end) const
-    {
-        int len = (reinterpret_cast<std::uint8_t const *>(&*end) - reinterpret_cast<std::uint8_t const *>(this)) -
-            (ntohs(value_type::ip6_ctlun.ip6_un1.ip6_un1_plen) + sizeof(*this));
-        if (len < (reinterpret_cast<std::uint8_t const *>(&*end) - reinterpret_cast<std::uint8_t const *>(this))) {
-            end -= len;
-        }
-    }
+    void shrink(It & end) const;
 
     protocol_type protocol() const
     {
@@ -68,74 +61,11 @@ public:
     }
 
     template <typename It>
-    void commit(It const & end)
-    {
-        int len = (reinterpret_cast<std::uint8_t const *>(*&end) - reinterpret_cast<std::uint8_t const *>(this)) - sizeof(*this);
-        value_type::ip6_ctlun.ip6_un1.ip6_un1_plen = htons(len);
-    }
+    void commit(It const & end);
 
-    friend std::ostream & operator<<(std::ostream & os, ipv6_header const & rhs)
-    {
-        os << rhs.protocol() << " source:" << rhs.source() << " destinate:" << rhs.destinate();
-        return os;
-    }
+    friend std::ostream & operator<<(std::ostream & os, ipv6_header const & rhs);
 };
-
-
-namespace detail {
-
-template <>
-class pseudo_header<ipv6_header>
-{
-public:
-    pseudo_header(ipv6_header const * hdr, std::size_t size)
-        : source_(hdr->source())
-        , destinate_(hdr->destinate())
-        , length_(htonl(size))
-        , dummy1_(0), dummy2_(0)
-        , protocol_(hdr->protocol())
-    {
-        static_assert(sizeof(*this) == 40, "");
-        (void) dummy1_;
-        (void) dummy2_;
-    }
-
-    void checksum(std::size_t & sum) const noexcept
-    {
-        auto const * buf = reinterpret_cast<std::uint16_t const *>(this);
-        sum += buf[ 0]; sum += buf[ 1]; sum += buf[ 2]; sum += buf[ 3]; sum += buf[ 4];
-        sum += buf[ 5]; sum += buf[ 6]; sum += buf[ 7]; sum += buf[ 8]; sum += buf[ 9];
-        sum += buf[10]; sum += buf[11]; sum += buf[12]; sum += buf[13]; sum += buf[14];
-        sum += buf[15]; sum += buf[16]; sum += buf[17]; sum += buf[18]; sum += buf[19];
-    }
-
-private:
-    internet6_address source_;
-    internet6_address destinate_;
-    std::uint32_t length_;
-    std::uint16_t dummy1_;
-    std::uint8_t dummy2_;
-    std::uint8_t protocol_;
-} __attribute__((__packed__));
-
-}  // detail
 
 } }
 
-
-#include <acqua/network/ethernet_header.hpp>
-#include <acqua/network/detail/is_match_condition.hpp>
-
-namespace acqua { namespace network { namespace detail {
-
-template <>
-class is_match_condition<ethernet_header, ipv6_header>
-{
-public:
-    bool operator()(ethernet_header const & from, ipv6_header const &) const noexcept
-    {
-        return from.protocol() == ethernet_header::ipv6;
-    }
-};
-
-} } }
+#include <acqua/network/impl/ipv6_header.ipp>

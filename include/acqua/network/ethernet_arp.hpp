@@ -23,17 +23,17 @@ namespace acqua { namespace network {
 */
 class ethernet_arp
     : private ::ether_arp
-    , public detail::header_base<ethernet_arp>
+    , private detail::header_base<ethernet_arp>
 {
     using base_type = detail::header_base<ethernet_arp>;
     using value_type = ::ether_arp;
 
 public:
-    typedef enum {
+    enum protocol_type {
         ip = 0x800
-    } protocol_code;
+    };
 
-    typedef enum {
+    enum hardware_type {
         netrom = 0x00,
         ethernet = 0x01,
         experimental_ethernet = 0x02,
@@ -49,9 +49,9 @@ public:
         ieee1394 = 0x24,
         eui64 = 0x27,
         infiniband = 0x32,
-    } hardware_code;
+    };
 
-    typedef enum {
+    enum operation_type {
         arp_request = 0x01,
         arp_reply   = 0x02,
         rarp_request = 0x03,
@@ -59,177 +59,132 @@ public:
         inarp_request = 0x08,
         inarp_reply = 0x09,
         arp_nak = 0x0a,
-    } operation_code;
+    };
 
     using base_type::size;
     using base_type::shrink;
 
-    hardware_code hardware() const noexcept
+    hardware_type hardware() const
     {
-        return static_cast<hardware_code>(ntohs(value_type::ea_hdr.ar_hrd));
+        return static_cast<hardware_type>(ntohs(value_type::ea_hdr.ar_hrd));
     }
 
-    void hardware(hardware_code hc) noexcept
+    void hardware(hardware_type hc)
     {
         value_type::ea_hdr.ar_hrd = htons(hc);
     }
 
-    protocol_code protocol() const noexcept
+    protocol_type protocol() const
     {
-        return static_cast<protocol_code>(ntohs(value_type::ea_hdr.ar_pro));
+        return static_cast<protocol_type>(ntohs(value_type::ea_hdr.ar_pro));
     }
 
-    void protocol(protocol_code pc) noexcept
+    void protocol(protocol_type pc)
     {
         value_type::ea_hdr.ar_pro = htons(pc);
     }
 
-    std::uint8_t hardware_length() const noexcept
+    std::uint8_t hardware_length() const
     {
         return value_type::ea_hdr.ar_hln;
     }
 
-    void hardware_length(std::uint8_t len) noexcept
+    void hardware_length(std::uint8_t len)
     {
         value_type::ea_hdr.ar_hln = len;
     }
 
-    std::uint8_t protocol_length() const noexcept
+    std::uint8_t protocol_length() const
     {
         return value_type::ea_hdr.ar_hln;
     }
 
-    void protocol_length(std::uint8_t len) noexcept
+    void protocol_length(std::uint8_t len)
     {
         value_type::ea_hdr.ar_pln = len;
     }
 
-    operation_code operation() const noexcept
+    operation_type operation() const
     {
-        return static_cast<operation_code>(ntohs(value_type::ea_hdr.ar_op));
+        return static_cast<operation_type>(ntohs(value_type::ea_hdr.ar_op));
     }
 
-    void operation(operation_code code) noexcept
+    void operation(operation_type ope)
     {
-        value_type::ea_hdr.ar_op = htons(code);
+        value_type::ea_hdr.ar_op = htons(ope);
     }
 
-    linklayer_address & sender_ll() noexcept
+    linklayer_address & sender_lladdr()
     {
         auto * tmp = value_type::arp_sha;
         return *reinterpret_cast<linklayer_address *>(tmp);
     }
 
-    linklayer_address const & sender_ll() const noexcept
+    linklayer_address const & sender_lladdr() const
     {
         auto * tmp = value_type::arp_sha;
         return *reinterpret_cast<linklayer_address const *>(tmp);
     }
 
-    void sender_ll(linklayer_address const & ll_addr) noexcept
+    void sender_lladdr(linklayer_address const & ll_addr) noexcept
     {
-        sender_ll() = ll_addr;
+        sender_lladdr() = ll_addr;
     }
 
-    linklayer_address & target_ll() noexcept
+    linklayer_address & target_lladdr() noexcept
     {
         auto * tmp = value_type::arp_tha;
         return *reinterpret_cast<linklayer_address *>(tmp);
     }
 
-    linklayer_address const & target_ll() const noexcept
+    linklayer_address const & target_lladdr() const noexcept
     {
         auto * tmp = value_type::arp_tha;
         return *reinterpret_cast<linklayer_address const *>(tmp);
     }
 
-    void target_ll(linklayer_address const & ll_addr) noexcept
+    void target_lladdr(linklayer_address const & ll_addr) noexcept
     {
-        target_ll() = ll_addr;
+        target_lladdr() = ll_addr;
     }
 
-    internet4_address & sender_in() noexcept
+    internet4_address & sender_inaddr() noexcept
     {
         auto * tmp = value_type::arp_spa;
         return *reinterpret_cast<internet4_address *>(tmp);
     }
 
-    internet4_address const & sender_in() const noexcept
+    internet4_address const & sender_inaddr() const noexcept
     {
         auto * tmp = value_type::arp_spa;
         return *reinterpret_cast<internet4_address const *>(tmp);
     }
 
-    void sender_in(internet4_address const & in_addr) noexcept
+    void sender_inaddr(internet4_address const & in_addr) noexcept
     {
-        sender_in() = in_addr;
+        sender_inaddr() = in_addr;
     }
 
-    internet4_address & target_in() noexcept
+    internet4_address & target_inaddr() noexcept
     {
         auto * tmp = value_type::arp_tpa;
         return *reinterpret_cast<internet4_address *>(tmp);
     }
 
-    internet4_address const & target_in() const noexcept
+    internet4_address const & target_inaddr() const noexcept
     {
         auto * tmp = value_type::arp_tpa;
         return *reinterpret_cast<internet4_address const *>(tmp);
     }
 
-    void target_in(internet4_address const & in_addr) noexcept
+    void target_inaddr(internet4_address const & in_addr) noexcept
     {
-        target_in() = in_addr;
+        target_inaddr() = in_addr;
     }
 
-    friend std::ostream & operator<<(std::ostream & os, ethernet_arp const & rhs)
-    {
-        os << "arp 0x" << std::hex << rhs.operation() << std::dec;
-        switch(rhs.operation()) {
-            case arp_request:
-                os << "(arp request)";
-                break;
-            case arp_reply:
-                os << "(arp reply)";
-                break;
-            case rarp_request:
-                os << "(rarp request)";
-                break;
-            case rarp_reply:
-                os << "(rarp reply)";
-                break;
-            case inarp_request:
-                os << "(inarp request)";
-                break;
-            case inarp_reply:
-                os << "(inarp reply)";
-                break;
-            case arp_nak:
-                os << "(arp nak)";
-                break;
-        }
-        os << " sdr-ll:" << rhs.sender_ll() << " tgt-ll:" << rhs.target_ll();
-        os << " sdr-in:" << rhs.sender_in() << " tgt-in:" << rhs.target_in();
-        return os;
-    }
+    friend std::ostream & operator<<(std::ostream & os, ethernet_arp const & rhs);
 };
 
 } }
 
-
-#include <acqua/network/ethernet_header.hpp>
-#include <acqua/network/detail/is_match_condition.hpp>
-
-namespace acqua { namespace network { namespace detail {
-
-template <>
-class is_match_condition<ethernet_header, ethernet_arp>
-{
-public:
-    bool operator()(ethernet_header const & from, ethernet_arp const &) const noexcept
-    {
-        return from.protocol() == ethernet_header::arp;
-    }
-};
-
-} } }
+#include <acqua/network/impl/ethernet_arp.ipp>

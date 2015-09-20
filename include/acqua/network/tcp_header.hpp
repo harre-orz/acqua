@@ -61,17 +61,9 @@ class tcp_header
 public:
     using sourceable_and_destinable::source;  // linux の場合、変数と衝突するため
 
-    template <typename Ch, typename Tr>
-    friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, tcp_header const & rhs)
-    {
-        os << "tcp "
-           << " src:" << rhs.sourceable_and_destinable::source()
-           << " dst:" << rhs.sourceable_and_destinable::destinate()
-           << " check:" << std::hex << rhs.checkable::checksum() << std::dec;
-            ;
-        return os;
-    }
+    friend std::ostream & operator<<(std::ostream & os, tcp_header const &);
 };
 
-
 } }
+
+#include <acqua/network/impl/tcp_header.ipp>

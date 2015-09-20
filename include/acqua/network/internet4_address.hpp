@@ -14,6 +14,7 @@ extern "C" {
 }
 
 #include <iostream>
+#include <numeric>
 #include <type_traits>
 #include <boost/operators.hpp>
 #include <boost/lexical_cast.hpp>

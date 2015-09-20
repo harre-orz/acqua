@@ -32,12 +32,12 @@ class icmpv6_header
     using value_type = ::icmp6_hdr;
 
 public:
-    typedef enum {
+    enum message_type {
         echo_request_message = 128,
         echo_reply_message   = 129,
         neighbor_solicitation_message = 135,
         neighbor_advertisement_message = 136,
-    } message_type;
+    };
 
     message_type type() const noexcept
     {
@@ -125,11 +125,7 @@ protected:
     }
 
 public:
-    friend std::ostream & operator<<(std::ostream & os, icmpv6_header const &)
-    {
-        os << "icmpv6 ";
-        return os;
-    }
+    friend std::ostream & operator<<(std::ostream & os, icmpv6_header const & rhs);
 };
 
 
@@ -175,35 +171,3 @@ public:
 };
 
 } }
-
-
-#include <acqua/network/ipv6_header.hpp>
-#include <acqua/network/detail/is_match_condition.hpp>
-
-namespace acqua { namespace network { namespace detail {
-
-template <>
-class is_match_condition<ipv6_header, icmpv6_echo>
-{
-public:
-    bool operator()(ipv6_header const & from, icmpv6_echo const & to) const noexcept
-    {
-        return from.protocol() == ipv6_header::icmpv6
-            && (to.type() == icmpv6_echo::echo_reply_message
-             || to.type() == icmpv6_echo::echo_reply_message);
-    }
-};
-
-template <>
-class is_match_condition<ipv6_header, icmpv6_neighbor>
-{
-public:
-    bool operator()(ipv6_header const & from, icmpv6_neighbor const & to) const noexcept
-    {
-        return from.protocol() == ipv6_header::icmpv6
-            && (to.type() == icmpv6_neighbor::neighbor_solicitation_message
-             || to.type() == icmpv6_neighbor::neighbor_advertisement_message);
-    }
-};
-
-} } }

@@ -48,13 +48,13 @@ private:
 #endif
 
 public:
-    typedef enum {
+    enum message_type {
         echo_reply_message = 0,
         destination_unrechable_message = 3,
         source_quench_message = 4,
         redirect_message = 5,
         echo_request_message = 8,
-    } message_type;
+    };
 
     using checkable::checksum;  // Linux の場合、::icmphdr の checksum と衝突するため
 
@@ -132,27 +132,7 @@ protected:
     }
 
 public:
-    friend std::ostream & operator<<(std::ostream & os, icmp_header const & rhs)
-    {
-        os << "icmp type:" << rhs.type();
-        switch(rhs.type()) {
-            case echo_reply_message:
-                os << "(echo reply message)";
-                os << " id:" << rhs.id();
-                os << " seq:" << rhs.seq();
-                break;
-            case echo_request_message:
-                os << "(echo request message)";
-                os << " id:" << rhs.id();
-                os << " seq:" << rhs.seq();
-                break;
-            default:
-                os << "(unknown)";
-                break;
-        }
-
-        return os;
-    }
+    friend std::ostream & operator<<(std::ostream & os, icmp_header const & rhs);
 };
 
 
@@ -171,21 +151,4 @@ public:
 
 } }
 
-
-#include <acqua/network/ipv4_header.hpp>
-#include <acqua/network/detail/is_match_condition.hpp>
-
-namespace acqua { namespace network { namespace detail {
-
-template <>
-class is_match_condition<ipv4_header, icmp_echo>
-{
-public:
-    bool operator()(ipv4_header const & from, icmp_echo const & to) const noexcept
-    {
-        return from.protocol() == ipv4_header::icmp
-            && (to.type() == icmp_header::echo_request_message || to.type() == icmp_header::echo_reply_message);
-    }
-};
-
-} } }
+#include <acqua/network/impl/icmp_header.ipp>

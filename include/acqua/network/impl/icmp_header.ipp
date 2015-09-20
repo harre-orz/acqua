@@ -1,0 +1,42 @@
+#pragma once
+
+#include <acqua/network/ipv4_header.hpp>
+#include <acqua/network/icmp_header.hpp>
+#include <acqua/network/detail/is_match_condition.hpp>
+
+namespace acqua { namespace network {
+
+std::ostream & operator<<(std::ostream & os, icmp_header const & rhs)
+{
+    os << "icmp type:" << rhs.type();
+    switch(rhs.type()) {
+        case icmp_header::echo_request_message:
+            os << "(echo request message)"
+               << " id=" << rhs.id()
+               << " seq=" << rhs.seq();
+            break;
+        case icmp_header::echo_reply_message:
+            os << "(echo reply message)"
+               << " id=" << rhs.id()
+               << " seq=" << rhs.seq();
+            break;
+    }
+    return os;
+}
+
+namespace detail {
+
+template <>
+class is_match_condition<ipv4_header, icmp_echo>
+{
+public:
+    bool operator()(ipv4_header const & from, icmp_echo const & to) const
+    {
+        return from.protocol() == ipv4_header::icmp
+            && (to.type() == icmp_header::echo_request_message || to.type() == icmp_header::echo_reply_message);
+    }
+};
+
+}  // detail
+
+} }
