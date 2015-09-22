@@ -16,25 +16,25 @@ extern "C" {
 #include <acqua/network/detail/header_base.hpp>
 #include <acqua/network/detail/checkable.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 class icmp_header
 #ifdef __linux__
     : private ::icmphdr
-    , public detail::checkable<
+    , public checkable<
         icmp_header, ::icmphdr,
         u_int16_t,
         &::icmphdr::checksum,
-        detail::data_checksum
+        data_checksum
     >
 #else
     : private ::icmp
-    , public detail::checkable<
+    , public checkable<
         icmp_header,
         ::icmp,
         u_short,
         &::icmp::icmp_cksum,
-        detail::data_checksum
+        data_checksum
     >
 #endif
 {
@@ -138,9 +138,9 @@ public:
 
 class icmp_echo
     : public icmp_header
-    , public detail::header_base<icmp_echo>
+    , public header_base<icmp_echo>
 {
-    using base_type = detail::header_base<icmp_echo>;
+    using base_type = header_base<icmp_echo>;
 
 public:
     using base_type::size;
@@ -149,6 +149,10 @@ public:
     using icmp_header::seq;
 };
 
+}  // detail
+
+using icmp_echo = detail::icmp_echo;
+
 } }
 
-#include <acqua/network/impl/icmp_header.ipp>
+#include <acqua/network/detail/impl/icmp_header.ipp>

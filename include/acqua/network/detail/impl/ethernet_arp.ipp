@@ -4,7 +4,7 @@
 #include <acqua/network/ethernet_header.hpp>
 #include <acqua/network/detail/is_match_condition.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 std::ostream & operator<<(std::ostream & os, ethernet_arp const & rhs)
 {
@@ -37,8 +37,6 @@ std::ostream & operator<<(std::ostream & os, ethernet_arp const & rhs)
     return os;
 }
 
-namespace detail {
-
 template <>
 struct is_match_condition<ethernet_header, ethernet_arp>
 {
@@ -48,6 +46,4 @@ struct is_match_condition<ethernet_header, ethernet_arp>
     }
 };
 
-}  // detail
-
-} }
+} } }

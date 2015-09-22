@@ -3,17 +3,13 @@
 #include <acqua/network/ipv6_header.hpp>
 #include <acqua/network/icmpv6_header.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 std::ostream & operator<<(std::ostream & os, icmpv6_header const & rhs)
 {
-    os << "icmpv6 " << rhs.type()
-       << " src=" << rhs.source()
-       << " dst=" << rhs.destinate();
+    os << "icmpv6 " << rhs.type();
     return os;
 }
-
-namespace detail {
 
 template <>
 class is_match_condition<ipv6_header, icmpv6_echo>
@@ -23,7 +19,7 @@ public:
     {
         return from.protocol() == ipv6_header::icmpv6
             && (to.type() == icmpv6_neighbor::echo_request_message
-                || to.type() == icmpv6_header::echo_reply_message)
+                || to.type() == icmpv6_header::echo_reply_message);
     }
 };
 
@@ -40,6 +36,4 @@ public:
     }
 };
 
-}  // detail
-
-} }
+} } }

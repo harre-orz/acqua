@@ -4,7 +4,7 @@
 #include <acqua/network/icmp_header.hpp>
 #include <acqua/network/detail/is_match_condition.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 std::ostream & operator<<(std::ostream & os, icmp_header const & rhs)
 {
@@ -24,8 +24,6 @@ std::ostream & operator<<(std::ostream & os, icmp_header const & rhs)
     return os;
 }
 
-namespace detail {
-
 template <>
 class is_match_condition<ipv4_header, icmp_echo>
 {
@@ -37,6 +35,4 @@ public:
     }
 };
 
-}  // detail
-
-} }
+} } }

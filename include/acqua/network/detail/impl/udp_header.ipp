@@ -5,7 +5,7 @@
 #include <acqua/network/udp_header.hpp>
 #include <acqua/network/detail/is_match_condition.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 std::ostream & operator<<(std::ostream & os, udp_header const & rhs)
 {
@@ -15,8 +15,6 @@ std::ostream & operator<<(std::ostream & os, udp_header const & rhs)
        << " check=" << std::hex << rhs.checksum() << std::dec;
     return os;
 }
-
-namespace detail {
 
 template <>
 class is_match_condition<ipv4_header, udp_header>
@@ -38,6 +36,4 @@ public:
     }
 };
 
-} // detail
-
-} }
+} } }

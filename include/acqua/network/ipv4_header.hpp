@@ -18,12 +18,12 @@ extern "C" {
 #include <acqua/network/detail/sourceable_and_destinable.hpp>
 #include <acqua/network/detail/checkable.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 class ipv4_header
     : private ::ip
-    , public detail::header_base<ipv4_header>
-    , public detail::sourceable_and_destinable<
+    , public header_base<ipv4_header>
+    , public sourceable_and_destinable<
         ipv4_header,
         internet4_address,
         ::ip,
@@ -31,16 +31,16 @@ class ipv4_header
         &::ip::ip_src,
         &::ip::ip_dst
     >
-    , public detail::checkable<
+    , public checkable<
         ipv4_header,
         ::ip, u_short,
         &::ip::ip_sum,
-        detail::ipv4_checksum
+        ipv4_checksum
     >
 {
     friend sourceable_and_destinable;
     friend checkable;
-    friend detail::pseudo_header<ipv4_header>;
+    friend pseudo_header<ipv4_header>;
     using value_type = ::ip;
 
 public:
@@ -140,6 +140,10 @@ public:
     friend std::ostream & operator<<(std::ostream & os, ipv4_header const & rhs);
 };
 
+}  // detail
+
+using ipv4_header = detail::ipv4_header;
+
 } }
 
-#include <acqua/network/impl/ipv4_header.ipp>
+#include <acqua/network/detail/impl/ipv4_header.ipp>

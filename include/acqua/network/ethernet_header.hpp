@@ -16,16 +16,16 @@ extern "C" {
 #include <acqua/network/detail/header_base.hpp>
 #include <acqua/network/detail/sourceable_and_destinable.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 /*!
   イーサネットヘッダークラス.
 */
 class ethernet_header
     : private ::ether_header
-    , private detail::header_base<ethernet_header>
+    , private header_base<ethernet_header>
 #ifdef __linux__
-    , public detail::sourceable_and_destinable<
+    , public sourceable_and_destinable<
         ethernet_header,
         linklayer_address,
         ::ether_header,
@@ -34,7 +34,7 @@ class ethernet_header
         &::ether_header::ether_dhost
     >
 #else
-    , public detail::sourceable_and_destinable<
+    , public sourceable_and_destinable<
         ethernet_header,
         linklayer_address,
         ::ether_header,
@@ -45,7 +45,7 @@ class ethernet_header
 #endif
 {
     friend sourceable_and_destinable;
-    using base_type = detail::header_base<ethernet_header>;
+    using base_type = header_base<ethernet_header>;
     using value_type = ::ether_header;
 
 public:
@@ -73,6 +73,10 @@ public:
     friend std::ostream & operator<<(std::ostream & os, ethernet_header const & rhs);
 };
 
+}  // detail
+
+using ethernet_header = detail::ethernet_header;
+
 } }
 
-#include <acqua/network/impl/ethernet_header.ipp>
+#include <acqua/network/detail/impl/ethernet_header.ipp>

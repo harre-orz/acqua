@@ -16,13 +16,13 @@ extern "C" {
 #include <acqua/network/detail/sourceable_and_destinable.hpp>
 #include <acqua/network/detail/checkable.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 class udp_header
     : private ::udphdr
-    , public detail::header_base<udp_header>
+    , public header_base<udp_header>
 #ifdef __linux__
-    , public detail::sourceable_and_destinable<
+    , public sourceable_and_destinable<
         udp_header,
         std::uint16_t,
         ::udphdr,
@@ -30,15 +30,15 @@ class udp_header
         &::udphdr::source,
         &::udphdr::dest
     >
-    , public detail::checkable<
+    , public checkable<
         udp_header,
         ::udphdr,
         u_int16_t,
         &::udphdr::check,
-        detail::header_and_data_checksum
+        header_and_data_checksum
       >
 #else // BSD
-    , public detail::sourceable_and_destinable<
+    , public sourceable_and_destinable<
         udp_header,
         std::uint16_t,
         ::udphdr,
@@ -46,12 +46,12 @@ class udp_header
         &::udphdr::uh_sport,
         &::udphdr::uh_dport
     >
-    , public detail::checkable<
+    , public checkable<
         udp_header,
         ::udphdr,
         u_int16_t,
         &::udphdr::uh_sum,
-        detail::header_and_data_checksum
+        header_and_data_checksum
         >
 #endif
 {
@@ -62,4 +62,8 @@ public:
     friend std::ostream & operator<<(std::ostream & os, udp_header const & rhs);
 };
 
+}  // detail
+
 } }
+
+#include <acqua/network/detail/impl/udp_header.ipp>

@@ -5,7 +5,7 @@
 #include <acqua/network/detail/pseudo_header.hpp>
 #include <acqua/network/detail/is_match_condition.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 template <typename It>
 void ipv6_header::shrink(It & end) const
@@ -32,8 +32,6 @@ std::ostream & operator<<(std::ostream & os, ipv6_header const & rhs)
        << " destinate=" << rhs.destinate();
     return os;
 }
-
-namespace detail {
 
 template <>
 class pseudo_header<ipv6_header>
@@ -78,6 +76,4 @@ public:
     }
 };
 
-}  // detail
-
-} }
+} } }

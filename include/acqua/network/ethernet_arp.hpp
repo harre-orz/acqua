@@ -16,16 +16,16 @@ extern "C" {
 #include <acqua/network/internet4_address.hpp>
 #include <acqua/network/detail/header_base.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 /*!
-  ARPクラス
+  ARPクラス.
 */
 class ethernet_arp
     : private ::ether_arp
-    , private detail::header_base<ethernet_arp>
+    , private header_base<ethernet_arp>
 {
-    using base_type = detail::header_base<ethernet_arp>;
+    using base_type = header_base<ethernet_arp>;
     using value_type = ::ether_arp;
 
 public:
@@ -185,6 +185,10 @@ public:
     friend std::ostream & operator<<(std::ostream & os, ethernet_arp const & rhs);
 };
 
+}  // detail
+
+using ethernet_arp = detail::ethernet_arp;
+
 } }
 
-#include <acqua/network/impl/ethernet_arp.ipp>
+#include <acqua/network/detail/impl/ethernet_arp.ipp>

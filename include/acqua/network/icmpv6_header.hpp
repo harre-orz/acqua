@@ -16,16 +16,16 @@ extern "C" {
 #include <acqua/network/detail/header_base.hpp>
 #include <acqua/network/detail/checkable.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 class icmpv6_header
     : private ::icmp6_hdr
-    , public detail::checkable<
+    , public checkable<
         icmpv6_header,
         ::icmp6_hdr,
         u_int16_t,
         &icmp6_hdr::icmp6_cksum,
-        detail::data_checksum
+        data_checksum
     >
 {
     friend checkable;
@@ -131,7 +131,7 @@ public:
 
 class icmpv6_echo
     : public icmpv6_header
-    , public detail::header_base<icmpv6_echo>
+    , public header_base<icmpv6_echo>
 {
     using base_type = icmpv6_header;
 
@@ -143,9 +143,9 @@ public:
 
 class icmpv6_neighbor
     : public icmpv6_header
-    , public detail::header_base<icmpv6_neighbor>
+    , public header_base<icmpv6_neighbor>
 {
-    using base_type = detail::header_base<icmpv6_neighbor>;
+    using base_type = header_base<icmpv6_neighbor>;
 
 public:
     std::size_t size() const noexcept
@@ -170,4 +170,10 @@ public:
     class const_iterator;
 };
 
+} // detail;
+
+using icmpv6_header = detail::icmpv6_header;
+
 } }
+
+#include <acqua/network/detail/impl/icmpv6_header.ipp>

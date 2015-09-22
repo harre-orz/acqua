@@ -6,7 +6,7 @@ extern "C" {
 
 #include <acqua/network/ethernet_header.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 std::ostream & operator<<(std::ostream & os, ethernet_header const & rhs)
 {
@@ -34,4 +34,4 @@ std::ostream & operator<<(std::ostream & os, ethernet_header const & rhs)
     return os;
 }
 
-} }
+} } }

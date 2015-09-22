@@ -18,12 +18,12 @@ extern "C" {
 #include <acqua/network/detail/sourceable_and_destinable.hpp>
 #include <acqua/network/detail/pseudo_header.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 class ipv6_header
     : private ::ip6_hdr
-    , public detail::header_base<ipv6_header>
-    , public detail::sourceable_and_destinable<
+    , public header_base<ipv6_header>
+    , public sourceable_and_destinable<
         ipv6_header,
         internet6_address,
         ::ip6_hdr,
@@ -66,6 +66,10 @@ public:
     friend std::ostream & operator<<(std::ostream & os, ipv6_header const & rhs);
 };
 
+}  // detail
+
+using ipv6_header = detail::ipv6_header;
+
 } }
 
-#include <acqua/network/impl/ipv6_header.ipp>
+#include <acqua/network/detail/impl/ipv6_header.ipp>

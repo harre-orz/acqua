@@ -16,27 +16,27 @@ extern "C" {
 #include <acqua/network/detail/sourceable_and_destinable.hpp>
 #include <acqua/network/detail/checkable.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 class tcp_header
     : private ::tcphdr
-    , public detail::header_base<tcp_header>
+    , public header_base<tcp_header>
 #ifdef __linux__
-    , public detail::sourceable_and_destinable<
+    , public sourceable_and_destinable<
         tcp_header,
         std::uint16_t,
         ::tcphdr,
         ::u_int16_t,
         &::tcphdr::source,
         &::tcphdr::dest>
-    , public detail::checkable<
+    , public checkable<
         tcp_header,
         ::tcphdr, u_int16_t,
         &::tcphdr::check,
-        detail::header_and_data_checksum
+        header_and_data_checksum
     >
 #else  // BSD
-    , public detail::sourceable_and_destinable<
+    , public sourceable_and_destinable<
         tcp_header,
         std::uint16_t,
         ::tcphdr,
@@ -44,12 +44,12 @@ class tcp_header
         &::tcphdr::th_sport,
         &::tcphdr::th_dport
     >
-    , public detail::checkable<
+    , public checkable<
         tcp_header,
         ::tcphdr,
         u_int16_t,
         &::tcphdr::th_sum,
-        detail::header_and_data_checksum
+        header_and_data_checksum
     >
 #endif
 {
@@ -64,6 +64,8 @@ public:
     friend std::ostream & operator<<(std::ostream & os, tcp_header const &);
 };
 
+}  // detail
+
 } }
 
-#include <acqua/network/impl/tcp_header.ipp>
+#include <acqua/network/detail/impl/tcp_header.ipp>

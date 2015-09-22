@@ -5,7 +5,7 @@
 #include <acqua/network/detail/pseudo_header.hpp>
 #include <acqua/network/detail/is_match_condition.hpp>
 
-namespace acqua { namespace network {
+namespace acqua { namespace network { namespace detail {
 
 std::size_t ipv4_header::size() const
 {
@@ -49,8 +49,6 @@ std::ostream & operator<<(std::ostream & os, ipv4_header const & rhs)
        << " tol=" << rhs.time_of_live();
     return os;
 }
-
-namespace detail {
 
 template <>
 class pseudo_header<ipv4_header>
@@ -96,6 +94,4 @@ public:
     }
 };
 
-}  // detail
-
-} }
+} } }
