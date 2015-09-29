@@ -18,7 +18,7 @@ BOOST_AUTO_TEST_CASE(internet4_address__loopback)
 {
     using acqua::network::internet4_address;
 
-    internet4_address addr_1({127,0,0,1});
+    internet4_address addr_1(0x7F000001);
     BOOST_CHECK_EQUAL(addr_1, internet4_address::loopback());
     BOOST_CHECK_EQUAL(addr_1, internet4_address::from_string("127.0.0.1"));
     BOOST_CHECK_EQUAL(addr_1.is_loopback(), true);
@@ -106,6 +106,18 @@ BOOST_AUTO_TEST_CASE(internet4_address__sub)
     BOOST_CHECK_EQUAL(addr, internet4_address::from_string("255.255.254.255"));
 
     BOOST_CHECK_EQUAL(addr - 256, internet4_address::from_string("255.255.253.255"));
+}
+
+BOOST_AUTO_TEST_CASE(internet4_address__less)
+{
+    using acqua::network::internet4_address;
+
+    internet4_address addr1 = internet4_address::from_string("192.168.0.1");
+    internet4_address addr2 = internet4_address::from_string("192.168.0.2");
+    BOOST_CHECK_EQUAL(addr1 == addr1, true);
+    BOOST_CHECK_EQUAL(addr1 != addr2, true);
+    BOOST_CHECK_EQUAL(addr1 < addr2, true);
+    BOOST_CHECK_EQUAL(addr1 >= addr2, false);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
