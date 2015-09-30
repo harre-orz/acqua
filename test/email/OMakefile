@@ -4,7 +4,7 @@
 build: $(CXXProgram test_address, test_address) \
        $(CXXProgram test_email, test_email) \
        $(CXXProgram test_feed_parser, test_feed_parser) \
-       $(CXXProgram test_feed_generator, test_feed_generator)
+       $(CXXProgram test_feed_generator, test_feed_generator) 
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc

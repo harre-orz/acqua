@@ -15,10 +15,11 @@ BOOST_AUTO_TEST_CASE(feed_parser)
     acqua::email::detail::feed_parser<decltype(email)> feed(email);
     std::cin >> feed;
 
-    int i = 0;
-    for(auto it = email.recbegin(); !(it == email.recend()); ++it) {
-        it->save_as( (boost::format("hoge%d.dat") % i++).str() );
-    }
+    email.dump(std::cout);
+    //int i = 0;
+    //for(auto it = email.recbegin(); !(it == email.recend()); ++it) {
+    //    it->save_as( (boost::format("hoge%d.dat") % i++).str() );
+    //}
 
 }
 

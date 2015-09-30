@@ -36,23 +36,21 @@ public:
         std::size_t length = encode(out, key, val);
         if (length) {
             for(auto const & kv : params) {
-                if (length > 78) {
-                    length = 1;
-                    out += ";\r\n ";
-                } else {
-                    out += "; ";
-                    length += 2;
-                }
-                out += kv.first;
                 if (is_ascii_string(kv.second, locale)) {
+                    if (length > 78) {
+                        length = 1;
+                        out += ";\r\n ";
+                    } else {
+                        out += "; ";
+                        length += 2;
+                    }
                     out += kv.first;
                     out += '=';
                     out += kv.second;
                     length += kv.first.size() + kv.second.size() + 1;
                 } else {
-                    out += kv.first;
-                    out += "*=";
-                    length += append_rfc2231_value(kv.second, out, locale, length) + kv.first.size() + 2;
+                    out += ";\r\n ";
+                    length += append_rfc2231_value(kv.first, kv.second, out, locale, 78) + kv.first.size() + 2;
                 }
             }
         }
@@ -166,14 +164,56 @@ private:
             enc.read_one(std::string(a, val.end()), out);
             out += "?=";
         }
+
         return 0;
     }
 
-    template <typename In, typename Out>
-    static std::size_t append_rfc2231_value(In const & val, Out & out, std::locale const & locale, std::size_t line_break)
+    template <typename K, typename V, typename Out>
+    static std::size_t append_rfc2231_value(K const & key, V const & val, Out & out, std::locale const & locale, std::size_t line_break)
     {
-        out += "'ISO-2022-JP''";
-        return percent_encode(val.begin(), val.end(), out, locale);
+        using utf = boost::locale::utf::utf_traits<typename V::value_type>;
+        std::size_t count = 0;
+        auto a = val.begin();
+        for(auto b = val.begin(); b != val.end();) {
+            switch(utf::width(*b)) {
+                case 4:
+                    if (++b == val.end())
+                        break;
+                case 3:
+                    if (++b == val.end())
+                        break;
+                case 2:
+                    if (++b == val.end())
+                        break;
+                case 1:
+                    if (++b == val.end())
+                        break;
+            }
+            if ((b - a) > (std::ptrdiff_t)line_break / 2) {
+                out += key;
+                out += "*";
+                out += boost::lexical_cast<std::string>(++count);
+                out += "*=";
+                if (count == 1) {
+                    out += "'ISO-2022-JP''";
+                }
+                percent_encode(a, b, out, locale);
+                a = b;
+                out += "\r\n ";
+            }
+        }
+
+        if (a != val.end()) {
+            out += key;
+            if (count != 0) {
+                out += "*";
+                out += boost::lexical_cast<std::string>(count);
+            }
+            out += "*=";
+            percent_encode(a, val.end(), out, locale);
+        }
+
+        return 0;
     }
 
     template <typename CharT, typename It, typename Out>

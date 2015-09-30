@@ -19,6 +19,10 @@ BOOST_AUTO_TEST_CASE(feed_parser)
     email["Content-Type"]["charset"] = "ISO-2022-JP";
     email["Content-Transfer-Encoding"] = "quoted-printable";
     email["Content-Transfer-Encoding"] = "base64";
+    email["Content-Disposition"] = "attach";
+    email["Content-Disposition"]["filename"] = "あいうえお.txt";
+    //email["Subject"] = "hello world 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0";
+    email["Subject"] = "へおへおああああああああああああああああああああああああああああああああああ";
     std::ostream os(email);
     os << "test mail";
     os << "test mail2" << std::endl;

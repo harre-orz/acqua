@@ -31,22 +31,11 @@ public:
     using bytes_type = boost::asio::ip::address_v4::bytes_type;
     using masklen_type = unsigned char;
 
-    internet4_address()
-        : addr_(0)
-    {
-        static_assert(sizeof(*this) == 4, "");
-        static_assert(sizeof(bytes_type) == 4, "");
-    }
+    internet4_address();
 
-    internet4_address(internet4_address const & rhs)
-        : addr_(rhs.addr_)
-    {
-    }
+    internet4_address(internet4_address const & rhs);
 
-    internet4_address(internet4_address && rhs)
-        : addr_(rhs.addr_)
-    {
-    }
+    internet4_address(internet4_address && rhs);
 
     internet4_address(bytes_type const & bytes);
 
@@ -56,17 +45,11 @@ public:
 
     internet4_address(unsigned char const addr[4]);
 
-    internet4_address(struct ::in_addr const & addr)
-        : addr_(addr.s_addr)
-    {
-    }
+    internet4_address(struct ::in_addr const & addr);
 
     internet4_address(boost::asio::ip::address_v4 const & addr);
 
-    internet4_address(std::uint32_t addr)
-        : addr_(addr)
-    {
-    }
+    internet4_address(std::uint32_t addr);
 
     internet4_address & operator++();
 
@@ -125,17 +108,11 @@ public:
 
     static internet4_address from_string(char const * str, boost::system::error_code & ec);
 
-    friend bool operator==(internet4_address const & lhs, internet4_address const & rhs)
-    {
-        return lhs.addr_== rhs.addr_;
-    }
+    friend bool operator==(internet4_address const & lhs, internet4_address const & rhs);
 
     friend bool operator==(internet4_address const & lhs, boost::asio::ip::address_v4 const & rhs);
 
-    friend bool operator<(internet4_address const & lhs, internet4_address const & rhs)
-    {
-        return lhs.addr_ < rhs.addr_;
-    }
+    friend bool operator<(internet4_address const & lhs, internet4_address const & rhs);
 
     friend std::size_t hash_value(internet4_address const & rhs);
 

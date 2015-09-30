@@ -15,7 +15,7 @@ namespace acqua { namespace network {
 namespace detail {
 
 template <typename It>
-void from_string(It beg, It end, internet4_address::bytes_type & bytes, boost::system::error_code & ec)
+inline void from_string(It beg, It end, internet4_address::bytes_type & bytes, boost::system::error_code & ec)
 {
     namespace qi = boost::spirit::qi;
     qi::uint_parser<unsigned char, 10, 1, 3> dec;
@@ -27,12 +27,29 @@ void from_string(It beg, It end, internet4_address::bytes_type & bytes, boost::s
     bytes.fill(0);
 }
 
-char * to_string(internet4_address::bytes_type const & bytes, char * buf)
+inline char * to_string(internet4_address::bytes_type const & bytes, char * buf)
 {
     return buf + std::sprintf(buf, "%d.%d.%d.%d", bytes[0], bytes[1], bytes[2], bytes[3]);
 }
 
 }  // detail
+
+internet4_address::internet4_address()
+    : addr_(0)
+{
+    static_assert(sizeof(*this) == 4, "");
+    static_assert(sizeof(bytes_type) == 4, "");
+}
+
+internet4_address::internet4_address(internet4_address const & rhs)
+    : addr_(rhs.addr_)
+{
+}
+
+internet4_address::internet4_address(internet4_address && rhs)
+    : addr_(rhs.addr_)
+{
+}
 
 internet4_address::internet4_address(bytes_type const & bytes)
     : addr_(*reinterpret_cast<decltype(addr_) const *>(bytes.data()))
@@ -51,6 +68,21 @@ internet4_address::internet4_address(signed char const addr[4])
 
 internet4_address::internet4_address(unsigned char const addr[4])
     : addr_(*reinterpret_cast<decltype(addr_) const *>(addr))
+{
+}
+
+internet4_address::internet4_address(struct ::in_addr const & addr)
+    : addr_(reinterpret_cast<decltype(addr_) const &>(addr.s_addr))
+{
+}
+
+internet4_address::internet4_address(boost::asio::ip::address_v4 const & addr)
+    : addr_(addr.to_ulong())
+{
+}
+
+internet4_address::internet4_address(std::uint32_t addr)
+    : addr_(addr)
 {
 }
 
@@ -164,8 +196,8 @@ std::uint32_t internet4_address::to_ulong() const
 
 internet4_address internet4_address::from_string(std::string const & str)
 {
-    boost::system::error_code ec;
     internet4_address addr;
+    boost::system::error_code ec;
     detail::from_string(str.begin(), str.end(), reinterpret_cast<bytes_type &>(addr.addr_), ec);
     boost::asio::detail::throw_error(ec, "from_string");
     return addr;
@@ -180,8 +212,12 @@ internet4_address internet4_address::from_string(std::string const & str, boost:
 
 internet4_address internet4_address::from_string(char const * str)
 {
-    boost::system::error_code ec;
     internet4_address addr;
+    boost::system::error_code ec;
+    if (str == nullptr) {
+        ec.assign(EINVAL, boost::system::generic_category());
+        boost::asio::detail::throw_error(ec, "from_string");
+    }
     detail::from_string(str, str + std::strlen(str), reinterpret_cast<bytes_type &>(addr.addr_), ec);
     boost::asio::detail::throw_error(ec, "from_string");
     return addr;
@@ -190,6 +226,10 @@ internet4_address internet4_address::from_string(char const * str)
 internet4_address internet4_address::from_string(char const * str, boost::system::error_code & ec)
 {
     internet4_address addr;
+    if (str == nullptr) {
+        ec.assign(EINVAL, boost::system::generic_category());
+        return addr;
+    }
     detail::from_string(str, str + std::strlen(str), reinterpret_cast<bytes_type &>(addr.addr_), ec);
     return addr;
 }
@@ -199,9 +239,19 @@ std::size_t hash_value(internet4_address const & rhs)
     return rhs.addr_;
 }
 
+bool operator==(internet4_address const & lhs, internet4_address const & rhs)
+{
+    return lhs.addr_ == rhs.addr_;
+}
+
 bool operator==(internet4_address const & lhs, boost::asio::ip::address_v4 const & rhs)
 {
     return lhs.addr_ == rhs.to_ulong();
+}
+
+bool operator<(internet4_address const & lhs, internet4_address const & rhs)
+{
+    return lhs.addr_ < rhs.addr_;
 }
 
 bool operator<(internet4_address const & lhs, boost::asio::ip::address_v4 const & rhs)
