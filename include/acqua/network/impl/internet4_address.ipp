@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <acqua/config.hpp>
+
 #include <acqua/network/internet4_address.hpp>
 #include <acqua/network/detail/address_impl.hpp>
 
@@ -20,13 +22,13 @@ struct address_impl<internet4_address>
     : address_impl_base
 {
     template <typename T, uint N>
-    static char * to_string(T const & bytes, char (&buf)[N])
+    ACQUA_DECL static char * to_string(T const & bytes, char (&buf)[N])
     {
         return buf + std::sprintf(buf, "%d.%d.%d.%d", bytes[0], bytes[1], bytes[2], bytes[3]);
     }
 
     template <typename It, typename T>
-    static void from_string(It beg, It end, T & bytes, boost::system::error_code & ec)
+    ACQUA_DECL static void from_string(It beg, It end, T & bytes, boost::system::error_code & ec)
     {
         namespace qi = boost::spirit::qi;
         qi::uint_parser<unsigned char, 10, 1, 3> dec;

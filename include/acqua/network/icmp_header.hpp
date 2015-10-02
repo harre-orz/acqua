@@ -58,7 +58,7 @@ public:
 
     using checkable::checksum;  // Linux の場合、::icmphdr の checksum と衝突するため
 
-    message_type type() const noexcept
+    ACQUA_DECL message_type type() const noexcept
     {
 #ifdef __linux__
         return static_cast<message_type>(value_type::type);
@@ -67,7 +67,7 @@ public:
 #endif
     }
 
-    void type(message_type msg) noexcept
+    ACQUA_DECL void type(message_type msg) noexcept
     {
 #ifdef __linux__
         value_type::type = msg;
@@ -76,7 +76,7 @@ public:
 #endif
     }
 
-    int code() const noexcept
+    ACQUA_DECL int code() const noexcept
     {
 #ifdef __linux__
         return value_type::code;
@@ -85,7 +85,7 @@ public:
 #endif
     }
 
-    void code(int n) noexcept
+    ACQUA_DECL void code(int n) noexcept
     {
 #ifdef __linux__
         value_type::code = n;
@@ -95,7 +95,7 @@ public:
     }
 
 protected:
-    int id() const noexcept
+    ACQUA_DECL int id() const noexcept
     {
 #ifdef __linux__
         return ntohs(value_type::un.echo.id);
@@ -104,7 +104,7 @@ protected:
 #endif
     }
 
-    void id(int n) noexcept
+    ACQUA_DECL void id(int n) noexcept
     {
 #ifdef __linux__
         value_type::un.echo.id = htons(n);
@@ -113,7 +113,7 @@ protected:
 #endif
     }
 
-    int seq() const noexcept
+    ACQUA_DECL int seq() const noexcept
     {
 #ifdef __linux__
         return ntohs(value_type::un.echo.sequence);
@@ -122,7 +122,7 @@ protected:
 #endif
     }
 
-    void seq(int n) noexcept
+    ACQUA_DECL void seq(int n) noexcept
     {
 #ifdef __linux__
         value_type::un.echo.sequence = htons(n);
@@ -132,7 +132,7 @@ protected:
     }
 
 public:
-    friend std::ostream & operator<<(std::ostream & os, icmp_header const & rhs);
+    ACQUA_DECL friend std::ostream & operator<<(std::ostream & os, icmp_header const & rhs);
 };
 
 

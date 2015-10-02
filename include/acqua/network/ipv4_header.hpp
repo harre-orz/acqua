@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <acqua/config.hpp>
+
 extern "C" {
 #include <netinet/ip.h>
 }
@@ -51,93 +53,93 @@ public:
     };
 
     // IPv4ヘッダーとヘッダーオプションの長さ.
-    std::size_t size() const;
+    ACQUA_DECL std::size_t size() const;
 
     // ペイロードの終端 end を IPv4 の total_length に基づき調整する.
     template <typename It>
-    void shrink(It & end) const;
+    ACQUA_DECL void shrink(It & end) const;
 
-    protocol_type protocol() const noexcept
+    ACQUA_DECL protocol_type protocol() const noexcept
     {
         return static_cast<protocol_type>(value_type::ip_p);
     }
 
-    void protocol(protocol_type n) noexcept
+    ACQUA_DECL void protocol(protocol_type n) noexcept
     {
         value_type::ip_p = n;
     }
 
-    int version() const noexcept
+    ACQUA_DECL int version() const noexcept
     {
         return value_type::ip_v;
     }
 
-    void version(int n) noexcept
+    ACQUA_DECL void version(int n) noexcept
     {
         value_type::ip_v = n & 0x0f;
     }
 
-    int header_length() const noexcept
+    ACQUA_DECL int header_length() const noexcept
     {
         return value_type::ip_hl * 4;
     }
 
-    void header_length(int n) noexcept
+    ACQUA_DECL void header_length(int n) noexcept
     {
         value_type::ip_hl = (n / 4) & 0x0f;
     }
 
-    int type_of_service() const noexcept
+    ACQUA_DECL int type_of_service() const noexcept
     {
         return value_type::ip_tos;
     }
 
-    void type_of_service(int n) noexcept
+    ACQUA_DECL void type_of_service(int n) noexcept
     {
         value_type::ip_tos = n;
     }
 
-    int total_length() const noexcept
+    ACQUA_DECL int total_length() const noexcept
     {
         return ntohs(value_type::ip_len);
     }
 
-    void total_length(int n) noexcept
+    ACQUA_DECL void total_length(int n) noexcept
     {
         value_type::ip_len = htons(n);
     }
 
-    int id() const noexcept
+    ACQUA_DECL int id() const noexcept
     {
         return ntohs(value_type::ip_id);
     }
 
-    void id(int n) noexcept
+    ACQUA_DECL void id(int n) noexcept
     {
         value_type::ip_id = htons(n);
     }
 
-    bool is_dont_flagment() const noexcept
+    ACQUA_DECL bool is_dont_flagment() const noexcept
     {
         return ntohs(value_type::ip_off) & IP_DF;
     }
 
-    void set_dont_flagment() noexcept
+    ACQUA_DECL void set_dont_flagment() noexcept
     {
         value_type::ip_off = htons(IP_DF);
     }
 
-    int time_of_live() const noexcept
+    ACQUA_DECL int time_of_live() const noexcept
     {
         return value_type::ip_ttl;
     }
 
-    void time_of_live(int n) noexcept
+    ACQUA_DECL void time_of_live(int n) noexcept
     {
         value_type::ip_ttl = n;
     }
 
-    friend std::ostream & operator<<(std::ostream & os, ipv4_header const & rhs);
+    ACQUA_DECL friend std::ostream & operator<<(std::ostream & os, ipv4_header const & rhs);
 };
 
 }  // detail

@@ -18,7 +18,6 @@ extern "C" {
 #include <acqua/network/linklayer_address.hpp>
 #include <acqua/network/internet4_address.hpp>
 #include <acqua/network/internet6_address.hpp>
-#include <acqua/network/detail/prefix_address.hpp>
 
 namespace acqua { namespace network {
 

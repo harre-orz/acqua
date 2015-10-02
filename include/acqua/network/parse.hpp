@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <acqua/config.hpp>
+
 #include <iterator>
 #include <type_traits>
 #include <acqua/network/detail/header_base.hpp>
@@ -22,7 +24,7 @@ template <
     typename It,
     typename std::enable_if<std::is_base_of<detail::header_base<Header>, Header>::value>::type * = nullptr
     >
-inline Derived * parse(Header * hdr, It & end) noexcept
+ACQUA_DECL Derived * parse(Header * hdr, It & end) noexcept
 {
     static_assert(std::is_base_of<detail::header_base<Derived>, Derived>::value, "Derived is base of header_base<Derived>");
 
@@ -41,7 +43,7 @@ inline Derived * parse(Header * hdr, It & end) noexcept
 
 //! Derived ヘッダーにパース
 template <typename Derived, typename It>
-inline Derived * parse(It & beg, It & end) noexcept
+ACQUA_DECL Derived * parse(It & beg, It & end) noexcept
 {
     static_assert(std::is_base_of<detail::header_base<Derived>, Derived>::value, "Derived is base of header_base<Derived>");
     static_assert(sizeof(typename std::iterator_traits<It>::value_type) == 1, "It was must iterator of 1 byte.");

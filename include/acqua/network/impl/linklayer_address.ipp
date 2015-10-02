@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <acqua/config.hpp>
+
 #include <acqua/network/linklayer_address.hpp>
 #include <acqua/network/detail/address_impl.hpp>
 #include <boost/asio/detail/throw_error.hpp>
@@ -21,14 +23,14 @@ struct address_impl<linklayer_address>
     : address_impl_base
 {
     template <typename T, uint N>
-    static char * to_string(T const & bytes, char (&buf)[N])
+    ACQUA_DECL static char * to_string(T const & bytes, char (&buf)[N])
     {
         return buf + std::sprintf(buf, "%02X:%02X:%02X:%02X:%02X:%02X",
                                   bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]);
     }
 
     template <typename It, typename T>
-    static void from_string(It beg, It end, T & bytes, boost::system::error_code & ec)
+    ACQUA_DECL static void from_string(It beg, It end, T & bytes, boost::system::error_code & ec)
     {
         namespace qi = boost::spirit::qi;
         qi::uint_parser<unsigned char, 16, 2, 2> hex;
@@ -41,18 +43,18 @@ struct address_impl<linklayer_address>
     }
 
     template <typename T>
-    static std::size_t hash_func(void const * data);
+    ACQUA_DECL static std::size_t hash_func(void const * data);
 };
 
 template <>
-std::size_t address_impl<linklayer_address>::hash_func<std::uint32_t>(void const * data)
+ACQUA_DECL std::size_t address_impl<linklayer_address>::hash_func<std::uint32_t>(void const * data)
 {
     return (*((std::uint32_t const *)(((char const *)data) + 0)))
         ^  (*((std::uint16_t const *)(((char const *)data) + 4)));
 }
 
 template <>
-std::size_t address_impl<linklayer_address>::hash_func<std::uint64_t>(void const * data)
+ACQUA_DECL std::size_t address_impl<linklayer_address>::hash_func<std::uint64_t>(void const * data)
 {
     return ((*((std::uint32_t const *)(((char const *)data) + 0))) << 16)
         ^  (*((std::uint16_t const *)(((char const *)data) + 4)));

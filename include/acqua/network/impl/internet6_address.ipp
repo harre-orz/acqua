@@ -20,21 +20,21 @@ struct address_impl<internet6_address>
     : address_impl_base
 {
     template <typename T, uint N>
-    static char * to_string(T const & bytes, char (&buf)[N])
+    ACQUA_DECL static char * to_string(T const & bytes, char (&buf)[N])
     {
         ::inet_ntop(AF_INET6, bytes.data(), buf, N);
         return buf + std::strlen(buf);
     }
 
     template <typename T>
-    static void from_string(char const * str, T & bytes, boost::system::error_code & ec)
+    ACQUA_DECL static void from_string(char const * str, T & bytes, boost::system::error_code & ec)
     {
         if (::inet_pton(AF_INET6, str, bytes.data()) != 1)
             ec.assign(EAFNOSUPPORT, boost::system::generic_category());
     }
 
     template <typename It>
-    static void from_uint64s(std::uint64_t low, std::uint64_t high, It it)
+    ACQUA_DECL static void from_uint64s(std::uint64_t low, std::uint64_t high, It it)
     {
         for(int i = 0; i < 8; ++i) {
             *it++ = (low & 0xFF);
@@ -47,7 +47,7 @@ struct address_impl<internet6_address>
     }
 
     template <typename T>
-    static std::size_t hash_func(void const * data);
+    ACQUA_DECL static std::size_t hash_func(void const * data);
 };
 
 template <>
@@ -288,28 +288,28 @@ internet6_address internet6_address::from_voidptr(void const * ptr)
     return addr;
 }
 
-bool operator==(internet6_address const & lhs, internet6_address const & rhs)
+inline bool operator==(internet6_address const & lhs, internet6_address const & rhs)
 {
     return lhs.bytes_ == rhs.bytes_;
 }
 
-bool operator==(internet6_address const & lhs, boost::asio::ip::address_v6 const & rhs)
+inline bool operator==(internet6_address const & lhs, boost::asio::ip::address_v6 const & rhs)
 {
     return lhs.bytes_ == rhs.to_bytes();
 }
 
-bool operator<(internet6_address const & lhs, internet6_address const & rhs)
+inline bool operator<(internet6_address const & lhs, internet6_address const & rhs)
 {
     return lhs.bytes_ < rhs.bytes_;
 }
 
-bool operator<(internet6_address const & lhs, boost::asio::ip::address_v6 const & rhs)
+inline bool operator<(internet6_address const & lhs, boost::asio::ip::address_v6 const & rhs)
 {
     return lhs.bytes_ < rhs.to_bytes();
 }
 
 template <typename Ch, typename Tr>
-std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, internet6_address const & rhs)
+inline std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, internet6_address const & rhs)
 {
     char buf[64];
     char * end = detail::address_impl<internet6_address>::to_string(rhs.bytes_, buf);
@@ -317,12 +317,12 @@ std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, interne
     return os;
 }
 
-std::size_t hash_value(internet6_address const & rhs)
+inline std::size_t hash_value(internet6_address const & rhs)
 {
     return detail::address_impl<internet6_address>::template hash_func<std::size_t>(rhs.bytes_.data());
 }
 
-internet6_address::masklen_type netmask_length(internet6_address const & rhs)
+inline internet6_address::masklen_type netmask_length(internet6_address const & rhs)
 {
     return detail::address_impl<internet6_address>::netmask_length(rhs.bytes_);
 }

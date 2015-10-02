@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <acqua/config.hpp>
+
 extern "C" {
 #include <netinet/in.h>
 }

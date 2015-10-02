@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <acqua/config.hpp>
+
 #include <iostream>
 #include <boost/operators.hpp>
 
@@ -22,35 +24,35 @@ public:
     using masklen_type = typename T::masklen_type;
 
 public:
-    basic_prefix_address();
+    ACQUA_DECL basic_prefix_address();
 
-    basic_prefix_address(basic_prefix_address const &) = default;
+    ACQUA_DECL basic_prefix_address(basic_prefix_address const &) = default;
 
-    basic_prefix_address(basic_prefix_address &&) = default;
+    ACQUA_DECL basic_prefix_address(basic_prefix_address &&) = default;
 
-    explicit basic_prefix_address(address_type const & address, masklen_type masklen);
+    ACQUA_DECL explicit basic_prefix_address(address_type const & address, masklen_type masklen);
 
-    void assign(address_type const & address, masklen_type masklen);
+    ACQUA_DECL void assign(address_type const & address, masklen_type masklen);
 
-    masklen_type masklen() const
+    ACQUA_DECL masklen_type masklen() const
     {
         return masklen_;
     }
 
-    address_type address() const
+    ACQUA_DECL address_type address() const
     {
         return address_;
     }
 
-    address_type netmask() const;
+    ACQUA_DECL address_type netmask() const;
 
-    basic_prefix_address & operator=(basic_prefix_address const &) = default;
+    ACQUA_DECL basic_prefix_address & operator=(basic_prefix_address const &) = default;
 
-    basic_prefix_address & operator=(basic_prefix_address &&) = default;
+    ACQUA_DECL basic_prefix_address & operator=(basic_prefix_address &&) = default;
 
-    basic_prefix_address & operator++();
+    ACQUA_DECL basic_prefix_address & operator++();
 
-    basic_prefix_address & operator--();
+    ACQUA_DECL basic_prefix_address & operator--();
 
     template <typename T_>
     friend bool operator==(basic_prefix_address<T_> const & lhs, basic_prefix_address<T_> const & rhs);
@@ -58,11 +60,11 @@ public:
     template <typename T_>
     friend bool operator<(basic_prefix_address<T_> const & lhs, basic_prefix_address<T_> const & rhs);
 
-    template <typename T_>
-    friend std::size_t hash_value(basic_prefix_address<T_> const & rhs);
-
     template <typename T_, typename Ch, typename Tr>
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, basic_prefix_address<T_> const & rhs);
+
+    template <typename T_>
+    friend std::size_t hash_value(basic_prefix_address<T_> const & rhs);
 
 private:
     masklen_type masklen_;

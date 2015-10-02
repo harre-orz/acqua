@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <acqua/config.hpp>
+
 #include <acqua/network/internet4_address.hpp>
 #include <acqua/network/basic_prefix_address.hpp>
 

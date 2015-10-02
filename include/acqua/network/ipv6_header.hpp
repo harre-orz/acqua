@@ -43,27 +43,27 @@ public:
     };
 
     template <typename It>
-    void shrink(It & end) const;
+    ACQUA_DECL void shrink(It & end) const;
 
-    protocol_type protocol() const
+    ACQUA_DECL protocol_type protocol() const
     {
         return static_cast<protocol_type>(value_type::ip6_nxt);
     }
 
-    void protocol(protocol_type n)
+    ACQUA_DECL void protocol(protocol_type n)
     {
         value_type::ip6_nxt = n;
     }
 
-    int checksum() const
+    ACQUA_DECL int checksum() const
     {
         return 0;
     }
 
     template <typename It>
-    void commit(It const & end);
+    ACQUA_DECL void commit(It const & end);
 
-    friend std::ostream & operator<<(std::ostream & os, ipv6_header const & rhs);
+    ACQUA_DECL friend std::ostream & operator<<(std::ostream & os, ipv6_header const & rhs);
 };
 
 }  // detail

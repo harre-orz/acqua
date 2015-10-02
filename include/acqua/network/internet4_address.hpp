@@ -8,11 +8,14 @@
 
 #pragma once
 
+#include <acqua/config.hpp>
+
 #include <iostream>
 #include <boost/operators.hpp>
 #include <boost/asio/ip/address_v4.hpp>
 #include <boost/endian/arithmetic.hpp>
 #include <acqua/network/basic_prefix_address.hpp>
+
 
 namespace acqua { namespace network {
 
@@ -34,103 +37,103 @@ public:
     using bytes_type = boost::asio::ip::address_v4::bytes_type;
     using masklen_type = unsigned char;
 
-    internet4_address();
+    ACQUA_DECL internet4_address();
 
-    internet4_address(internet4_address const &) = default;
+    ACQUA_DECL internet4_address(internet4_address const &) = default;
 
-    internet4_address(internet4_address &&) = default;
+    ACQUA_DECL internet4_address(internet4_address &&) = default;
 
-    internet4_address(bytes_type const & bytes);
+    ACQUA_DECL internet4_address(bytes_type const & bytes);
 
-    internet4_address(char const addr[4]);
+    ACQUA_DECL internet4_address(char const addr[4]);
 
-    internet4_address(signed char const addr[4]);
+    ACQUA_DECL internet4_address(signed char const addr[4]);
 
-    internet4_address(unsigned char const addr[4]);
+    ACQUA_DECL internet4_address(unsigned char const addr[4]);
 
-    internet4_address(struct ::in_addr const & addr);
+    ACQUA_DECL internet4_address(struct ::in_addr const & addr);
 
-    internet4_address(boost::asio::ip::address_v4 const & addr);
+    ACQUA_DECL internet4_address(boost::asio::ip::address_v4 const & addr);
 
-    internet4_address(std::uint32_t addr);
+    ACQUA_DECL internet4_address(std::uint32_t addr);
 
-    internet4_address & operator=(internet4_address const &) = default;
+    ACQUA_DECL internet4_address & operator=(internet4_address const &) = default;
 
-    internet4_address & operator=(internet4_address &&) = default;
+    ACQUA_DECL internet4_address & operator=(internet4_address &&) = default;
 
-    internet4_address & operator++();
+    ACQUA_DECL internet4_address & operator++();
 
-    internet4_address & operator+=(long int num);
+    ACQUA_DECL internet4_address & operator+=(long int num);
 
-    internet4_address & operator--();
+    ACQUA_DECL internet4_address & operator--();
 
-    internet4_address & operator-=(long int num);
+    ACQUA_DECL internet4_address & operator-=(long int num);
 
-    operator ::in_addr() const;
+    ACQUA_DECL operator ::in_addr() const;
 
-    operator boost::asio::ip::address_v4() const;
+    ACQUA_DECL operator boost::asio::ip::address_v4() const;
 
-    bool is_unspecified() const;
+    ACQUA_DECL bool is_unspecified() const;
 
-    bool is_loopback() const;
+    ACQUA_DECL bool is_loopback() const;
 
-    bool is_class_a() const;
+    ACQUA_DECL bool is_class_a() const;
 
-    bool is_class_b() const;
+    ACQUA_DECL bool is_class_b() const;
 
-    bool is_class_c() const;
+    ACQUA_DECL bool is_class_c() const;
 
-    bool is_multicast() const;
+    ACQUA_DECL bool is_multicast() const;
 
-    bool is_link_local() const;
+    ACQUA_DECL bool is_link_local() const;
 
-    bool is_netmask() const;
+    ACQUA_DECL bool is_netmask() const;
 
-    bytes_type to_bytes() const;
+    ACQUA_DECL bytes_type to_bytes() const;
 
-    std::string to_string() const;
+    ACQUA_DECL std::string to_string() const;
 
-    std::uint32_t to_ulong() const;
+    ACQUA_DECL std::uint32_t to_ulong() const;
 
-    static internet4_address any()
+    ACQUA_DECL static internet4_address any()
     {
         return internet4_address();
     }
 
-    static internet4_address broadcast()
+    ACQUA_DECL static internet4_address broadcast()
     {
         return internet4_address(0xFFFFFFFF);
     }
 
-    static internet4_address loopback()
+    ACQUA_DECL static internet4_address loopback()
     {
         return internet4_address(0x7F000001);
     }
 
-    static internet4_address from_string(std::string const & str);
+    ACQUA_DECL static internet4_address from_string(std::string const & str);
 
-    static internet4_address from_string(std::string const & str, boost::system::error_code & ec);
+    ACQUA_DECL static internet4_address from_string(std::string const & str, boost::system::error_code & ec);
 
-    static internet4_address from_string(char const * str);
+    ACQUA_DECL static internet4_address from_string(char const * str);
 
-    static internet4_address from_string(char const * str, boost::system::error_code & ec);
+    ACQUA_DECL static internet4_address from_string(char const * str, boost::system::error_code & ec);
 
-    static internet4_address from_voidptr(void const * ptr);
+    ACQUA_DECL static internet4_address from_voidptr(void const * ptr);
 
-    friend bool operator==(internet4_address const & lhs, internet4_address const & rhs);
+    ACQUA_DECL friend bool operator==(internet4_address const & lhs, internet4_address const & rhs);
 
-    friend bool operator==(internet4_address const & lhs, boost::asio::ip::address_v4 const & rhs);
+    ACQUA_DECL friend bool operator==(internet4_address const & lhs, boost::asio::ip::address_v4 const & rhs);
 
-    friend bool operator<(internet4_address const & lhs, internet4_address const & rhs);
+    ACQUA_DECL friend bool operator<(internet4_address const & lhs, internet4_address const & rhs);
 
-    friend bool operator<(internet4_address const & lhs, boost::asio::ip::address_v4 const & rhs);
+    ACQUA_DECL friend bool operator<(internet4_address const & lhs, boost::asio::ip::address_v4 const & rhs);
 
-    friend std::size_t hash_value(internet4_address const & rhs);
-
-    friend internet4_address::masklen_type netmask_length(internet4_address const & rhs);
-    
     template <typename Ch, typename Tr>
-    friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, internet4_address const & rhs);
+    ACQUA_DECL friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, internet4_address const & rhs);
+
+    ACQUA_DECL friend std::size_t hash_value(internet4_address const & rhs);
+
+    ACQUA_DECL friend internet4_address::masklen_type netmask_length(internet4_address const & rhs);
 
 private:
     bytes_type bytes_;

@@ -18,9 +18,9 @@ class internet6_address;
 
 namespace detail {
 
-template <typename T> std::size_t max_masklen();
-template <> std::size_t max_masklen<internet4_address>() { return  32; }
-template <> std::size_t max_masklen<internet6_address>() { return 128; }
+template <typename T> ACQUA_DECL std::size_t max_masklen();
+template <> ACQUA_DECL std::size_t max_masklen<internet4_address>() { return  32; }
+template <> ACQUA_DECL std::size_t max_masklen<internet6_address>() { return 128; }
 
 }  // detail
 

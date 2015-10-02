@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <acqua/config.hpp>
+
 #include <iostream>
 #include <boost/array.hpp>
 #include <boost/operators.hpp>
@@ -28,62 +30,62 @@ class linklayer_address
 public:
     using bytes_type = boost::array<unsigned char, 6>;
 
-    linklayer_address();
+    ACQUA_DECL linklayer_address();
 
-    linklayer_address(linklayer_address const &) = default;
+    ACQUA_DECL linklayer_address(linklayer_address const &) = default;
 
-    linklayer_address(linklayer_address &&) = default;
+    ACQUA_DECL linklayer_address(linklayer_address &&) = default;
 
-    linklayer_address(bytes_type const & bytes);
+    ACQUA_DECL linklayer_address(bytes_type const & bytes);
 
-    linklayer_address(char const addr[6]);
+    ACQUA_DECL linklayer_address(char const addr[6]);
 
-    linklayer_address(unsigned char const addr[6]);
+    ACQUA_DECL linklayer_address(unsigned char const addr[6]);
 
-    linklayer_address(signed char const addr[6]);
+    ACQUA_DECL linklayer_address(signed char const addr[6]);
 
-    linklayer_address & operator=(linklayer_address const &) = default;
+    ACQUA_DECL linklayer_address & operator=(linklayer_address const &) = default;
 
-    linklayer_address & operator=(linklayer_address &&) = default;
+    ACQUA_DECL linklayer_address & operator=(linklayer_address &&) = default;
 
-    linklayer_address & operator++();
+    ACQUA_DECL linklayer_address & operator++();
 
-    linklayer_address & operator--();
+    ACQUA_DECL linklayer_address & operator--();
 
-    linklayer_address & operator+=(long int num);
+    ACQUA_DECL linklayer_address & operator+=(long int num);
 
-    linklayer_address & operator-=(long int num);
+    ACQUA_DECL linklayer_address & operator-=(long int num);
 
-    bool is_unspecified() const;
+    ACQUA_DECL bool is_unspecified() const;
 
-    bytes_type to_bytes() const;
+    ACQUA_DECL bytes_type to_bytes() const;
 
-    std::uint32_t to_oui() const;
+    ACQUA_DECL std::uint32_t to_oui() const;
 
-    std::string to_string() const;
+    ACQUA_DECL std::string to_string() const;
 
-    static linklayer_address any();
+    ACQUA_DECL static linklayer_address any();
 
-    static linklayer_address broadcast();
+    ACQUA_DECL static linklayer_address broadcast();
 
-    static linklayer_address from_string(std::string const & str);
+    ACQUA_DECL static linklayer_address from_string(std::string const & str);
 
-    static linklayer_address from_string(std::string const & str, boost::system::error_code & ec);
+    ACQUA_DECL static linklayer_address from_string(std::string const & str, boost::system::error_code & ec);
 
-    static linklayer_address from_string(char const * str);
+    ACQUA_DECL static linklayer_address from_string(char const * str);
 
-    static linklayer_address from_string(char const * str, boost::system::error_code & ec);
+    ACQUA_DECL static linklayer_address from_string(char const * str, boost::system::error_code & ec);
 
-    static linklayer_address from_voidptr(void const * bytes);
+    ACQUA_DECL static linklayer_address from_voidptr(void const * bytes);
 
-    friend bool operator==(linklayer_address const & lhs, linklayer_address const & rhs);
+    ACQUA_DECL friend bool operator==(linklayer_address const & lhs, linklayer_address const & rhs);
 
-    friend bool operator<(linklayer_address const & lhs, linklayer_address const & rhs);
+    ACQUA_DECL friend bool operator<(linklayer_address const & lhs, linklayer_address const & rhs);
 
-    friend std::size_t hash_value(linklayer_address const & rhs);
+    ACQUA_DECL friend std::size_t hash_value(linklayer_address const & rhs);
 
     template <typename Ch, typename Tr>
-    friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, linklayer_address const & rhs);
+    ACQUA_DECL friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, linklayer_address const & rhs);
 
 private:
     bytes_type bytes_;
