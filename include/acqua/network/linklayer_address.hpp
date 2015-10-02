@@ -11,9 +11,7 @@
 #include <iostream>
 #include <boost/array.hpp>
 #include <boost/operators.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/spirit/include/qi.hpp>
-#include <acqua/exception/throw_error.hpp>
+#include <boost/system/error_code.hpp>
 
 namespace acqua { namespace network {
 
@@ -30,197 +28,67 @@ class linklayer_address
 public:
     using bytes_type = boost::array<unsigned char, 6>;
 
-    linklayer_address() noexcept
-    {
-        static_assert(sizeof(*this) == 6, "");
-        bytes_.fill(0);
-    }
+    linklayer_address();
 
-    linklayer_address(linklayer_address const & rhs) noexcept
-        : bytes_(rhs.bytes_) {}
+    linklayer_address(linklayer_address const &) = default;
 
-    linklayer_address(bytes_type const & bytes) noexcept
-        : bytes_(bytes) {}
+    linklayer_address(linklayer_address &&) = default;
 
-    linklayer_address(char const addr[6]) noexcept
-    {
-        copy_from(addr);
-    }
+    linklayer_address(bytes_type const & bytes);
 
-    linklayer_address(unsigned char const addr[6]) noexcept
-    {
-        copy_from(addr);
-    }
+    linklayer_address(char const addr[6]);
 
-    linklayer_address(signed char const addr[6]) noexcept
-    {
-        copy_from(addr);
-    }
+    linklayer_address(unsigned char const addr[6]);
 
-    friend bool operator==(linklayer_address const & lhs, linklayer_address const & rhs) noexcept
-    {
-        return lhs.bytes_ == rhs.bytes_;
-    }
+    linklayer_address(signed char const addr[6]);
 
-    friend bool operator<(linklayer_address const & lhs,  linklayer_address const & rhs) noexcept
-    {
-        return lhs.bytes_ < rhs.bytes_;
-    }
+    linklayer_address & operator=(linklayer_address const &) = default;
 
-    linklayer_address & operator++() noexcept
-    {
-        for(auto it = bytes_.rbegin(); ++(*it) == 0x00 && it != bytes_.rend(); ++it)
-            ;
-        return *this;
-    }
+    linklayer_address & operator=(linklayer_address &&) = default;
 
-    linklayer_address & operator+=(long int num) noexcept
-    {
-        if (num < 0)
-            return operator-=(-num);
+    linklayer_address & operator++();
 
-        for(auto it = bytes_.rbegin(); it != bytes_.rend() && num; ++it) {
-            *it += (num & 0xff);
-            num >>= 8;
-        }
+    linklayer_address & operator--();
 
-        return *this;
-    }
+    linklayer_address & operator+=(long int num);
 
-    linklayer_address & operator--() noexcept
-    {
-        for(auto it = bytes_.rbegin(); --(*it) == 0xff && it != bytes_.rend(); ++it)
-            ;
-        return *this;
-    }
+    linklayer_address & operator-=(long int num);
 
-    linklayer_address & operator-=(long int num) noexcept
-    {
-        if (num < 0)
-            return operator+=(-num);
+    bool is_unspecified() const;
 
-        for(auto it = bytes_.rbegin(); it != bytes_.rend() && num; ++it) {
-            *it -= (num & 0xff);
-            num >>= 8;
-        }
+    bytes_type to_bytes() const;
 
-        return *this;
-    }
+    std::uint32_t to_oui() const;
 
-    static linklayer_address any() noexcept
-    {
-        return linklayer_address();
-    }
+    std::string to_string() const;
 
-    static linklayer_address broadcast() noexcept
-    {
-        bytes_type bytes;
-        bytes.fill(255);
-        return linklayer_address(bytes);
-    }
+    static linklayer_address any();
 
-    static linklayer_address from_string(std::string const & str, boost::system::error_code & ec) noexcept
-    {
-        return from_string(str.begin(), str.end(), ec);
-    }
+    static linklayer_address broadcast();
 
-    static linklayer_address from_string(std::string const & str)
-    {
-        boost::system::error_code ec;
-        auto addr = from_string(str.begin(), str.end(), ec);
-        acqua::exception::throw_error(ec, "from_string");
-        return addr;
-    }
+    static linklayer_address from_string(std::string const & str);
 
-    static linklayer_address from_string(char const * str, boost::system::error_code & ec) noexcept
-    {
-        return from_string(str, str + std::strlen(str), ec);
-    }
+    static linklayer_address from_string(std::string const & str, boost::system::error_code & ec);
 
-    static linklayer_address from_string(char const * str)
-    {
-        boost::system::error_code ec;
-        auto addr = from_string(str, str + std::strlen(str), ec);
-        acqua::exception::throw_error(ec, "from_string");
-        return addr;
-    }
+    static linklayer_address from_string(char const * str);
 
-    bool is_unspecified() const noexcept
-    {
-        return *this == any();
-    }
+    static linklayer_address from_string(char const * str, boost::system::error_code & ec);
 
-    bytes_type to_bytes() const noexcept
-    {
-        return bytes_;
-    }
+    static linklayer_address from_voidptr(void const * bytes);
 
-    std::string to_string() const
-    {
-        return boost::lexical_cast<std::string>(*this);
-    }
+    friend bool operator==(linklayer_address const & lhs, linklayer_address const & rhs);
 
-    int to_oui() const noexcept
-    {
-        int oui = bytes_[0];
-        oui = (oui * 10) + bytes_[1];
-        oui = (oui * 10) + bytes_[2];
-        return oui;
-    }
+    friend bool operator<(linklayer_address const & lhs, linklayer_address const & rhs);
+
+    friend std::size_t hash_value(linklayer_address const & rhs);
 
     template <typename Ch, typename Tr>
-    friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, linklayer_address const & rhs)
-    {
-        char buf[3*6];
-        std::sprintf(buf, "%02X:%02X:%02X:%02X:%02X:%02X",
-                     rhs.bytes_[0], rhs.bytes_[1], rhs.bytes_[2], rhs.bytes_[3], rhs.bytes_[4], rhs.bytes_[5]);
-        std::copy_n(buf, 17, std::ostreambuf_iterator<char>(os));
-        return os;
-    }
-
-    friend std::size_t hash_value(linklayer_address const & rhs) noexcept
-    {
-        return rhs.hash_func<std::size_t>();
-    }
-
-private:
-    template <typename T, typename std::enable_if< std::is_integral<T>::value>::type * = nullptr>
-    void copy_from(T const * t) noexcept
-    {
-        reinterpret_cast<std::uint32_t *>(bytes_.data())[0] = reinterpret_cast<std::uint32_t const *>(t)[0];
-        reinterpret_cast<std::uint16_t *>(bytes_.data())[2] = reinterpret_cast<std::uint16_t const *>(t)[2];
-    }
-
-    template <typename It>
-    static linklayer_address from_string(It beg, It end, boost::system::error_code & ec) noexcept
-    {
-        bytes_type bytes;
-
-        namespace qi = boost::spirit::qi;
-        qi::uint_parser<unsigned char, 16, 2, 2> hex;
-        qi::rule<It, unsigned char> sep = qi::lit(':') | qi::lit('-');
-        if (!qi::parse(beg, end, hex >> sep >> hex >> sep >> hex >> sep >> hex >> sep >> hex >> sep >> hex,
-                       bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]) || beg != end)
-            ec.assign(EAFNOSUPPORT, boost::system::generic_category());
-        return linklayer_address(bytes);
-    }
-
-    template <typename T, typename std::enable_if<sizeof(T) == 4>::type * = nullptr>
-    T hash_func() const noexcept
-    {
-        return reinterpret_cast<std::uint32_t const *>(bytes_.data())[0]
-            ^  reinterpret_cast<std::uint16_t const *>(bytes_.data())[4];
-    }
-
-    template <typename T, typename std::enable_if<sizeof(T) == 8>::type * = nullptr>
-    T hash_func() const noexcept
-    {
-        return (reinterpret_cast<std::uint32_t const *>(bytes_.data())[0] << 16)
-            +  (reinterpret_cast<std::uint16_t const *>(bytes_.data())[4]);
-    }
+    friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, linklayer_address const & rhs);
 
 private:
     bytes_type bytes_;
-} __attribute__((__packed__));
+};
 
 } }
+
+#include <acqua/network/impl/linklayer_address.ipp>

@@ -15,7 +15,7 @@ extern "C" {
 #include <iostream>
 #include <boost/operators.hpp>
 #include <boost/asio/ip/address_v6.hpp>
-#include <boost/multiprecision/cpp_int.hpp>
+#include <acqua/network/basic_prefix_address.hpp>
 
 namespace acqua { namespace network {
 
@@ -31,15 +31,16 @@ class internet6_address
     , private boost::unit_steppable<internet6_address>
     , private boost::additive2<internet6_address, long int>
 {
+    friend basic_prefix_address<internet6_address>;
+
 public:
     using bytes_type = boost::asio::ip::address_v6::bytes_type;
     using masklen_type = unsigned char;
 
     internet6_address();
+    internet6_address(internet6_address const &) = default;
 
-    internet6_address(internet6_address const & rhs);
-
-    internet6_address(internet6_address && rhs);
+    internet6_address(internet6_address &&) = default;
 
     internet6_address(bytes_type const & bytes);
 
@@ -56,6 +57,10 @@ public:
     internet6_address(std::uint64_t low);
 
     internet6_address(std::uint64_t high, std::uint64_t low);
+
+    internet6_address & operator=(internet6_address const &) = default;
+
+    internet6_address & operator=(internet6_address &&) = default;
 
     internet6_address & operator++();
 
@@ -117,6 +122,8 @@ public:
 
     static internet6_address from_string(char const * str, boost::system::error_code & ec);
 
+    static internet6_address from_voidptr(void const * ptr);
+
     friend bool operator==(internet6_address const & lhs, internet6_address const & rhs);
 
     friend bool operator==(internet6_address const & lhs, boost::asio::ip::address_v6 const & rhs);
@@ -125,13 +132,15 @@ public:
 
     friend bool operator<(internet6_address const & lhs, boost::asio::ip::address_v6 const & rhs);
 
-    friend std::size_t hash_value(internet6_address const & rhs);
-
     template <typename Ch, typename Tr>
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, internet6_address const & rhs);
 
+    friend std::size_t hash_value(internet6_address const & rhs);
+
+    friend masklen_type netmask_length(internet6_address const & rhs);
+
 private:
-    bytes_type addr_;
+    bytes_type bytes_;
 };
 
 } }

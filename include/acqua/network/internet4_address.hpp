@@ -12,13 +12,14 @@
 #include <boost/operators.hpp>
 #include <boost/asio/ip/address_v4.hpp>
 #include <boost/endian/arithmetic.hpp>
+#include <acqua/network/basic_prefix_address.hpp>
 
 namespace acqua { namespace network {
 
 /*!
   IPv4アドレスクラス.
 
-  trivial なデータ型
+  ネットワークバイトオーダー
   boost::asio::ip::address_v4 と互換性あり
  */
 class internet4_address
@@ -27,15 +28,17 @@ class internet4_address
     , private boost::unit_steppable<internet4_address>
     , private boost::additive2<internet4_address, long int>
 {
+    friend basic_prefix_address<internet4_address>;
+
 public:
     using bytes_type = boost::asio::ip::address_v4::bytes_type;
     using masklen_type = unsigned char;
 
     internet4_address();
 
-    internet4_address(internet4_address const & rhs);
+    internet4_address(internet4_address const &) = default;
 
-    internet4_address(internet4_address && rhs);
+    internet4_address(internet4_address &&) = default;
 
     internet4_address(bytes_type const & bytes);
 
@@ -50,6 +53,10 @@ public:
     internet4_address(boost::asio::ip::address_v4 const & addr);
 
     internet4_address(std::uint32_t addr);
+
+    internet4_address & operator=(internet4_address const &) = default;
+
+    internet4_address & operator=(internet4_address &&) = default;
 
     internet4_address & operator++();
 
@@ -108,19 +115,25 @@ public:
 
     static internet4_address from_string(char const * str, boost::system::error_code & ec);
 
+    static internet4_address from_voidptr(void const * ptr);
+
     friend bool operator==(internet4_address const & lhs, internet4_address const & rhs);
 
     friend bool operator==(internet4_address const & lhs, boost::asio::ip::address_v4 const & rhs);
 
     friend bool operator<(internet4_address const & lhs, internet4_address const & rhs);
 
+    friend bool operator<(internet4_address const & lhs, boost::asio::ip::address_v4 const & rhs);
+
     friend std::size_t hash_value(internet4_address const & rhs);
 
+    friend internet4_address::masklen_type netmask_length(internet4_address const & rhs);
+    
     template <typename Ch, typename Tr>
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, internet4_address const & rhs);
 
 private:
-    boost::endian::big_uint32_t addr_;
+    bytes_type bytes_;
 };
 
 } }
