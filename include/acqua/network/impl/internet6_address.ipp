@@ -278,38 +278,28 @@ internet6_address internet6_address::from_string(char const * str, boost::system
     return addr;
 }
 
-internet6_address internet6_address::from_voidptr(void const * ptr)
-{
-    internet6_address addr;
-    if (ptr != nullptr) {
-        using namespace std;
-        memcpy(addr.bytes_.data(), ptr, 16);
-    }
-    return addr;
-}
-
-inline bool operator==(internet6_address const & lhs, internet6_address const & rhs)
+bool operator==(internet6_address const & lhs, internet6_address const & rhs)
 {
     return lhs.bytes_ == rhs.bytes_;
 }
 
-inline bool operator==(internet6_address const & lhs, boost::asio::ip::address_v6 const & rhs)
+bool operator==(internet6_address const & lhs, boost::asio::ip::address_v6 const & rhs)
 {
     return lhs.bytes_ == rhs.to_bytes();
 }
 
-inline bool operator<(internet6_address const & lhs, internet6_address const & rhs)
+bool operator<(internet6_address const & lhs, internet6_address const & rhs)
 {
     return lhs.bytes_ < rhs.bytes_;
 }
 
-inline bool operator<(internet6_address const & lhs, boost::asio::ip::address_v6 const & rhs)
+bool operator<(internet6_address const & lhs, boost::asio::ip::address_v6 const & rhs)
 {
     return lhs.bytes_ < rhs.to_bytes();
 }
 
 template <typename Ch, typename Tr>
-inline std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, internet6_address const & rhs)
+std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, internet6_address const & rhs)
 {
     char buf[64];
     char * end = detail::address_impl<internet6_address>::to_string(rhs.bytes_, buf);
@@ -317,12 +307,12 @@ inline std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, 
     return os;
 }
 
-inline std::size_t hash_value(internet6_address const & rhs)
+std::size_t hash_value(internet6_address const & rhs)
 {
     return detail::address_impl<internet6_address>::template hash_func<std::size_t>(rhs.bytes_.data());
 }
 
-inline internet6_address::masklen_type netmask_length(internet6_address const & rhs)
+int  netmask_length(internet6_address const & rhs)
 {
     return detail::address_impl<internet6_address>::netmask_length(rhs.bytes_);
 }

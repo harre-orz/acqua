@@ -76,8 +76,6 @@ public:
 
     ACQUA_DECL static linklayer_address from_string(char const * str, boost::system::error_code & ec);
 
-    ACQUA_DECL static linklayer_address from_voidptr(void const * bytes);
-
     ACQUA_DECL friend bool operator==(linklayer_address const & lhs, linklayer_address const & rhs);
 
     ACQUA_DECL friend bool operator<(linklayer_address const & lhs, linklayer_address const & rhs);

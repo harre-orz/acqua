@@ -80,14 +80,14 @@ struct address_impl_base
     }
 
     template <typename T>
-    ACQUA_DECL static uint netmask_length(T const & bytes)
+    ACQUA_DECL static int netmask_length(T const & bytes)
     {
-        uint len = 0;
+        int len = 0;
         for(auto ch : bytes) {
             if (ch == 0xFF) {
                 len += 8;
             } else {
-                for(uint i = 7; i > 0 && (ch & (0x01 << i)); --i)
+                for(int i = 7; i > 0 && (ch & (0x01 << i)); --i)
                     ++len;
             }
         }

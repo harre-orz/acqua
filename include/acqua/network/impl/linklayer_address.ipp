@@ -192,16 +192,6 @@ linklayer_address linklayer_address::from_string(char const * str, boost::system
     return addr;
 }
 
-linklayer_address linklayer_address::from_voidptr(void const * ptr)
-{
-    linklayer_address addr;
-    if (ptr != nullptr) {
-        using namespace std;
-        memcpy(addr.bytes_.data(), ptr, 6);
-    }
-    return addr;
-}
-
 bool operator==(linklayer_address const & lhs, linklayer_address const & rhs)
 {
     return lhs.bytes_ == rhs.bytes_;

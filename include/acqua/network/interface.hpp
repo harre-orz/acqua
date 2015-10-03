@@ -8,13 +8,15 @@
 
 #pragma once
 
+#include <acqua/config.hpp>
+
 extern "C" {
 #include <ifaddrs.h>
 }
 
+#include <iterator>
 #include <memory>
 #include <boost/system/error_code.hpp>
-#include <acqua/exception/throw_error.hpp>
 #include <acqua/network/linklayer_address.hpp>
 #include <acqua/network/internet4_address.hpp>
 #include <acqua/network/internet6_address.hpp>
@@ -26,192 +28,94 @@ class interface
 {
     using internal_value_type = ::ifaddrs;
 
-    explicit interface(internal_value_type * ifa)
-        : ifa_(ifa) {}
+    explicit interface(internal_value_type * ifa);
 
 public:
     class iterator;
-    friend iterator;
-    static iterator begin();
-    static iterator end();
 
-    std::string name() const
-    {
-        return ifa_->ifa_name;
-    }
+    ACQUA_DECL void dump(std::ostream & os) const;
 
-    bool is_up() const
-    {
-        return ifa_->ifa_flags & IFF_UP;
-    }
+    //! インタフェース名を取得
+    ACQUA_DECL std::string name() const;
 
-    bool is_loopback() const
-    {
-        return ifa_->ifa_flags & IFF_LOOPBACK;
-    }
+    ACQUA_DECL bool is_up() const;
 
-    bool is_running() const
-    {
-        return ifa_->ifa_flags & IFF_RUNNING;
-    }
+    ACQUA_DECL bool is_loopback() const;
 
-    bool has_broadcast() const
-    {
-        // IPv6 の場合、ifu_broadaddr が NULL のときがあるので、ここでもNULLチェックしておく
-        return ifa_->ifa_flags & IFF_BROADCAST && ifa_->ifa_broadaddr;
-    }
+    ACQUA_DECL bool is_running() const;
 
-    bool has_point_to_point() const
-    {
-        return ifa_->ifa_flags & IFF_POINTOPOINT;
-    }
+    ACQUA_DECL bool has_broadcast() const;
 
-    bool has_multicast() const
-    {
-        return ifa_->ifa_flags & IFF_MULTICAST;
-    }
+    ACQUA_DECL bool has_point_to_point() const;
 
-    bool is_stats() const
-    {
-        return ifa_->ifa_addr->sa_family == AF_PACKET;
-    }
+    ACQUA_DECL bool has_multicast() const;
 
-    bool is_v4() const
-    {
-        return ifa_->ifa_addr->sa_family == AF_INET;
-    }
+    ACQUA_DECL bool is_packet() const;
 
-    internet4_address to_address_v4() const
-    {
-        return ifa_->ifa_addr
-            ? internet4_address(reinterpret_cast<struct ::sockaddr_in const *>(ifa_->ifa_addr)->sin_addr)
-            : internet4_address();
-    }
+    ACQUA_DECL bool is_v4() const;
 
-    internet4_address to_netmask_v4() const
-    {
-        return ifa_->ifa_netmask
-            ? internet4_address(reinterpret_cast<struct ::sockaddr_in const *>(ifa_->ifa_netmask)->sin_addr)
-            : internet4_address();
-    }
+    ACQUA_DECL bool is_v6() const;
 
-    internet4_address to_broadcast_v4() const
-    {
-        return ifa_->ifa_broadaddr
-            ? internet4_address(reinterpret_cast<struct ::sockaddr_in const *>(ifa_->ifa_broadaddr)->sin_addr)
-            : internet4_address();
-    }
+    ACQUA_DECL internet4_address to_address_v4() const;
 
-    internet4_address to_point_to_point_v4() const
-    {
-        return ifa_->ifa_dstaddr
-            ? internet4_address(reinterpret_cast<struct ::sockaddr_in const *>(ifa_->ifa_dstaddr)->sin_addr)
-            : internet4_address();
-    }
+    ACQUA_DECL internet4_address to_netmask_v4() const;
 
-    bool is_v6() const
-    {
-        return ifa_->ifa_addr->sa_family == AF_INET6;
-    }
+    ACQUA_DECL internet4_address to_broadcast_v4() const;
 
-    internet6_address to_address_v6() const
-    {
-        return ifa_->ifa_addr
-            ? internet6_address(reinterpret_cast<struct ::sockaddr_in6 const *>(ifa_->ifa_addr)->sin6_addr)
-            : internet6_address();
-    }
+    ACQUA_DECL internet4_address to_point_to_point_v4() const;
 
-    internet6_address to_netmask_v6() const
-    {
-        return ifa_->ifa_addr
-            ? internet6_address(reinterpret_cast<struct ::sockaddr_in6 const *>(ifa_->ifa_netmask)->sin6_addr)
-            : internet6_address();
-    }
+    ACQUA_DECL internet6_address to_address_v6() const;
 
-    internet6_address to_broadcast_v6() const
-    {
-        return ifa_->ifa_broadaddr
-            ? internet6_address(reinterpret_cast<struct ::sockaddr_in6 const *>(ifa_->ifa_broadaddr)->sin6_addr)
-            : internet6_address();
-    }
+    ACQUA_DECL internet6_address to_netmask_v6() const;
 
-    internet6_address to_point_to_point_v6() const
-    {
-        return ifa_->ifa_dstaddr
-            ? internet6_address(reinterpret_cast<struct ::sockaddr_in6 const *>(ifa_->ifa_dstaddr)->sin6_addr)
-            : internet6_address();
-    }
+    ACQUA_DECL internet6_address to_broadcast_v6() const;
 
-    /*!
-      IPv6 の場合のみ スコープID を返し、それ以外は -1 を返す.
-     */
-    int scope_id() const
-    {
-        return is_v6()
-            ? reinterpret_cast<struct ::sockaddr_in6 const *>(ifa_->ifa_addr)->sin6_scope_id
-            : -1;
-    }
+    ACQUA_DECL internet6_address to_point_to_point_v6() const;
 
-    /*!
-      物理アドレスを返す.
-     */
-    linklayer_address physical_address(boost::system::error_code & ec) const
-    {
-        struct ::ifreq ifr;
-        std::memset(&ifr, 0, sizeof(ifr));
-        std::strncpy(ifr.ifr_name, ifa_->ifa_name, sizeof(ifr.ifr_name)-1);
+    //! IPv6 の場合のみ スコープID を返し、それ以外は -1 を返す.
+    ACQUA_DECL int scope_id() const;
 
-        int fd;
-        if ((fd = ::socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-            ec.assign(errno, boost::system::generic_category());
-            return linklayer_address();
-        }
+    //! インタフェースの index 番号を取得する.
+    //! VIPの場合、eth0:0 , eth0:1 といったIF名が１つの index に結びつくので注意すること
+    ACQUA_DECL int index() const;
 
-        if (::ioctl(fd, SIOCGIFHWADDR, &ifr) != 0) {
-            ec.assign(errno, boost::system::generic_category());
-            ::close(fd);
-            return linklayer_address();
-        }
-        ::close(fd);
-        return linklayer_address(ifr.ifr_hwaddr.sa_data);
-    }
+    //! 物理アドレスを返す.
+    ACQUA_DECL linklayer_address physical_address(boost::system::error_code & ec) const;
 
-    /*!
-      物理アドレスを返す.
-     */
-    linklayer_address physical_address() const
-    {
-        boost::system::error_code ec;
-        auto addr = physical_address(ec);
-        acqua::exception::throw_error(ec, "physical_address");
-        return addr;
-    }
+    //! 物理アドレスを返す.
+    ACQUA_DECL linklayer_address physical_address() const;
 
-    friend bool operator==(interface const & lhs, interface const & rhs)
-    {
-        return lhs.ifa_ == rhs.ifa_;
-    }
+    //! 物理アドレスを変更する.
+    //! この処理を成功させるには特権権限が必要
+    ACQUA_DECL void physical_address(linklayer_address const & lladdr) const;
 
-    friend bool operator!=(interface const & lhs, interface const & rhs)
-    {
-        return !(lhs == rhs);
-    }
+    //! 物理アドレスを変更する.
+    //! この処理を成功させるには特権権限が必要
+    ACQUA_DECL void physical_address(linklayer_address const & lladdr, boost::system::error_code & ec) const;
 
-    friend std::ostream & operator<<(std::ostream & os, interface const & rhs)
-    {
-        os << rhs.name();
-        if (rhs.is_v4()) {
-            os << " inet " << rhs.to_address_v4() << '/' << (int)netmask_length(rhs.to_netmask_v4());
-            if (rhs.has_broadcast()) os << " via " << rhs.to_broadcast_v4();
-            if (rhs.has_point_to_point()) os << " p2p " << rhs.to_point_to_point_v4();
-        }
-        else if (rhs.is_v6()) {
-            os << " inet6 " << rhs.to_address_v6() << '/' << (int)netmask_length(rhs.to_netmask_v6()) << " scopeid " << rhs.scope_id();
-            if (rhs.has_broadcast()) os << " via " << rhs.to_broadcast_v6();
-            if (rhs.has_point_to_point()) os << " p2p " << rhs.to_point_to_point_v6();
-        }
-        return os;
-    }
+    //! MTU値を取得する.
+    ACQUA_DECL int mtu() const;
+
+    //! MTU値を取得する.
+    ACQUA_DECL int mtu(boost::system::error_code & ec) const;
+
+    //! MTU値を変更する.
+    //! この処理を成功させるには特権権限が必要
+    //! MTU値を小さくし過ぎると、カーネルがクラッシュする恐れがある
+    ACQUA_DECL void mtu(int num) const;
+
+    //! MTU値を変更する.
+    //! この処理を成功させるにはは特権権限が必要
+    //! MTU値を小さくし過ぎると、カーネルがクラッシュする恐れがある
+    ACQUA_DECL void mtu(int num, boost::system::error_code & ec) const;
+
+    ACQUA_DECL static iterator begin();
+
+    ACQUA_DECL static iterator end();
+
+    ACQUA_DECL friend bool operator==(interface const & lhs, interface const & rhs);
+
+    ACQUA_DECL friend bool operator!=(interface const & lhs, interface const & rhs);
 
 private:
     internal_value_type * ifa_;
@@ -219,72 +123,40 @@ private:
 
 
 class interface::iterator
+    : public std::iterator<std::forward_iterator_tag, interface>
 {
     friend interface;
 
-    iterator(internal_value_type * ifa)
-        : base_(ifa, [](internal_value_type * ifa) { ::freeifaddrs(ifa); })
-        , value_(ifa) {}
+    iterator(internal_value_type * ifa);
 
 public:
-    iterator()
-        : base_(nullptr)
-        , value_(nullptr) {}
+    iterator();
 
-    iterator(iterator const & rhs)
-        : base_(rhs.base_)
-        , value_(rhs.value_.ifa_) {}
+    iterator(iterator const & rhs);
 
-    interface const & operator*() const
-    {
-        return value_;
-    }
+    iterator(iterator && rhs);
 
-    interface const * operator->() const
-    {
-        return &value_;
-    }
+    iterator & operator=(iterator const & rhs);
 
-    friend bool operator==(iterator const & lhs, iterator const & rhs)
-    {
-        return lhs.value_ == rhs.value_;
-    }
+    iterator & operator=(iterator && rhs);
 
-    friend bool operator!=(iterator const & lhs, iterator const & rhs)
-    {
-        return !(lhs == rhs);
-    }
+    interface const & operator*() const;
 
-    iterator & operator++()
-    {
-        value_.ifa_ = value_.ifa_->ifa_next;
-        return *this;
-    }
+    interface const * operator->() const;
 
-    iterator operator++(int)
-    {
-        iterator it(*this);
-        operator++();
-        return it;
-    }
+    iterator & operator++();
+
+    iterator operator++(int);
+
+    friend bool operator==(iterator const & lhs, iterator const & rhs);
+
+    friend bool operator!=(iterator const & lhs, iterator const & rhs);
 
 private:
     std::shared_ptr<internal_value_type> base_;
     interface value_;
 };
 
-
-inline interface::iterator interface::begin()
-{
-    internal_value_type * ifa;
-    ::getifaddrs(&ifa);
-    return iterator(ifa);
-}
-
-
-inline interface::iterator interface::end()
-{
-    return iterator();
-}
-
 } }
+
+#include <acqua/network/impl/interface.ipp>

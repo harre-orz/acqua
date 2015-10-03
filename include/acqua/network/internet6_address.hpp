@@ -124,8 +124,6 @@ public:
 
     ACQUA_DECL static internet6_address from_string(char const * str, boost::system::error_code & ec);
 
-    ACQUA_DECL static internet6_address from_voidptr(void const * ptr);
-
     ACQUA_DECL friend bool operator==(internet6_address const & lhs, internet6_address const & rhs);
 
     ACQUA_DECL friend bool operator==(internet6_address const & lhs, boost::asio::ip::address_v6 const & rhs);
@@ -139,7 +137,7 @@ public:
 
     ACQUA_DECL friend std::size_t hash_value(internet6_address const & rhs);
 
-    ACQUA_DECL friend masklen_type netmask_length(internet6_address const & rhs);
+    ACQUA_DECL friend int netmask_length(internet6_address const & rhs);
 
 private:
     bytes_type bytes_;

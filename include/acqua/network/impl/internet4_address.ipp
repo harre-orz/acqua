@@ -231,16 +231,6 @@ internet4_address internet4_address::from_string(char const * str, boost::system
     return addr;
 }
 
-internet4_address internet4_address::from_voidptr(void const * ptr)
-{
-    internet4_address addr;
-    if (ptr != nullptr) {
-        using namespace std;
-        memcpy(addr.bytes_.data(), ptr, 4);
-    }
-    return addr;
-}
-
 bool operator==(internet4_address const & lhs, internet4_address const & rhs)
 {
     return lhs.bytes_ == rhs.bytes_;
@@ -275,7 +265,7 @@ std::size_t hash_value(internet4_address const & rhs)
     return std::accumulate(rhs.bytes_.begin(), rhs.bytes_.end(), (uint)0);
 }
 
-internet4_address::masklen_type netmask_length(internet4_address const & rhs)
+int netmask_length(internet4_address const & rhs)
 {
     return detail::address_impl<internet4_address>::netmask_length(rhs.bytes_);
 }

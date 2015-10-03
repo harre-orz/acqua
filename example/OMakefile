@@ -1,6 +1,7 @@
 INCLUDES += ../include/
 
-.DEFAULT: $(CXXProgram thttpproxy, thttpproxy)
+.DEFAULT: $(CXXProgram thttpproxy, thttpproxy) \
+          $(CXXProgram interfaces, interfaces)
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc
