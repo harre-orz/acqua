@@ -18,6 +18,8 @@ namespace acqua { namespace network {
 template <typename T>
 class basic_prefix_address
     : private boost::totally_ordered< basic_prefix_address<T> >
+    , private boost::unit_steppable< basic_prefix_address<T> >
+    , private boost::additive2< basic_prefix_address<T>, long int>
 {
 public:
     using address_type = T;
@@ -54,6 +56,10 @@ public:
 
     ACQUA_DECL basic_prefix_address & operator--();
 
+    ACQUA_DECL basic_prefix_address & operator+=(long int num);
+
+    ACQUA_DECL basic_prefix_address & operator-=(long int num);
+
     template <typename T_>
     friend bool operator==(basic_prefix_address<T_> const & lhs, basic_prefix_address<T_> const & rhs);
 
@@ -65,6 +71,10 @@ public:
 
     template <typename T_>
     friend std::size_t hash_value(basic_prefix_address<T_> const & rhs);
+
+private:
+    template <typename Ch, typename Tr>
+    void to_string(std::basic_ostream<Ch, Tr> & os) const;
 
 private:
     masklen_type masklen_;

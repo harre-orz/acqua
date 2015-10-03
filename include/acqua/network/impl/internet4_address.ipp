@@ -33,7 +33,7 @@ struct address_impl<internet4_address>
         namespace qi = boost::spirit::qi;
         qi::uint_parser<unsigned char, 10, 1, 3> dec;
         if (qi::parse(beg, end, dec >> '.' >> dec >> '.' >> dec >> '.' >> dec,
-                      bytes[0], bytes[1], bytes[2], bytes[3]))
+                      bytes[0], bytes[1], bytes[2], bytes[3]) && beg == end)
             return;
         ec.assign(EAFNOSUPPORT, boost::system::generic_category());
         bytes[0] = bytes[1] = bytes[2] = bytes[3] = 0;

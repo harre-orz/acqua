@@ -45,17 +45,17 @@ public:
 
     ACQUA_DECL internet4_address(bytes_type const & bytes);
 
-    ACQUA_DECL internet4_address(char const addr[4]);
+    ACQUA_DECL explicit internet4_address(char const addr[4]);
 
-    ACQUA_DECL internet4_address(signed char const addr[4]);
+    ACQUA_DECL explicit internet4_address(signed char const addr[4]);
 
-    ACQUA_DECL internet4_address(unsigned char const addr[4]);
+    ACQUA_DECL explicit internet4_address(unsigned char const addr[4]);
 
     ACQUA_DECL internet4_address(struct ::in_addr const & addr);
 
     ACQUA_DECL internet4_address(boost::asio::ip::address_v4 const & addr);
 
-    ACQUA_DECL internet4_address(std::uint32_t addr);
+    ACQUA_DECL explicit internet4_address(std::uint32_t addr);
 
     ACQUA_DECL internet4_address & operator=(internet4_address const &) = default;
 

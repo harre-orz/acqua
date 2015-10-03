@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <acqua/configp.hpp>
+#include <acqua/config.hpp>
 
 extern "C" {
 #include <netinet/udp.h>

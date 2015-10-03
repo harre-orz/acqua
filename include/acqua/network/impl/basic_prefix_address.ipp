@@ -66,10 +66,7 @@ T basic_prefix_address<T>::netmask() const
 template <typename T>
 basic_prefix_address<T> & basic_prefix_address<T>::operator++()
 {
-    auto i = masklen_ / 8 + 1;
-    address_.bytes_[i] += (0x01 << (8 - masklen_ % 8));
-    while(i > 0 && address_.bytes_[i] == 0x00)
-        ++address_.bytes_[--i];
+    address_ += (1 << (detail::max_masklen<T>() - masklen_));
     return *this;
 }
 
@@ -77,11 +74,39 @@ basic_prefix_address<T> & basic_prefix_address<T>::operator++()
 template <typename T>
 basic_prefix_address<T> & basic_prefix_address<T>::operator--()
 {
-    auto i = masklen_ / 8 + 1;
-    auto prior = address_.bytes_[i];
-    address_.bytes_[i] -= (0x01 << (8 - masklen_ % 8));
-    while(i > 0 && address_.bytes_[i] >= prior)
-        --address_.bytes_[--i];
+    address_ -= (1 << (detail::max_masklen<T>() - masklen_));
+    return *this;
+}
+
+
+template <typename T>
+basic_prefix_address<T> & basic_prefix_address<T>::operator+=(long int num)
+{
+    if (num < 0)
+        return operator-=(-num);
+    uint i = 1;
+    uint len = detail::max_masklen<T>() - masklen_;
+    while(num) {
+        address_ += (i << len);
+        num -= i;
+        i <<= 1;
+    }
+    return *this;
+}
+
+
+template <typename T>
+basic_prefix_address<T> & basic_prefix_address<T>::operator-=(long int num)
+{
+    if (num < 0)
+        return operator+=(-num);
+    uint i = 1;
+    uint len = detail::max_masklen<T>() - masklen_;
+    while(num) {
+        address_ -= (i << len);
+        num -= i;
+        i <<= 1;
+    }
     return *this;
 }
 
@@ -99,17 +124,22 @@ bool operator<(basic_prefix_address<T> const & lhs, basic_prefix_address<T> cons
     return lhs.masklen_ < rhs.masklen_ || lhs.address_ < rhs.address_;
 }
 
+template <typename T> template <typename Ch, typename Tr>
+void basic_prefix_address<T>::to_string(std::basic_ostream<Ch, Tr> & os) const
+{
+    char buf[64];
+    char * end = detail::address_impl<T>::to_string(address_.bytes_, buf);
+    *end++ = '/';
+    if ((*end = '0' + masklen_ / 100 % 10) != '0') end++;
+    if ((*end = '0' + masklen_ /  10 % 10) != '0') end++;
+    *end++ = '0' + masklen_ % 10;
+    std::copy(buf, end, std::ostreambuf_iterator<Ch>(os));
+}
 
 template <typename T, typename Ch, typename Tr>
 std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, basic_prefix_address<T> const & rhs)
 {
-    char buf[64];
-    char * end = detail::address_impl<T>::to_string(rhs.address_.bytes_, buf);
-    *end++ = '/';
-    if ((*end = '0' + rhs.masklen_ / 100 % 10) != '0') end++;
-    if ((*end = '0' + rhs.masklen_ /  10 % 10) != '0') end++;
-    *end = '0' + rhs.masklen_ % 10;
-    std::copy(buf, end, std::ostreambuf_iterator<Ch>(os));
+    rhs.to_string(os);
     return os;
 }
 

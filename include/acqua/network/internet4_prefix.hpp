@@ -18,5 +18,3 @@ namespace acqua { namespace network {
 using internet4_prefix = basic_prefix_address<internet4_address>;
 
 } }
-
-
