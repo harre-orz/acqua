@@ -22,7 +22,8 @@ namespace acqua { namespace container {
 template <
     typename T,
     typename Iter = typename T::iterator >
-class unique_container_iterator : public acqua::container::detail::pointer_container_iterator<
+class unique_container_iterator
+    : public detail::pointer_container_iterator<
     typename T::value_type,
     Iter,
     std::unique_ptr<T>
@@ -41,7 +42,8 @@ public:
  * コンテナの終端 end() を内部で保持するため、イテレータの終端が不要になる
  */
 template <typename T, typename Iter>
-class unique_container_iterator<T const, Iter> : public acqua::container::detail::pointer_container_iterator<
+class unique_container_iterator<T const, Iter>
+    : public detail::pointer_container_iterator<
     typename T::value_type const,
     Iter,
     std::unique_ptr<T>
