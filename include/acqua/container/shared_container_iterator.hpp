@@ -14,7 +14,14 @@
 
 namespace acqua { namespace container {
 
-template <typename T, typename Iter = typename T::iterator>
+/*!
+ * コンテナ T を shared_ptr<T> で管理されたイテレータでラップしたクラス.
+ *
+ * コンテナの終端 end() を内部で保持するため、イテレータの終端が不要になる
+ */
+template <
+    typename T,
+    typename Iter = typename T::iterator >
 class shared_container_iterator : public acqua::container::detail::pointer_container_iterator<
     typename T::value_type,
     Iter,
@@ -27,6 +34,12 @@ public:
     using base_type::base_type;
 };
 
+
+/*!
+ * 読み取り専用のコンテナ T を shared_ptr<T const> で管理されたイテレータでラップしたクラス.
+ *
+ * コンテナの終端 end() を内部で保持するため、イテレータの終端が不要になる
+ */
 template <typename T, typename Iter>
 class shared_container_iterator<T const, Iter> : public acqua::container::detail::pointer_container_iterator<
     typename T::value_type const,

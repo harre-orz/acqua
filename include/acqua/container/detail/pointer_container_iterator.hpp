@@ -8,98 +8,74 @@
 
 #pragma once
 
+#include <acqua/config.hpp>
 #include <iterator>
-#include <iostream>
+
 namespace acqua { namespace container { namespace detail {
 
 /*!
-  コンテナ T のポインタをイテレータに内包したデータクラス.
+  コンテナ<T> のポインタをイテレータに内包したデータクラス.
 
   イテレータの end を取得できない場合でも it != pointer_container_iterator() で判定できる
  */
 template <typename T, typename Iter, typename ManagedPtr>
 class pointer_container_iterator
-    : public std::iterator<std::forward_iterator_tag, typename Iter::value_type>
+    : public std::iterator<std::forward_iterator_tag, T>
 {
 protected:
     using base_type = pointer_container_iterator;
 
 public:
-    using iterator = Iter;
     using value_type = T;
-    using pointer = value_type *;
-    using reference = value_type &;
+    using pointer = T *;
+    using reference = T &;
     using managed_ptr = ManagedPtr;
     using element_type = typename managed_ptr::element_type;
 
 public:
-    pointer_container_iterator() = default;
-    pointer_container_iterator(pointer_container_iterator const & rhs) = default;
-    pointer_container_iterator(pointer_container_iterator && rhs) = default;
+    ACQUA_DECL pointer_container_iterator() = default;
 
-    pointer_container_iterator(iterator it, managed_ptr const & ptr)
-        : ptr_(ptr)
-        , it_(it)
-    {
-    }
+    ACQUA_DECL pointer_container_iterator(pointer_container_iterator const & rhs) = default;
 
-    pointer_container_iterator(iterator it, managed_ptr && ptr)
-        : ptr_(std::move(ptr))
-        , it_(it)
-    {
-    }
+    ACQUA_DECL pointer_container_iterator(pointer_container_iterator && rhs) = default;
 
-    template <typename U, typename std::enable_if<std::is_convertible<U, element_type>::value>::type * = nullptr>
-    pointer_container_iterator(U * ptr)
-        : ptr_(ptr)
-        , it_(ptr_->begin())
-    {
-    }
+    ACQUA_DECL pointer_container_iterator(managed_ptr const & ptr);
 
-    friend bool operator==(pointer_container_iterator const & lhs, pointer_container_iterator const & rhs)
-    {
-        if (lhs.ptr_ && rhs.ptr_) {
-            if (lhs.ptr_ == rhs.ptr_ && lhs.it_ != rhs.it_) return false;
-        } else if (lhs.ptr_) {
-            if (lhs.it_ != lhs.ptr_->end()) return false;
-        } else if (rhs.ptr_) {
-            if (rhs.it_ != rhs.ptr_->end()) return false;
-        }
+    ACQUA_DECL pointer_container_iterator(managed_ptr const & ptr, Iter it);
 
-        return true;
-    }
+    ACQUA_DECL pointer_container_iterator(managed_ptr && ptr);
 
-    friend bool operator!=(pointer_container_iterator const & lhs, pointer_container_iterator const & rhs)
-    {
-        return !(lhs == rhs);
-    }
+    ACQUA_DECL pointer_container_iterator(managed_ptr && ptr, Iter it);
 
-    reference operator*() const
-    {
-        return *it_;
-    }
+    ACQUA_DECL pointer_container_iterator(element_type * ptr);
 
-    pointer operator->() const
-    {
-        return &*it_;
-    }
+    ACQUA_DECL pointer_container_iterator(element_type * ptr, Iter it);
 
-    pointer_container_iterator & operator++()
-    {
-        ++it_;
-        return *this;
-    }
+    ACQUA_DECL pointer_container_iterator & operator=(pointer_container_iterator const & rhs) = default;
 
-    pointer_container_iterator operator++(int)
-    {
-        pointer_container_iterator it = *this;
-        ++it_;
-        return it;
-    }
-    
+    ACQUA_DECL pointer_container_iterator & operator=(pointer_container_iterator && rhs) = default;
+
+    ACQUA_DECL reference operator*() const;
+
+    ACQUA_DECL pointer operator->() const;
+
+    ACQUA_DECL pointer_container_iterator & operator++();
+
+    ACQUA_DECL pointer_container_iterator operator++(int);
+
+    ACQUA_DECL element_type * get() const;
+
+    template <typename T_, typename Iter_, typename ManagedPtr_>
+    ACQUA_DECL friend bool operator==(pointer_container_iterator<T_, Iter_, ManagedPtr_> const & lhs, pointer_container_iterator<T_, Iter_, ManagedPtr_> const & rhs);
+
+    template <typename T_, typename Iter_, typename ManagedPtr_>
+    ACQUA_DECL friend bool operator!=(pointer_container_iterator<T_, Iter_, ManagedPtr_> const & lhs, pointer_container_iterator<T_, Iter_, ManagedPtr_> const & rhs);
+
 private:
     managed_ptr ptr_;
-    iterator it_;
+    Iter it_;
 };
 
 } } }
+
+#include <acqua/container/detail/impl/pointer_container_iterator.ipp>

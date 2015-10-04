@@ -14,7 +14,14 @@
 
 namespace acqua { namespace container {
 
-template <typename T, typename Iter = typename T::iterator>
+/*!
+ * コンテナ T を unique_ptr<T> で管理されたイテレータでラップしたクラス.
+ *
+ * コンテナの終端 end() を内部で保持するため、イテレータの終端が不要になる
+ */
+template <
+    typename T,
+    typename Iter = typename T::iterator >
 class unique_container_iterator : public acqua::container::detail::pointer_container_iterator<
     typename T::value_type,
     Iter,
@@ -24,10 +31,15 @@ class unique_container_iterator : public acqua::container::detail::pointer_conta
     using base_type = typename unique_container_iterator::base_type;
 
 public:
-    using element_type = T;
     using base_type::base_type;
 };
 
+
+/*!
+ * 読み取り専用のコンテナ T を unique_ptr<T const> で管理されたイテレータでラップしたクラス.
+ *
+ * コンテナの終端 end() を内部で保持するため、イテレータの終端が不要になる
+ */
 template <typename T, typename Iter>
 class unique_container_iterator<T const, Iter> : public acqua::container::detail::pointer_container_iterator<
     typename T::value_type const,
@@ -35,11 +47,9 @@ class unique_container_iterator<T const, Iter> : public acqua::container::detail
     std::unique_ptr<T>
     >
 {
-
     using base_type = typename unique_container_iterator::base_type;
 
 public:
-    using element_type = T;
     using base_type::base_type;
 };
 
