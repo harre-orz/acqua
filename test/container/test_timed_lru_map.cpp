@@ -1,11 +1,11 @@
 #define BOOST_TEST_MAIN
 #include <boost/test/included/unit_test.hpp>
-#include <acqua/container/lru_map.hpp>
+#include <acqua/container/timed_lru_map.hpp>
 #include <vector>
 
 BOOST_AUTO_TEST_SUITE(lru_set)
 
-using lru_map = acqua::container::lru_map<int, int>;
+using lru_map = acqua::container::timed_lru_map<int, int>;
 
 BOOST_AUTO_TEST_CASE(lru_set_basics)
 {
@@ -17,7 +17,6 @@ BOOST_AUTO_TEST_CASE(lru_set_basics)
         map.push(std::make_pair(i, i * 2));
     }
 
-    map.back();
     i = elem_count;
     for(auto const & e : map) {
         --i;

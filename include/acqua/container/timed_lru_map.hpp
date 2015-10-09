@@ -9,45 +9,53 @@
 #pragma once
 
 #include <acqua/config.hpp>
+#include <chrono>
 #include <acqua/container/detail/lru_cache_facade.hpp>
-#include <acqua/container/detail/lru_set_impl.hpp>
+#include <acqua/container/detail/timed_lru_map_impl.hpp>
 
 namespace acqua { namespace container {
 
 template <
-    typename T,
-    typename Hash = std::hash<T>,
-    typename Pred = std::equal_to<T>,
-    typename Alloc = std::allocator<T>
+    typename K,
+    typename V,
+    typename Hash = std::hash<K>,
+    typename Pred = std::equal_to<K>,
+    typename Alloc = std::allocator< std::pair<K const, V> >,
+    typename Clock = std::chrono::steady_clock
     >
-class lru_set
-    : private detail::lru_cache_facade< detail::lru_set_impl<T, Hash, Pred, Alloc> >
+class timed_lru_map
+    : private detail::lru_cache_facade< detail::timed_lru_map_impl<K, V, Hash, Pred, Alloc, Clock> >
 {
-    using base_type = typename lru_set::base_type;
-    using impl_type = typename lru_set::impl_type;
+    using base_type = typename timed_lru_map::base_type;
+    using impl_type = typename timed_lru_map::impl_type;
 
 public:
     using size_type = typename impl_type::size_type;
+    using key_type = typename impl_type::key_type;
+    using mapped_type = typename impl_type::mapped_type;
     using value_type = typename impl_type::value_type;
     using allocator_type = typename impl_type::allocator_type;
     using iterator = typename base_type::iterator;
     using const_iterator = typename base_type::const_iterator;
     using reverse_iterator = typename base_type::reverse_iterator;
     using const_reverse_iterator = typename base_type::const_reverse_iterator;
+    using clock_type = typename impl_type::clock_type;
+    using time_point_type = typename impl_type::time_point_type;
+    using duration_type = typename impl_type::duration_type;
 
 public:
-    ACQUA_DECL lru_set()
+    ACQUA_DECL timed_lru_map()
         : base_type(allocator_type(), 32)
     {
     }
 
-    ACQUA_DECL lru_set(lru_set const & rhs) = default;
+    ACQUA_DECL timed_lru_map(timed_lru_map const & rhs) = default;
 
-    ACQUA_DECL lru_set(lru_set && rhs) = default;
+    ACQUA_DECL timed_lru_map(timed_lru_map && rhs) = default;
 
-    ACQUA_DECL lru_set & operator=(lru_set const & rhs) = default;
+    ACQUA_DECL timed_lru_map & operator=(timed_lru_map const & rhs) = default;
 
-    ACQUA_DECL lru_set & operator=(lru_set && rhs) = default;
+    ACQUA_DECL timed_lru_map & operator=(timed_lru_map && rhs) = default;
 
     ACQUA_DECL allocator_type get_allocator() const
     {
@@ -124,12 +132,12 @@ public:
         return base_type::back();
     }
 
-    ACQUA_DECL iterator find(value_type const & key)
+    ACQUA_DECL iterator find(key_type const & key)
     {
         return base_type::find(key);
     }
 
-    ACQUA_DECL const_iterator find(value_type const & key) const
+    ACQUA_DECL const_iterator find(key_type const & key) const
     {
         return base_type::find(key);
     }
@@ -154,7 +162,7 @@ public:
         return base_type::erase(beg, end);
     }
 
-    ACQUA_DECL iterator erase(value_type const & key)
+    ACQUA_DECL iterator erase(key_type const & key)
     {
         return base_type::erase(base_type::find(key));
     }
@@ -208,6 +216,16 @@ public:
     ACQUA_DECL void max_size(size_type size)
     {
         impl_type::max_size(size);
+    }
+
+    ACQUA_DECL duration_type expire() const
+    {
+        return impl_type::expire();
+    }
+
+    ACQUA_DECL void expire(duration_type const & duration) const
+    {
+        impl_type::expire(duration);
     }
 
     ACQUA_DECL size_type node_element_size() const

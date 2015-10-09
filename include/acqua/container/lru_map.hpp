@@ -8,130 +8,215 @@
 
 #pragma once
 
-#include <chrono>
-#include <acqua/container/detail/lru_cache.hpp>
+#include <acqua/config.hpp>
+#include <acqua/container/detail/lru_cache_facade.hpp>
+#include <acqua/container/detail/lru_map_impl.hpp>
 
 namespace acqua { namespace container {
 
 template <
     typename K,
     typename V,
-    typename Clock = std::chrono::steady_clock,
     typename Hash = std::hash<K>,
     typename Pred = std::equal_to<K>,
-    typename Allocator = std::allocator< std::pair<K const, V> >
+    typename Alloc = std::allocator< std::pair<K const, V> >
     >
 class lru_map
+    : private detail::lru_cache_facade< detail::lru_map_impl<K, V, Hash, Pred, Alloc> >
 {
-public:
-    using key_type = K;
-    using mapped_type = V;
-    using value_type = std::pair<K const, V>;
-    using hasher = Hash;
-    using key_equal = Pred;
-    using allocator_type = Allocator;
-    using size_type = std::size_t;
-    using clock_type = Clock;
-    using time_point_type = typename clock_type::time_point;
-    using duration_type = typename clock_type::duration;
-
-private:
-    struct node
-    {
-        value_type value_;
-
-        node(value_type const & v)
-            : value_(v) {}
-
-        node & operator=(value_type const & rhs)
-        {
-            const_cast<key_type &>(value_.first) = rhs.first;
-            value_.second = rhs.second;
-            return *this;
-        }
-
-        node & operator=(value_type && rhs)
-        {
-            const_cast<key_type &>(value_.first) = std::move(rhs.first);
-            value_.second = std::move(rhs.second);
-            return *this;
-        }
-
-        friend bool operator==(node const & lhs, node const & rhs)
-        {
-            return key_equal()(lhs.value_.first, rhs.value_.first);
-        }
-
-        friend size_type hash_value(node const & rhs)
-        {
-            return hasher()(rhs.value_.first);
-        }
-    };
-
-    struct key_node_equal
-    {
-        bool operator()(key_type const & lhs, node const & rhs) const
-        {
-            return key_equal()(lhs, rhs.value_.first);
-        }
-    };
-
-    struct value_hasher
-    {
-        size_type operator()(value_type const & rhs) const
-        {
-            return hasher()(rhs.first);
-        }
-    };
-
-    struct value_node_equal
-    {
-        bool operator()(value_type const & lhs, node const & rhs) const
-        {
-            return key_equal()(lhs.first, rhs.value_.first);
-        }
-    };
-
-    using base_type = detail::lru_cache<value_type, node, clock_type, Hash, key_node_equal, allocator_type>;
+    using base_type = typename lru_map::base_type;
+    using impl_type = typename lru_map::impl_type;
 
 public:
+    using size_type = typename impl_type::size_type;
+    using key_type = typename impl_type::key_type;
+    using mapped_type = typename impl_type::mapped_type;
+    using value_type = typename impl_type::value_type;
+    using allocator_type = typename impl_type::allocator_type;
     using iterator = typename base_type::iterator;
     using const_iterator = typename base_type::const_iterator;
     using reverse_iterator = typename base_type::reverse_iterator;
     using const_reverse_iterator = typename base_type::const_reverse_iterator;
 
-    lru_map(size_type bucket_size, allocator_type alloc = allocator_type())
-        : base_(bucket_size, alloc) {}
+public:
+    ACQUA_DECL lru_map()
+        : base_type(allocator_type(), 32)
+    {
+    }
 
-    void clear() { base_.clear(); }
-    bool empty() const { return base_.empty(); }
-    size_type size() const { return base_.size(); }
-    iterator begin() { return base_.begin(); }
-    const_iterator begin() const { return base_.begin(); }
-    iterator end() { return base_.end(); }
-    const_iterator end() const { return base_.end(); }
-    reverse_iterator rbegin() { return base_.rbegin(); }
-    const_reverse_iterator rbegin() const { return base_.rbegin(); }
-    reverse_iterator rend() { return base_.rend(); }
-    const_reverse_iterator rend() const { return base_.rend(); }
-    void push(value_type const & v) { base_.push(v, value_hasher(), value_node_equal()); }
-    //void push(value_type && v) { base_.push(std::move(v)); }
-    void pop() { base_.pop(); }
-    value_type & front() { return base_.front(); }
-    value_type const & front() const { return base_.front(); }
-    value_type & back() { return base_.back(); }
-    value_type const & back() const { return base_.back(); }
-    iterator find(key_type const & k) { return base_.find(k, Hash(), key_node_equal()); }
-    const_iterator find(key_equal const & k) const { return base_.find(k, Hash(), key_node_equal()); }
-    iterator erase(const_iterator it) { return base_.erase(it); }
-    iterator erase(const_iterator beg, const_iterator end) { return base_.erase(beg, end); }
-    size_type max_size() const { return base_.max_size(); }
-    void max_size(size_type size) { base_.max_size(size); }
-    duration_type const & max_duration() const { return base_.max_duration(); }
-    void max_duration(duration_type const & dura) { base_.max_duration(dura); }
+    ACQUA_DECL lru_map(lru_map const & rhs)  = default;
 
-private:
-    base_type base_;
+    ACQUA_DECL lru_map(lru_map && rhs) = default;
+
+    ACQUA_DECL lru_map & operator=(lru_map const & rhs) = default;
+
+    ACQUA_DECL lru_map & operator=(lru_map && rhs) = default;
+
+    ACQUA_DECL allocator_type get_allocator() const
+    {
+        return base_type::get_allocator();
+    }
+
+    ACQUA_DECL bool empty() const
+    {
+        return base_type::empty();
+    }
+
+    ACQUA_DECL size_type size() const
+    {
+        return base_type::size();
+    }
+
+    ACQUA_DECL iterator begin()
+    {
+        return base_type::begin();
+    }
+
+    ACQUA_DECL const_iterator begin() const
+    {
+        return base_type::begin();
+    }
+
+    ACQUA_DECL iterator end()
+    {
+        return base_type::end();
+    }
+
+    ACQUA_DECL const_iterator end() const
+    {
+        return base_type::end();
+    }
+
+    ACQUA_DECL reverse_iterator rbegin()
+    {
+        return base_type::rbegin();
+    }
+
+    ACQUA_DECL const_reverse_iterator rbegin() const
+    {
+        return base_type::rbegin();
+    }
+
+    ACQUA_DECL reverse_iterator rend()
+    {
+        return base_type::rend();
+    }
+
+    ACQUA_DECL const_reverse_iterator rend() const
+    {
+        return base_type::rend();
+    }
+
+    ACQUA_DECL value_type & front()
+    {
+        return base_type::front();
+    }
+
+    ACQUA_DECL value_type const & front() const
+    {
+        return base_type::front();
+    }
+
+    ACQUA_DECL value_type & back()
+    {
+        return base_type::back();
+    }
+
+    ACQUA_DECL value_type const & back() const
+    {
+        return base_type::back();
+    }
+
+    ACQUA_DECL iterator find(key_type const & key)
+    {
+        return base_type::find(key);
+    }
+
+    ACQUA_DECL const_iterator find(key_type const & key) const
+    {
+        return base_type::find(key);
+    }
+
+    ACQUA_DECL iterator erase(iterator it)
+    {
+        return base_type::erase(it);
+    }
+
+    ACQUA_DECL iterator erase(const_iterator it)
+    {
+        return base_type::erase(it);
+    }
+
+    ACQUA_DECL iterator erase(iterator beg, iterator end)
+    {
+        return base_type::erase(beg, end);
+    }
+
+    ACQUA_DECL iterator erase(const_iterator beg, const_iterator end)
+    {
+        return base_type::erase(beg, end);
+    }
+
+    ACQUA_DECL iterator erase(key_type const & key)
+    {
+        return base_type::erase(base_type::find(key));
+    }
+
+    ACQUA_DECL bool push(value_type const & val)
+    {
+        return base_type::push(val);
+    }
+
+    ACQUA_DECL bool push(value_type && val)
+    {
+        return base_type::push(std::move(val));
+    }
+
+    ACQUA_DECL void pop()
+    {
+        base_type::pop();
+    }
+
+    ACQUA_DECL std::pair<iterator, bool> insert(value_type const & val)
+    {
+        bool res = push(val);
+        return std::make_pair(begin(), res);
+    }
+
+    ACQUA_DECL iterator insert(const_iterator, value_type const & val)
+    {
+        push(val);
+        return begin();
+    }
+
+    template <typename ... Args>
+    ACQUA_DECL std::pair<iterator, bool> emplace(Args... args)
+    {
+        bool res = push(std::make_pair(args...));
+        return std::make_pair(begin(), res);
+    }
+
+    template <typename ... Args>
+    ACQUA_DECL iterator emplace_hint(const_iterator, Args... args)
+    {
+        push(std::make_pair(args...));
+        return begin();
+    }
+
+    ACQUA_DECL size_type max_size() const
+    {
+        return base_type::max_size();
+    }
+
+    ACQUA_DECL void max_size(size_type size)
+    {
+        base_type::max_size(size);
+    }
+
+    ACQUA_DECL size_type node_element_size() const
+    {
+        return base_type::node_element_size();
+    }
 };
 
 } }

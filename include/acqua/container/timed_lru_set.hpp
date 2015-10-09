@@ -9,8 +9,9 @@
 #pragma once
 
 #include <acqua/config.hpp>
+#include <chrono>
 #include <acqua/container/detail/lru_cache_facade.hpp>
-#include <acqua/container/detail/lru_set_impl.hpp>
+#include <acqua/container/detail/timed_lru_set_impl.hpp>
 
 namespace acqua { namespace container {
 
@@ -18,13 +19,14 @@ template <
     typename T,
     typename Hash = std::hash<T>,
     typename Pred = std::equal_to<T>,
-    typename Alloc = std::allocator<T>
+    typename Alloc = std::allocator<T>,
+    typename Clock = std::chrono::steady_clock
     >
-class lru_set
-    : private detail::lru_cache_facade< detail::lru_set_impl<T, Hash, Pred, Alloc> >
+class timed_lru_set
+    : private detail::lru_cache_facade< detail::timed_lru_set_impl<T, Hash, Pred, Alloc, Clock> >
 {
-    using base_type = typename lru_set::base_type;
-    using impl_type = typename lru_set::impl_type;
+    using base_type = typename timed_lru_set::base_type;
+    using impl_type = typename timed_lru_set::impl_type;
 
 public:
     using size_type = typename impl_type::size_type;
@@ -34,20 +36,23 @@ public:
     using const_iterator = typename base_type::const_iterator;
     using reverse_iterator = typename base_type::reverse_iterator;
     using const_reverse_iterator = typename base_type::const_reverse_iterator;
+    using clock_type = typename impl_type::clock_type;
+    using time_point_type = typename impl_type::time_point_type;
+    using duration_type = typename impl_type::duration_type;
 
 public:
-    ACQUA_DECL lru_set()
+    ACQUA_DECL timed_lru_set()
         : base_type(allocator_type(), 32)
     {
     }
 
-    ACQUA_DECL lru_set(lru_set const & rhs) = default;
+    ACQUA_DECL timed_lru_set(timed_lru_set const & rhs) = default;
 
-    ACQUA_DECL lru_set(lru_set && rhs) = default;
+    ACQUA_DECL timed_lru_set(timed_lru_set && rhs) = default;
 
-    ACQUA_DECL lru_set & operator=(lru_set const & rhs) = default;
+    ACQUA_DECL timed_lru_set & operator=(timed_lru_set const & rhs) = default;
 
-    ACQUA_DECL lru_set & operator=(lru_set && rhs) = default;
+    ACQUA_DECL timed_lru_set & operator=(timed_lru_set && rhs) = default;
 
     ACQUA_DECL allocator_type get_allocator() const
     {
@@ -208,6 +213,16 @@ public:
     ACQUA_DECL void max_size(size_type size)
     {
         impl_type::max_size(size);
+    }
+
+    ACQUA_DECL duration_type expire() const
+    {
+        return impl_type::expire();
+    }
+
+    ACQUA_DECL void expire(duration_type const & duration) const
+    {
+        impl_type::expire(duration);
     }
 
     ACQUA_DECL size_type node_element_size() const
