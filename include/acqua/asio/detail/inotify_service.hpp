@@ -30,8 +30,6 @@ class inotify_service
     using descriptor_type = boost::asio::posix::stream_descriptor;
 
 public:
-    static boost::asio::io_service::id id;
-
     using native_handle_type = typename descriptor_type::native_handle_type;
     using event_flags = int;
     static const event_flags all_events = IN_ALL_EVENTS;
@@ -207,7 +205,7 @@ public:
 
         std::unique_ptr< std::vector<event_type> > res(new std::vector<event_type>);
         do_notify(impl, *res);
-        return iterator_type(res->begin(), std::move(res));;
+        return iterator_type(std::move(res));;
     }
 
     template <typename Handler>
@@ -225,7 +223,7 @@ public:
         } else {
             std::unique_ptr< std::vector<event_type> > res(new std::vector<event_type>);
             do_notify(impl, *res);
-            handler(boost::system::error_code(), iterator_type(res->begin(), std::move(res)));
+            handler(boost::system::error_code(), iterator_type(std::move(res)));
         }
     }
 
@@ -285,7 +283,7 @@ private:
 
             std::unique_ptr< std::vector<event_type> > res(new std::vector<event_type>);
             do_notify(impl, *res);
-            handler(boost::system::error_code(), iterator_type(res->begin(), std::move(res)));
+            handler(boost::system::error_code(), iterator_type(std::move(res)));
         }
     }
 
@@ -341,7 +339,5 @@ private:
         }
     }
 };
-
-boost::asio::io_service::id inotify_service::id;
 
 } } }

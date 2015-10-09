@@ -357,7 +357,7 @@ auto lru_cache_facade<Impl>::erase(const_iterator it) -> iterator
 {
     auto pos = end();
     if (it != pos) {
-        node const & val = it.base();
+        node const & val = *it.base();
         pos = list_.erase(list_.iterator_to(val));
         hash_.erase(hash_.iterator_to(val));
         del_node(val);

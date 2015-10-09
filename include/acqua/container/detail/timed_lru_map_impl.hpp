@@ -60,7 +60,7 @@ public:
 
         friend bool operator==(node_base const & lhs, node_base const & rhs)
         {
-            return P()(lhs.value_.first, rhs.value_.second);
+            return P()(lhs.value_.first, rhs.value_.first);
         }
 
         friend size_type hash_value(node_base const & rhs)
@@ -100,22 +100,22 @@ public:
         }
     };
 
-    size_type max_size() const
+    size_type get_max_size() const
     {
         return max_size_;
     }
 
-    void max_size(size_type size)
+    void set_max_size(size_type size)
     {
         max_size_ = size;
     }
 
-    duration_type const & expire() const
+    duration_type const & get_expire() const
     {
         return min_expire_;
     }
 
-    void expire(duration_type const & duration)
+    void set_expire(duration_type duration)
     {
         min_expire_ = duration;
     }

@@ -205,12 +205,12 @@ public:
 
     ACQUA_DECL size_type max_size() const
     {
-        return base_type::max_size();
+        return base_type::get_max_size();
     }
 
     ACQUA_DECL void max_size(size_type size)
     {
-        base_type::max_size(size);
+        base_type::set_max_size(size);
     }
 
     ACQUA_DECL size_type node_element_size() const

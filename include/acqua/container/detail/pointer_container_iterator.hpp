@@ -66,10 +66,10 @@ public:
     ACQUA_DECL element_type * get() const;
 
     template <typename T_, typename Iter_, typename ManagedPtr_>
-    ACQUA_DECL friend bool operator==(pointer_container_iterator<T_, Iter_, ManagedPtr_> const & lhs, pointer_container_iterator<T_, Iter_, ManagedPtr_> const & rhs);
+    friend bool operator==(pointer_container_iterator<T_, Iter_, ManagedPtr_> const & lhs, pointer_container_iterator<T_, Iter_, ManagedPtr_> const & rhs);
 
     template <typename T_, typename Iter_, typename ManagedPtr_>
-    ACQUA_DECL friend bool operator!=(pointer_container_iterator<T_, Iter_, ManagedPtr_> const & lhs, pointer_container_iterator<T_, Iter_, ManagedPtr_> const & rhs);
+    friend bool operator!=(pointer_container_iterator<T_, Iter_, ManagedPtr_> const & lhs, pointer_container_iterator<T_, Iter_, ManagedPtr_> const & rhs);
 
 private:
     managed_ptr ptr_;
