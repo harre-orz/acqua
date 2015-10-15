@@ -16,6 +16,7 @@ extern "C" {
 #include <mutex>
 #include <array>
 #include <unordered_map>
+#include <boost/bind.hpp>
 #include <boost/optional.hpp>
 #include <boost/utility/in_place_factory.hpp>
 #include <boost/asio/io_service.hpp>
@@ -214,16 +215,23 @@ public:
         if ((std::size_t)(impl.end_ - impl.beg_) < sizeof(::inotify_event)) {
             impl.fd_->async_read_some(
                 boost::asio::buffer(impl.buffer_),
-                std::bind(&inotify_service::watch_handle<Handler>,
-                          std::ref(impl),
-                          std::placeholders::_1,
-                          std::placeholders::_2,
-                          handler)
+                boost::bind(&inotify_service::watch_handle<Handler>,
+                            std::ref(impl), _1, _2,handler)
             );
         } else {
-            std::unique_ptr< std::vector<event_type> > res(new std::vector<event_type>);
-            do_notify(impl, *res);
-            handler(boost::system::error_code(), iterator_type(std::move(res)));
+            struct lazy_handle
+            {
+                implementation_type & impl_;
+                Handler handler_;
+
+                void operator()() const
+                {
+                    std::unique_ptr< std::vector<event_type> > res(new std::vector<event_type>);
+                    do_notify(impl_, *res);
+                    handler_(boost::system::error_code(), std::move(res));
+                }
+            };
+            impl.fd_->get_io_service().post(lazy_handle{impl, handler});
         }
     }
 

@@ -8,7 +8,7 @@ extern "C" {
 
 namespace acqua { namespace network { namespace detail {
 
-std::ostream & operator<<(std::ostream & os, ethernet_header const & rhs)
+inline std::ostream & operator<<(std::ostream & os, ethernet_header const & rhs)
 {
     auto pro = rhs.protocol();
     os << "ethernet 0x" << std::hex << (int)pro << std::dec;

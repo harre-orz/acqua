@@ -6,7 +6,7 @@
 
 namespace acqua { namespace network { namespace detail {
 
-std::ostream & operator<<(std::ostream & os, icmp_header const & rhs)
+inline std::ostream & operator<<(std::ostream & os, icmp_header const & rhs)
 {
     os << "icmp type:" << rhs.type();
     switch(rhs.type()) {

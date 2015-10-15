@@ -4,11 +4,9 @@
   Copyright (c) 2015 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
- */
+*/
 
 #pragma once
-
-#include <acqua/config.hpp>
 
 #include <iostream>
 #include <boost/operators.hpp>
@@ -26,39 +24,39 @@ public:
     using masklen_type = typename T::masklen_type;
 
 public:
-    ACQUA_DECL basic_prefix_address();
+    basic_prefix_address();
 
-    ACQUA_DECL basic_prefix_address(basic_prefix_address const &) = default;
+    basic_prefix_address(basic_prefix_address const & rhs);
 
-    ACQUA_DECL basic_prefix_address(basic_prefix_address &&) = default;
+    basic_prefix_address(basic_prefix_address && rhs);
 
-    ACQUA_DECL explicit basic_prefix_address(address_type const & address, masklen_type masklen);
+    explicit basic_prefix_address(address_type const & address, masklen_type masklen);
 
-    ACQUA_DECL void assign(address_type const & address, masklen_type masklen);
+    void assign(address_type const & address, masklen_type masklen);
 
-    ACQUA_DECL masklen_type masklen() const
+    masklen_type masklen() const
     {
         return masklen_;
     }
 
-    ACQUA_DECL address_type address() const
+    address_type address() const
     {
         return address_;
     }
 
-    ACQUA_DECL address_type netmask() const;
+    address_type netmask() const;
 
-    ACQUA_DECL basic_prefix_address & operator=(basic_prefix_address const &) = default;
+    basic_prefix_address & operator=(basic_prefix_address const & rhs);
 
-    ACQUA_DECL basic_prefix_address & operator=(basic_prefix_address &&) = default;
+    basic_prefix_address & operator=(basic_prefix_address && rhs);
 
-    ACQUA_DECL basic_prefix_address & operator++();
+    basic_prefix_address & operator++();
 
-    ACQUA_DECL basic_prefix_address & operator--();
+    basic_prefix_address & operator--();
 
-    ACQUA_DECL basic_prefix_address & operator+=(long int num);
+    basic_prefix_address & operator+=(long int num);
 
-    ACQUA_DECL basic_prefix_address & operator-=(long int num);
+    basic_prefix_address & operator-=(long int num);
 
     template <typename T_>
     friend bool operator==(basic_prefix_address<T_> const & lhs, basic_prefix_address<T_> const & rhs);

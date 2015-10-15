@@ -7,7 +7,7 @@
 
 namespace acqua { namespace network { namespace detail {
 
-std::ostream & operator<<(std::ostream & os, udp_header const & rhs)
+inline std::ostream & operator<<(std::ostream & os, udp_header const & rhs)
 {
     os << "udp "
        << " src=" << rhs.source()

@@ -8,7 +8,7 @@
 namespace acqua { namespace network { namespace detail {
 
 template <typename It>
-void ipv6_header::shrink(It & end) const
+inline void ipv6_header::shrink(It & end) const
 {
     int len = (reinterpret_cast<std::uint8_t const *>(&*end) - reinterpret_cast<std::uint8_t const *>(this)) -
         (ntohs(value_type::ip6_ctlun.ip6_un1.ip6_un1_plen) + sizeof(*this));
@@ -18,14 +18,14 @@ void ipv6_header::shrink(It & end) const
 }
 
 template <typename It>
-void ipv6_header::commit(It const & end)
+inline void ipv6_header::commit(It const & end)
 {
     int len = (reinterpret_cast<std::uint8_t const *>(*&end) - reinterpret_cast<std::uint8_t const *>(this)) - sizeof(*this);
     value_type::ip6_ctlun.ip6_un1.ip6_un1_plen = htons(len);
 }
 
 
-std::ostream & operator<<(std::ostream & os, ipv6_header const & rhs)
+inline std::ostream & operator<<(std::ostream & os, ipv6_header const & rhs)
 {
     os << "ipv6 type:" << rhs.protocol()
        << " source=" << rhs.source()

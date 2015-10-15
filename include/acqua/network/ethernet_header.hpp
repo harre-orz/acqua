@@ -8,8 +8,6 @@
 
 #pragma once
 
-#include <acqua/config.hpp>
-
 extern "C" {
 #include <net/ethernet.h>
 }
@@ -62,17 +60,17 @@ public:
     using base_type::size;
     using base_type::shrink;
 
-    ACQUA_DECL protocol_type protocol() const
+    protocol_type protocol() const
     {
         return static_cast<protocol_type>( ntohs(value_type::ether_type) );
     }
 
-    ACQUA_DECL void protocol(protocol_type code)
+    void protocol(protocol_type code)
     {
         value_type::ether_type = htons(code);
     }
 
-    ACQUA_DECL friend std::ostream & operator<<(std::ostream & os, ethernet_header const & rhs);
+    friend std::ostream & operator<<(std::ostream & os, ethernet_header const & rhs);
 };
 
 }  // detail

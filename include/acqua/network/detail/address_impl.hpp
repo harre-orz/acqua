@@ -8,8 +8,6 @@
 
 #pragma once
 
-#include <acqua/config.hpp>
-
 #include <boost/system/error_code.hpp>
 #include <boost/spirit/include/qi.hpp>
 
@@ -24,7 +22,7 @@ namespace detail {
 struct address_impl_base
 {
     template <typename T>
-    ACQUA_DECL static bool in_mask(T const & bytes)
+    static bool in_mask(T const & bytes)
     {
         for(auto it = bytes.begin(), end = bytes.end(); it != end; ++it) {
             switch(*it) {
@@ -46,19 +44,19 @@ struct address_impl_base
     }
 
     template <typename T>
-    ACQUA_DECL static void incr(T & bytes)
+    static void incr(T & bytes)
     {
         for(auto it = bytes.rbegin(); it != bytes.rend() && ++(*it++) == 0x00;);
     }
 
     template <typename T>
-    ACQUA_DECL static void decr(T & bytes)
+    static void decr(T & bytes)
     {
         for(auto it = bytes.rbegin(); it != bytes.rend() && --(*it++) == 0xFF;);
     }
 
     template <typename T>
-    ACQUA_DECL static void add(T & bytes, long int num)
+    static void add(T & bytes, long int num)
     {
         if (num < 0)
             sub(bytes, -num);
@@ -69,7 +67,7 @@ struct address_impl_base
     }
 
     template <typename T>
-    ACQUA_DECL static void sub(T & bytes, long int num)
+    static void sub(T & bytes, long int num)
     {
         if (num < 0)
             add(bytes, -num);
@@ -80,7 +78,7 @@ struct address_impl_base
     }
 
     template <typename T>
-    ACQUA_DECL static int netmask_length(T const & bytes)
+    static int netmask_length(T const & bytes)
     {
         int len = 0;
         for(auto ch : bytes) {

@@ -4,11 +4,9 @@
   Copyright (c) 2015 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
- */
+*/
 
 #pragma once
-
-#include <acqua/config.hpp>
 
 extern "C" {
 #include <netinet/icmp6.h>
@@ -22,13 +20,7 @@ namespace acqua { namespace network { namespace detail {
 
 class icmpv6_header
     : private ::icmp6_hdr
-    , public checkable<
-        icmpv6_header,
-        ::icmp6_hdr,
-        u_int16_t,
-        &icmp6_hdr::icmp6_cksum,
-        data_checksum
-    >
+    , public checkable<icmpv6_header, ::icmp6_hdr, u_int16_t, &icmp6_hdr::icmp6_cksum, data_checksum >
 {
     friend checkable;
     using value_type = ::icmp6_hdr;
@@ -41,87 +33,87 @@ public:
         neighbor_advertisement_message = 136,
     };
 
-    ACQUA_DECL message_type type() const noexcept
+    message_type type() const noexcept
     {
         return static_cast<message_type>(value_type::icmp6_type);
     }
 
-    ACQUA_DECL void type(message_type n) noexcept
+    void type(message_type n) noexcept
     {
         value_type::icmp6_type = n;
     }
 
-    ACQUA_DECL std::uint8_t code() const noexcept
+    std::uint8_t code() const noexcept
     {
         return value_type::icmp6_code;
     }
 
-    ACQUA_DECL void code(std::uint8_t n) noexcept
+    void code(std::uint8_t n) noexcept
     {
         value_type::icmp6_code = n;
     }
 
 protected:
-    ACQUA_DECL std::uint16_t id() const noexcept
+    std::uint16_t id() const noexcept
     {
         return ntohs(value_type::icmp6_dataun.icmp6_un_data16[0]);
     }
 
-    ACQUA_DECL void id(std::uint16_t n) noexcept
+    void id(std::uint16_t n) noexcept
     {
         value_type::icmp6_dataun.icmp6_un_data16[0] = htons(n);
     }
 
-    ACQUA_DECL std::uint16_t seq() const noexcept
+    std::uint16_t seq() const noexcept
     {
         return ntohs(value_type::icmp6_dataun.icmp6_un_data16[1]);
     }
 
-    ACQUA_DECL void seq(std::uint16_t n) noexcept
+    void seq(std::uint16_t n) noexcept
     {
         value_type::icmp6_dataun.icmp6_un_data16[1] = htons(n);
     }
 
 protected:
-    ACQUA_DECL bool is_router() const noexcept
+    bool is_router() const noexcept
     {
         return value_type::icmp6_dataun.icmp6_un_data8[0] & 0x80;
     }
 
-    ACQUA_DECL void is_router(bool b) noexcept
+    void is_router(bool b) noexcept
     {
         if (b) value_type::icmp6_dataun.icmp6_un_data8[0] |=  0x80;
         else   value_type::icmp6_dataun.icmp6_un_data8[0] &= ~0x80;
     }
 
-    ACQUA_DECL bool is_solicited() const noexcept
+    bool is_solicited() const noexcept
     {
         return value_type::icmp6_dataun.icmp6_un_data8[0] & 0x40;
     }
 
-    ACQUA_DECL void is_solicited(bool b) noexcept
+    void is_solicited(bool b) noexcept
     {
         if (b) value_type::icmp6_dataun.icmp6_un_data8[0] |=  0x40;
         else   value_type::icmp6_dataun.icmp6_un_data8[0] &= ~0x40;
     }
 
-    ACQUA_DECL bool is_override() const noexcept
+    bool is_override() const noexcept
     {
         return value_type::icmp6_dataun.icmp6_un_data8[0] & 0x20;
     }
 
-    ACQUA_DECL void is_override(bool b) noexcept
+    void is_override(bool b) noexcept
     {
         if (b) value_type::icmp6_dataun.icmp6_un_data8[0] |=  0x20;
         else   value_type::icmp6_dataun.icmp6_un_data8[0] &= ~0x20;
     }
 
-    ACQUA_DECL internet6_address const & target_address() const noexcept
+    internet6_address const & target_address() const noexcept
     {
         return *reinterpret_cast<internet6_address const *>(value_type::icmp6_dataun.icmp6_un_data8 + 4);
     }
 
-    ACQUA_DECL void target_address(internet6_address const & addr) noexcept
+    void target_address(internet6_address const & addr) noexcept
     {
         *reinterpret_cast<internet6_address *>(value_type::icmp6_dataun.icmp6_un_data8 + 4) = addr;
     }

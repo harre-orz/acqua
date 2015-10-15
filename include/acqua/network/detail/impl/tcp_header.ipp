@@ -7,7 +7,7 @@
 
 namespace acqua { namespace network { namespace detail {
 
-std::ostream & operator<<(std::ostream & os, tcp_header const & rhs)
+inline std::ostream & operator<<(std::ostream & os, tcp_header const & rhs)
 {
     os << "tcp "
        << " src=" << rhs.source()

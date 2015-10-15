@@ -6,7 +6,7 @@
 
 namespace acqua { namespace network { namespace detail {
 
-std::ostream & operator<<(std::ostream & os, ethernet_arp const & rhs)
+inline std::ostream & operator<<(std::ostream & os, ethernet_arp const & rhs)
 {
     os << "arp 0x" << std::hex << rhs.operation() << std::dec;
     switch(rhs.operation()) {

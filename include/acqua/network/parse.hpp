@@ -8,8 +8,6 @@
 
 #pragma once
 
-#include <acqua/config.hpp>
-
 #include <iterator>
 #include <type_traits>
 #include <acqua/network/detail/header_base.hpp>

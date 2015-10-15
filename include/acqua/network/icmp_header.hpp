@@ -4,7 +4,7 @@
   Copyright (c) 2015 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
- */
+*/
 
 #pragma once
 
@@ -21,21 +21,10 @@ namespace acqua { namespace network { namespace detail {
 class icmp_header
 #ifdef __linux__
     : private ::icmphdr
-    , public checkable<
-        icmp_header, ::icmphdr,
-        u_int16_t,
-        &::icmphdr::checksum,
-        data_checksum
-    >
+    , public checkable<icmp_header, ::icmphdr, u_int16_t, &::icmphdr::checksum, data_checksum>
 #else
     : private ::icmp
-    , public checkable<
-        icmp_header,
-        ::icmp,
-        u_short,
-        &::icmp::icmp_cksum,
-        data_checksum
-    >
+    , public checkable<icmp_header, ::icmp, u_short, &::icmp::icmp_cksum, data_checksum>
 #endif
 {
     friend checkable;
@@ -58,7 +47,7 @@ public:
 
     using checkable::checksum;  // Linux の場合、::icmphdr の checksum と衝突するため
 
-    ACQUA_DECL message_type type() const noexcept
+    message_type type() const noexcept
     {
 #ifdef __linux__
         return static_cast<message_type>(value_type::type);
@@ -67,7 +56,7 @@ public:
 #endif
     }
 
-    ACQUA_DECL void type(message_type msg) noexcept
+    void type(message_type msg) noexcept
     {
 #ifdef __linux__
         value_type::type = msg;
@@ -76,7 +65,7 @@ public:
 #endif
     }
 
-    ACQUA_DECL int code() const noexcept
+    int code() const noexcept
     {
 #ifdef __linux__
         return value_type::code;
@@ -85,7 +74,7 @@ public:
 #endif
     }
 
-    ACQUA_DECL void code(int n) noexcept
+    void code(int n) noexcept
     {
 #ifdef __linux__
         value_type::code = n;
@@ -95,7 +84,7 @@ public:
     }
 
 protected:
-    ACQUA_DECL int id() const noexcept
+    int id() const noexcept
     {
 #ifdef __linux__
         return ntohs(value_type::un.echo.id);
@@ -104,7 +93,7 @@ protected:
 #endif
     }
 
-    ACQUA_DECL void id(int n) noexcept
+    void id(int n) noexcept
     {
 #ifdef __linux__
         value_type::un.echo.id = htons(n);
@@ -113,7 +102,7 @@ protected:
 #endif
     }
 
-    ACQUA_DECL int seq() const noexcept
+    int seq() const noexcept
     {
 #ifdef __linux__
         return ntohs(value_type::un.echo.sequence);
@@ -122,7 +111,7 @@ protected:
 #endif
     }
 
-    ACQUA_DECL void seq(int n) noexcept
+    void seq(int n) noexcept
     {
 #ifdef __linux__
         value_type::un.echo.sequence = htons(n);
@@ -132,7 +121,7 @@ protected:
     }
 
 public:
-    ACQUA_DECL friend std::ostream & operator<<(std::ostream & os, icmp_header const & rhs);
+    friend std::ostream & operator<<(std::ostream & os, icmp_header const & rhs);
 };
 
 

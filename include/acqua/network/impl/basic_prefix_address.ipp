@@ -18,27 +18,36 @@ class internet6_address;
 
 namespace detail {
 
-template <typename T> ACQUA_DECL std::size_t max_masklen();
-template <> ACQUA_DECL std::size_t max_masklen<internet4_address>() { return  32; }
-template <> ACQUA_DECL std::size_t max_masklen<internet6_address>() { return 128; }
+template <typename T> std::size_t max_masklen();
+template <> inline std::size_t max_masklen<internet4_address>() { return  32; }
+template <> inline std::size_t max_masklen<internet6_address>() { return 128; }
 
 }  // detail
 
 template <typename T>
-basic_prefix_address<T>::basic_prefix_address()
+inline basic_prefix_address<T>::basic_prefix_address()
     : masklen_(0)
 {
 }
 
+
 template <typename T>
-basic_prefix_address<T>::basic_prefix_address(address_type const & address, masklen_type masklen)
+inline basic_prefix_address<T>::basic_prefix_address(basic_prefix_address<T> const &) = default;
+
+
+template <typename T>
+inline basic_prefix_address<T>::basic_prefix_address(basic_prefix_address<T> &&) = default;
+
+
+template <typename T>
+inline basic_prefix_address<T>::basic_prefix_address(address_type const & address, masklen_type masklen)
 {
     assign(address, masklen);
 }
 
 
 template <typename T>
-void basic_prefix_address<T>::assign(address_type const & address, masklen_type masklen)
+inline auto basic_prefix_address<T>::assign(address_type const & address, masklen_type masklen) -> void
 {
     masklen_ = std::min<masklen_type>(masklen, detail::max_masklen<T>());
     address_ = address_type::any();
@@ -52,7 +61,7 @@ void basic_prefix_address<T>::assign(address_type const & address, masklen_type 
 
 
 template <typename T>
-T basic_prefix_address<T>::netmask() const
+inline auto basic_prefix_address<T>::netmask() const -> address_type
 {
     address_type addr;
     auto it = addr.bytes_.begin();
@@ -64,7 +73,15 @@ T basic_prefix_address<T>::netmask() const
 
 
 template <typename T>
-basic_prefix_address<T> & basic_prefix_address<T>::operator++()
+inline auto basic_prefix_address<T>::operator=(basic_prefix_address<T> const &) -> basic_prefix_address<T> & = default;
+
+
+template <typename T>
+inline auto basic_prefix_address<T>::operator=(basic_prefix_address<T> &&) -> basic_prefix_address<T> & = default;
+
+
+template <typename T>
+inline auto basic_prefix_address<T>::operator++() -> basic_prefix_address<T> &
 {
     address_ += (1 << (detail::max_masklen<T>() - masklen_));
     return *this;
@@ -72,7 +89,7 @@ basic_prefix_address<T> & basic_prefix_address<T>::operator++()
 
 
 template <typename T>
-basic_prefix_address<T> & basic_prefix_address<T>::operator--()
+inline auto basic_prefix_address<T>::operator--() -> basic_prefix_address<T> &
 {
     address_ -= (1 << (detail::max_masklen<T>() - masklen_));
     return *this;
@@ -80,7 +97,7 @@ basic_prefix_address<T> & basic_prefix_address<T>::operator--()
 
 
 template <typename T>
-basic_prefix_address<T> & basic_prefix_address<T>::operator+=(long int num)
+inline auto basic_prefix_address<T>::operator+=(long int num) -> basic_prefix_address<T> &
 {
     if (num < 0)
         return operator-=(-num);
@@ -96,7 +113,7 @@ basic_prefix_address<T> & basic_prefix_address<T>::operator+=(long int num)
 
 
 template <typename T>
-basic_prefix_address<T> & basic_prefix_address<T>::operator-=(long int num)
+inline auto basic_prefix_address<T>::operator-=(long int num) -> basic_prefix_address<T> &
 {
     if (num < 0)
         return operator+=(-num);
@@ -112,20 +129,20 @@ basic_prefix_address<T> & basic_prefix_address<T>::operator-=(long int num)
 
 
 template <typename T>
-bool operator==(basic_prefix_address<T> const & lhs, basic_prefix_address<T> const & rhs)
+inline auto operator==(basic_prefix_address<T> const & lhs, basic_prefix_address<T> const & rhs) -> bool
 {
     return lhs.masklen_ == rhs.masklen_ && lhs.address_ == rhs.address_;
 }
 
 
 template <typename T>
-bool operator<(basic_prefix_address<T> const & lhs, basic_prefix_address<T> const & rhs)
+inline auto operator<(basic_prefix_address<T> const & lhs, basic_prefix_address<T> const & rhs) -> bool
 {
     return lhs.masklen_ < rhs.masklen_ || lhs.address_ < rhs.address_;
 }
 
 template <typename T> template <typename Ch, typename Tr>
-void basic_prefix_address<T>::to_string(std::basic_ostream<Ch, Tr> & os) const
+inline auto basic_prefix_address<T>::to_string(std::basic_ostream<Ch, Tr> & os) const -> void
 {
     char buf[64];
     char * end = detail::address_impl<T>::to_string(address_.bytes_, buf);
@@ -137,7 +154,7 @@ void basic_prefix_address<T>::to_string(std::basic_ostream<Ch, Tr> & os) const
 }
 
 template <typename T, typename Ch, typename Tr>
-std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, basic_prefix_address<T> const & rhs)
+inline auto operator<<(std::basic_ostream<Ch, Tr> & os, basic_prefix_address<T> const & rhs) -> std::basic_ostream<Ch, Tr> &
 {
     rhs.to_string(os);
     return os;

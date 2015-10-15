@@ -4,7 +4,7 @@
 
 namespace acqua { namespace network { namespace detail {
 
-ifreq_opts::ifreq_opts(char const * if_name)
+inline ifreq_opts::ifreq_opts(char const * if_name)
     : fd_(-1)
 {
     using namespace std;
@@ -14,13 +14,13 @@ ifreq_opts::ifreq_opts(char const * if_name)
     }
 }
 
-ifreq_opts::~ifreq_opts()
+inline ifreq_opts::~ifreq_opts()
 {
     if (fd_ >= 0)
         ::close(fd_);
 }
 
-bool ifreq_opts::open_once(boost::system::error_code &ec)
+inline bool ifreq_opts::open_once(boost::system::error_code &ec)
 {
     if (fd_ < 0) {
         if ((fd_ = ::socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -31,7 +31,7 @@ bool ifreq_opts::open_once(boost::system::error_code &ec)
     return true;
 }
 
-int ifreq_opts::get_index(boost::system::error_code & ec)
+inline int ifreq_opts::get_index(boost::system::error_code & ec)
 {
     if (!open_once(ec))
         return -1;
@@ -44,7 +44,7 @@ int ifreq_opts::get_index(boost::system::error_code & ec)
     return ifr_.ifr_ifindex;
 }
 
-int ifreq_opts::get_mtu(boost::system::error_code & ec)
+inline int ifreq_opts::get_mtu(boost::system::error_code & ec)
 {
     if (!open_once(ec))
         return -1;
@@ -57,7 +57,7 @@ int ifreq_opts::get_mtu(boost::system::error_code & ec)
     return ifr_.ifr_mtu;
 }
 
-void ifreq_opts::set_mtu(int mtu, boost::system::error_code & ec)
+inline void ifreq_opts::set_mtu(int mtu, boost::system::error_code & ec)
 {
     if (!open_once(ec))
         return;
@@ -69,7 +69,7 @@ void ifreq_opts::set_mtu(int mtu, boost::system::error_code & ec)
     }
 }
 
-linklayer_address ifreq_opts::get_lladdr(boost::system::error_code & ec)
+inline linklayer_address ifreq_opts::get_lladdr(boost::system::error_code & ec)
 {
     if (!open_once(ec))
         return linklayer_address();
@@ -82,7 +82,7 @@ linklayer_address ifreq_opts::get_lladdr(boost::system::error_code & ec)
     return linklayer_address(ifr_.ifr_hwaddr.sa_data);
 }
 
-void ifreq_opts::set_lladdr(linklayer_address const & lladdr, boost::system::error_code & ec)
+inline void ifreq_opts::set_lladdr(linklayer_address const & lladdr, boost::system::error_code & ec)
 {
     if (!open_once(ec))
         return;

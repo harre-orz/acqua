@@ -8,8 +8,6 @@
 
 #pragma once
 
-#include <acqua/config.hpp>
-
 extern "C" {
 #include <netinet/tcp.h>
 }
@@ -63,7 +61,7 @@ class tcp_header
 public:
     using sourceable_and_destinable::source;  // linux の場合、変数と衝突するため
 
-    ACQUA_DECL friend std::ostream & operator<<(std::ostream & os, tcp_header const &);
+    friend std::ostream & operator<<(std::ostream & os, tcp_header const &);
 };
 
 }  // detail

@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include <acqua/config.hpp>
 #include <deque>
 #include <acqua/container/detail/recursive_iterator.hpp>
 #include <acqua/container/detail/preordered_recursive_iterator_impl.hpp>

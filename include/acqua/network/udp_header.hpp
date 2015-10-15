@@ -8,8 +8,6 @@
 
 #pragma once
 
-#include <acqua/config.hpp>
-
 extern "C" {
 #include <netinet/udp.h>
 }
@@ -61,7 +59,7 @@ class udp_header
     friend checkable;
 
 public:
-    ACQUA_DECL friend std::ostream & operator<<(std::ostream & os, udp_header const & rhs);
+    friend std::ostream & operator<<(std::ostream & os, udp_header const & rhs);
 };
 
 }  // detail

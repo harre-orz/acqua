@@ -5,7 +5,7 @@
 
 namespace acqua { namespace network { namespace detail {
 
-std::ostream & operator<<(std::ostream & os, icmpv6_header const & rhs)
+inline std::ostream & operator<<(std::ostream & os, icmpv6_header const & rhs)
 {
     os << "icmpv6 " << rhs.type();
     return os;
