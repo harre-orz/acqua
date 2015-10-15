@@ -14,6 +14,7 @@ extern "C" {
 
 #include <cstdint>
 #include <numeric>
+#include <acqua/network/detail/pseudo_header.hpp>
 
 namespace acqua { namespace network { namespace detail {
 

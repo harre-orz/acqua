@@ -1,37 +1,39 @@
 #pragma once
 
+#include <acqua/container/detail/pointer_container_iterator.hpp>
+
 namespace acqua { namespace container { namespace detail {
 
 template <typename T, typename Iter, typename ManagedPtr>
-pointer_container_iterator<T, Iter, ManagedPtr>::pointer_container_iterator(ManagedPtr const & ptr)
+inline pointer_container_iterator<T, Iter, ManagedPtr>::pointer_container_iterator(ManagedPtr const & ptr)
     : ptr_(ptr)
     , it_(ptr_->begin())
 {
 }
 
 template <typename T, typename Iter, typename ManagedPtr>
-pointer_container_iterator<T, Iter, ManagedPtr>::pointer_container_iterator(ManagedPtr const & ptr, Iter it)
+inline pointer_container_iterator<T, Iter, ManagedPtr>::pointer_container_iterator(ManagedPtr const & ptr, Iter it)
     : ptr_(ptr)
     , it_(it)
 {
 }
 
 template <typename T, typename Iter, typename ManagedPtr>
-pointer_container_iterator<T, Iter, ManagedPtr>::pointer_container_iterator(managed_ptr && ptr)
+inline pointer_container_iterator<T, Iter, ManagedPtr>::pointer_container_iterator(managed_ptr && ptr)
     : ptr_(std::move(ptr))
     , it_(ptr_->begin())
 {
 }
 
 template <typename T, typename Iter, typename ManagedPtr>
-pointer_container_iterator<T, Iter, ManagedPtr>::pointer_container_iterator(managed_ptr && ptr, Iter it)
+inline pointer_container_iterator<T, Iter, ManagedPtr>::pointer_container_iterator(managed_ptr && ptr, Iter it)
     : ptr_(std::move(ptr))
     , it_(it)
 {
 }
 
 template <typename T, typename Iter, typename ManagedPtr>
-pointer_container_iterator<T, Iter, ManagedPtr>::pointer_container_iterator(element_type * ptr)
+inline pointer_container_iterator<T, Iter, ManagedPtr>::pointer_container_iterator(element_type * ptr)
     : ptr_(ptr)
 {
     if (ptr_)
@@ -39,7 +41,7 @@ pointer_container_iterator<T, Iter, ManagedPtr>::pointer_container_iterator(elem
 }
 
 template <typename T, typename Iter, typename ManagedPtr>
-pointer_container_iterator<T, Iter, ManagedPtr>::pointer_container_iterator(element_type * ptr, Iter it)
+inline pointer_container_iterator<T, Iter, ManagedPtr>::pointer_container_iterator(element_type * ptr, Iter it)
     : ptr_(ptr)
 {
     if (ptr_)
@@ -47,7 +49,7 @@ pointer_container_iterator<T, Iter, ManagedPtr>::pointer_container_iterator(elem
 }
 
 template <typename T, typename Iter, typename ManagedPtr>
-auto pointer_container_iterator<T, Iter, ManagedPtr>::operator*() const -> reference
+inline auto pointer_container_iterator<T, Iter, ManagedPtr>::operator*() const -> reference
 {
     return *it_;
 }
@@ -59,14 +61,14 @@ auto pointer_container_iterator<T, Iter, ManagedPtr>::operator->() const -> poin
 }
 
 template <typename T, typename Iter, typename ManagedPtr>
-pointer_container_iterator<T, Iter, ManagedPtr> & pointer_container_iterator<T, Iter, ManagedPtr>::operator++()
+inline pointer_container_iterator<T, Iter, ManagedPtr> & pointer_container_iterator<T, Iter, ManagedPtr>::operator++()
 {
     ++it_;
     return *this;
 }
 
 template <typename T, typename Iter, typename ManagedPtr>
-pointer_container_iterator<T, Iter, ManagedPtr> pointer_container_iterator<T, Iter, ManagedPtr>::operator++(int)
+inline pointer_container_iterator<T, Iter, ManagedPtr> pointer_container_iterator<T, Iter, ManagedPtr>::operator++(int)
 {
     pointer_container_iterator it(*this);
     ++it_;
@@ -74,13 +76,13 @@ pointer_container_iterator<T, Iter, ManagedPtr> pointer_container_iterator<T, It
 }
 
 template <typename T, typename Iter, typename ManagedPtr>
-typename pointer_container_iterator<T, Iter, ManagedPtr>::element_type * pointer_container_iterator<T, Iter, ManagedPtr>::get() const
+inline typename pointer_container_iterator<T, Iter, ManagedPtr>::element_type * pointer_container_iterator<T, Iter, ManagedPtr>::get() const
 {
     return ptr_.get();
 }
 
 template <typename T, typename Iter, typename ManagedPtr>
-bool operator==(pointer_container_iterator<T, Iter, ManagedPtr> const & lhs, pointer_container_iterator<T, Iter, ManagedPtr> const & rhs)
+inline bool operator==(pointer_container_iterator<T, Iter, ManagedPtr> const & lhs, pointer_container_iterator<T, Iter, ManagedPtr> const & rhs)
 {
     if (lhs.ptr_ && rhs.ptr_) {
         if (lhs.ptr_ == rhs.ptr_ && lhs.it_ != rhs.it_) return false;
@@ -94,7 +96,7 @@ bool operator==(pointer_container_iterator<T, Iter, ManagedPtr> const & lhs, poi
 }
 
 template <typename T, typename Iter, typename ManagedPtr>
-bool operator!=(pointer_container_iterator<T, Iter, ManagedPtr> const & lhs, pointer_container_iterator<T, Iter, ManagedPtr> const & rhs)
+inline bool operator!=(pointer_container_iterator<T, Iter, ManagedPtr> const & lhs, pointer_container_iterator<T, Iter, ManagedPtr> const & rhs)
 {
     return !(lhs == rhs);
 }

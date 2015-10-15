@@ -30,28 +30,28 @@ public:
         time_point_type expire_;
 
     public:
-        explicit node_base(value_type const & value, timed_lru_set_impl const & impl)
+        explicit node_base(value_type const & value)
             : value_(value)
-            , expire_(clock_type::now() + impl.min_expire_)
+            , expire_(clock_type::now())
         {
         }
 
-        explicit node_base(value_type && value, timed_lru_set_impl const & impl)
+        explicit node_base(value_type && value)
             : value_(std::move(value))
-            , expire_(clock_type::now() + impl.min_expire_)
+            , expire_(clock_type::now())
         {
         }
 
-        void replace(value_type const & value, timed_lru_set_impl const & impl)
+        void replace(value_type const & value)
         {
             const_cast<T &>(value_) = value;
-            expire_ = clock_type::now() + impl.min_expire_;
+            expire_ = clock_type::now();
         }
 
-        void replace(value_type && value, timed_lru_set_impl const & impl)
+        void replace(value_type && value)
         {
             const_cast<T &>(value_) = std::move(value);
-            expire_ = clock_type::now() + impl.min_expire_;
+            expire_ = clock_type::now();
         }
 
         friend bool operator==(node_base const & lhs, node_base const & rhs)

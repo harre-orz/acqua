@@ -8,9 +8,9 @@ struct preordered_recursive_iterator_impl
     using value_type = T;
     using stack_type = Stack;
 
-    ACQUA_DECL preordered_recursive_iterator_impl(value_type * root);
+    preordered_recursive_iterator_impl(value_type * root);
 
-    ACQUA_DECL void incr();
+    void incr();
 
     value_type * root_;
     stack_type depth_;

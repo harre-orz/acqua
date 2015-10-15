@@ -28,22 +28,22 @@ public:
         value_type value_;
 
     public:
-        explicit node_base(value_type const & value, lru_set_impl const &)
+        explicit node_base(value_type const & value)
             : value_(value)
         {
         }
 
-        explicit node_base(value_type && value, lru_set_impl const &)
+        explicit node_base(value_type && value)
             : value_(std::move(value))
         {
         }
 
-        void replace(value_type const & rhs, lru_set_impl const &)
+        void replace(value_type const & rhs)
         {
             const_cast<T &>(value_) = rhs;
         }
 
-        void replace(value_type && rhs, lru_set_impl const &)
+        void replace(value_type && rhs)
         {
             const_cast<T &>(value_) = std::move(rhs);
         }
@@ -89,7 +89,7 @@ public:
     template <typename Derived>
     bool is_limits(Derived const & t) const
     {
-        return t.size() >= max_size_;
+        return t.size() > max_size_;
     }
 
 private:

@@ -17,7 +17,6 @@ class recursive_iterator
     : public std::iterator<std::forward_iterator_tag, typename Impl::value_type>
     , private Impl
 {
-    friend Impl;
     using Impl::root_;
     using Impl::depth_;
     using Impl::incr;

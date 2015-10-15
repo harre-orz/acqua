@@ -1,7 +1,7 @@
 #define BOOST_TEST_MAIN
 #include <boost/test/included/unit_test.hpp>
-
-#include <acqua/container/pointer_container_iterator.hpp>
+#include <acqua/container/shared_container_iterator.hpp>
+#include <acqua/container/unique_container_iterator.hpp>
 #include <vector>
 
 BOOST_AUTO_TEST_SUITE(pointer_container_iterator)

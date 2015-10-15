@@ -8,17 +8,19 @@
 
 #pragma once
 
+#include <acqua/container/detail/preordered_recursive_iterator_impl.hpp>
+
 namespace acqua { namespace container  { namespace detail {
 
 template <typename T, typename It, It (*begin)(T &), It (*end)(T &), typename Stack>
-preordered_recursive_iterator_impl<T, It, begin, end, Stack>::preordered_recursive_iterator_impl(value_type * root)
+inline preordered_recursive_iterator_impl<T, It, begin, end, Stack>::preordered_recursive_iterator_impl(value_type * root)
     : root_(root)
 {
 }
 
 
 template <typename T, typename It, It (*begin)(T &), It (*end)(T &), typename Stack>
-void preordered_recursive_iterator_impl<T, It, begin, end, Stack>::incr()
+inline void preordered_recursive_iterator_impl<T, It, begin, end, Stack>::incr()
 {
     auto it = depth_.empty()
         ? (*begin)(*root_)

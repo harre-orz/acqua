@@ -32,30 +32,30 @@ public:
         time_point_type expire_;
 
     public:
-        explicit node_base(value_type const & value, timed_lru_map_impl const & impl)
+        explicit node_base(value_type const & value)
             : value_(value)
-            , expire_(clock_type::now() + impl.min_expire_)
+            , expire_(clock_type::now())
         {
         }
 
-        explicit node_base(value_type && value, timed_lru_map_impl const & impl)
+        explicit node_base(value_type && value)
             : value_(std::move(value))
-            , expire_(clock_type::now() + impl.min_expire_)
+            , expire_(clock_type::now())
         {
         }
 
-        void replace(value_type const & value, timed_lru_map_impl const & impl)
+        void replace(value_type const & value)
         {
             const_cast<K &>(value_.first) = value.first;
             value_.second = value.second;
-            expire_ = clock_type::now() + impl.min_expire_;
+            expire_ = clock_type::now();
         }
 
-        void replace(value_type && value, timed_lru_map_impl const & impl)
+        void replace(value_type && value)
         {
             const_cast<K &>(value_.first) = std::move(value.first);
             value_.second = std::move(value.second);
-            expire_ = clock_type::now() + impl.min_expire_;
+            expire_ = clock_type::now();
         }
 
         friend bool operator==(node_base const & lhs, node_base const & rhs)
@@ -123,7 +123,7 @@ public:
     template <typename Derived>
     bool is_limits(Derived const & t) const
     {
-        return t.size() > max_size_ && (--t.end()).base()->expire_ < clock_type::now();
+        return t.size() > max_size_ && (--t.end()).base()->expire_ < clock_type::now() + min_expire_;
     }
 
 private:
