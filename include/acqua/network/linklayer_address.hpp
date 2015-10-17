@@ -26,57 +26,63 @@ class linklayer_address
 public:
     using bytes_type = boost::array<unsigned char, 6>;
 
-    linklayer_address();
+public:
+    constexpr linklayer_address() noexcept;
 
-    linklayer_address(linklayer_address const & rhs);
+    constexpr linklayer_address(bytes_type const & bytes) noexcept;
 
-    linklayer_address(linklayer_address && rhs);
+    constexpr linklayer_address(linklayer_address const & rhs) noexcept = default;
 
-    linklayer_address(bytes_type const & bytes);
+    constexpr linklayer_address(linklayer_address && rhs) noexcept = default;
 
-    linklayer_address(char const addr[6]);
+    linklayer_address & operator=(linklayer_address const & rhs) noexcept = default;
 
-    linklayer_address(unsigned char const addr[6]);
+    linklayer_address & operator=(linklayer_address && rhs) noexcept = default;
 
-    linklayer_address(signed char const addr[6]);
+    linklayer_address & operator++() noexcept;
 
-    linklayer_address & operator=(linklayer_address const & rhs);
+    linklayer_address & operator--() noexcept;
 
-    linklayer_address & operator=(linklayer_address && rhs);
+    linklayer_address & operator+=(long int num) noexcept;
 
-    linklayer_address & operator++();
+    linklayer_address & operator-=(long int num) noexcept;
 
-    linklayer_address & operator--();
+    bool is_unspecified() const noexcept;
 
-    linklayer_address & operator+=(long int num);
+    constexpr bytes_type to_bytes() const noexcept
+    {
+        return bytes_;
+    }
 
-    linklayer_address & operator-=(long int num);
-
-    bool is_unspecified() const;
-
-    bytes_type to_bytes() const;
-
-    std::uint32_t to_oui() const;
+    std::uint32_t to_oui() const noexcept;
 
     std::string to_string() const;
 
-    static linklayer_address any();
+    static constexpr linklayer_address any() noexcept
+    {
+        return linklayer_address();
+    }
 
-    static linklayer_address broadcast();
+    static constexpr linklayer_address broadcast() noexcept
+    {
+        return linklayer_address{{255,255,255,255,255,255}};
+    }
 
     static linklayer_address from_string(std::string const & str);
 
-    static linklayer_address from_string(std::string const & str, boost::system::error_code & ec);
+    static linklayer_address from_string(std::string const & str, boost::system::error_code & ec) noexcept;
 
     static linklayer_address from_string(char const * str);
 
-    static linklayer_address from_string(char const * str, boost::system::error_code & ec);
+    static linklayer_address from_string(char const * str, boost::system::error_code & ec) noexcept;
 
-    friend bool operator==(linklayer_address const & lhs, linklayer_address const & rhs);
+    static linklayer_address from_voidptr(void const * ptr) noexcept;
 
-    friend bool operator<(linklayer_address const & lhs, linklayer_address const & rhs);
+    friend bool operator==(linklayer_address const & lhs, linklayer_address const & rhs) noexcept;
 
-    friend std::size_t hash_value(linklayer_address const & rhs);
+    friend bool operator<(linklayer_address const & lhs, linklayer_address const & rhs) noexcept;
+
+    friend std::size_t hash_value(linklayer_address const & rhs) noexcept;
 
     template <typename Ch, typename Tr>
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, linklayer_address const & rhs);

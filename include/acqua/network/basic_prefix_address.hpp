@@ -24,45 +24,45 @@ public:
     using masklen_type = typename T::masklen_type;
 
 public:
-    basic_prefix_address();
+    constexpr basic_prefix_address() noexcept;
 
-    basic_prefix_address(basic_prefix_address const & rhs);
+    explicit basic_prefix_address(address_type const & address, masklen_type masklen) noexcept;
 
-    basic_prefix_address(basic_prefix_address && rhs);
+    constexpr basic_prefix_address(basic_prefix_address const & rhs) noexcept = default;
 
-    explicit basic_prefix_address(address_type const & address, masklen_type masklen);
+    constexpr basic_prefix_address(basic_prefix_address && rhs) noexcept = default;
 
-    void assign(address_type const & address, masklen_type masklen);
+    basic_prefix_address & operator=(basic_prefix_address const & rhs) noexcept = default;
 
-    masklen_type masklen() const
+    basic_prefix_address & operator=(basic_prefix_address && rhs) noexcept = default;
+
+    basic_prefix_address & operator++() noexcept;
+
+    basic_prefix_address & operator--() noexcept;
+
+    basic_prefix_address & operator+=(long int num) noexcept;
+
+    basic_prefix_address & operator-=(long int num) noexcept;
+
+    void assign(address_type const & address, masklen_type masklen) noexcept;
+
+    constexpr masklen_type masklen() const noexcept
     {
         return masklen_;
     }
 
-    address_type address() const
+    constexpr address_type address() const noexcept
     {
         return address_;
     }
 
-    address_type netmask() const;
-
-    basic_prefix_address & operator=(basic_prefix_address const & rhs);
-
-    basic_prefix_address & operator=(basic_prefix_address && rhs);
-
-    basic_prefix_address & operator++();
-
-    basic_prefix_address & operator--();
-
-    basic_prefix_address & operator+=(long int num);
-
-    basic_prefix_address & operator-=(long int num);
+    address_type netmask() const noexcept;
 
     template <typename T_>
-    friend bool operator==(basic_prefix_address<T_> const & lhs, basic_prefix_address<T_> const & rhs);
+    friend bool operator==(basic_prefix_address<T_> const & lhs, basic_prefix_address<T_> const & rhs) noexcept;
 
     template <typename T_>
-    friend bool operator<(basic_prefix_address<T_> const & lhs, basic_prefix_address<T_> const & rhs);
+    friend bool operator<(basic_prefix_address<T_> const & lhs, basic_prefix_address<T_> const & rhs) noexcept;
 
     template <typename T_, typename Ch, typename Tr>
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, basic_prefix_address<T_> const & rhs);

@@ -2,6 +2,7 @@
 #include <boost/test/included/unit_test.hpp>
 #include <acqua/network/internet4_prefix.hpp>
 
+
 BOOST_AUTO_TEST_SUITE(internet4_prefix)
 
 BOOST_AUTO_TEST_CASE(internet4_prefix__construct)

@@ -34,101 +34,101 @@ public:
     using bytes_type = boost::asio::ip::address_v4::bytes_type;
     using masklen_type = unsigned char;
 
-    internet4_address();
+public:
+    constexpr internet4_address() noexcept;
 
-    internet4_address(internet4_address const & rhs);
+    constexpr internet4_address(bytes_type const & bytes) noexcept;
 
-    internet4_address(internet4_address && rhs);
+    constexpr internet4_address(struct ::in_addr const & addr) noexcept;
 
-    internet4_address(bytes_type const & bytes);
+    internet4_address(boost::asio::ip::address_v4 const & addr) noexcept;
 
-    explicit internet4_address(char const addr[4]);
+    explicit constexpr internet4_address(std::uint32_t addr) noexcept;
 
-    explicit internet4_address(signed char const addr[4]);
+    constexpr internet4_address(internet4_address const & rhs) noexcept = default;
 
-    explicit internet4_address(unsigned char const addr[4]);
+    constexpr internet4_address(internet4_address && rhs) noexcept = default;
 
-    internet4_address(struct ::in_addr const & addr);
+    internet4_address & operator=(internet4_address const & rhs) noexcept = default;
 
-    internet4_address(boost::asio::ip::address_v4 const & addr);
+    internet4_address & operator=(internet4_address && rhs) noexcept = default;
 
-    explicit internet4_address(std::uint32_t addr);
+    internet4_address & operator++() noexcept;
 
-    internet4_address & operator=(internet4_address const & rhs);
+    internet4_address & operator+=(long int num) noexcept;
 
-    internet4_address & operator=(internet4_address && rhs);
+    internet4_address & operator--() noexcept;
 
-    internet4_address & operator++();
+    internet4_address & operator-=(long int num) noexcept;
 
-    internet4_address & operator+=(long int num);
+    operator ::in_addr() const noexcept;
 
-    internet4_address & operator--();
+    operator boost::asio::ip::address_v4() const noexcept;
 
-    internet4_address & operator-=(long int num);
+    bool is_unspecified() const noexcept;
 
-    operator ::in_addr() const;
+    bool is_loopback() const noexcept;
 
-    operator boost::asio::ip::address_v4() const;
+    bool is_class_a() const noexcept;
 
-    bool is_unspecified() const;
+    bool is_class_b() const noexcept;
 
-    bool is_loopback() const;
+    bool is_class_c() const noexcept;
 
-    bool is_class_a() const;
+    bool is_multicast() const noexcept;
 
-    bool is_class_b() const;
+    bool is_link_local() const noexcept;
 
-    bool is_class_c() const;
+    bool is_netmask() const noexcept;
 
-    bool is_multicast() const;
-
-    bool is_link_local() const;
-
-    bool is_netmask() const;
-
-    bytes_type to_bytes() const;
+    constexpr bytes_type to_bytes() const noexcept
+    {
+        return bytes_;
+    }
 
     std::string to_string() const;
 
-    std::uint32_t to_ulong() const;
+    std::uint32_t to_ulong() const noexcept;
 
-    static internet4_address any()
+    static constexpr internet4_address any() noexcept
     {
         return internet4_address();
     }
 
-    static internet4_address broadcast()
+    static constexpr internet4_address broadcast() noexcept
     {
         return internet4_address(0xFFFFFFFF);
     }
 
-    static internet4_address loopback()
+    static constexpr internet4_address loopback() noexcept
     {
         return internet4_address(0x7F000001);
     }
 
     static internet4_address from_string(std::string const & str);
 
-    static internet4_address from_string(std::string const & str, boost::system::error_code & ec);
+    static internet4_address from_string(std::string const & str, boost::system::error_code & ec) noexcept;
 
     static internet4_address from_string(char const * str);
 
-    static internet4_address from_string(char const * str, boost::system::error_code & ec);
+    static internet4_address from_string(char const * str, boost::system::error_code & ec) noexcept;
 
-    friend bool operator==(internet4_address const & lhs, internet4_address const & rhs);
+    static internet4_address from_voidptr(void const * ptr) noexcept;
 
-    friend bool operator==(internet4_address const & lhs, boost::asio::ip::address_v4 const & rhs);
+    friend bool operator==(internet4_address const & lhs, internet4_address const & rhs) noexcept;
 
-    friend bool operator<(internet4_address const & lhs, internet4_address const & rhs);
+    friend bool operator==(internet4_address const & lhs, boost::asio::ip::address_v4 const & rhs) noexcept;
 
-    friend bool operator<(internet4_address const & lhs, boost::asio::ip::address_v4 const & rhs);
+    friend bool operator<(internet4_address const & lhs, internet4_address const & rhs) noexcept;
+
+    friend bool operator<(internet4_address const & lhs, boost::asio::ip::address_v4 const & rhs) noexcept;
 
     template <typename Ch, typename Tr>
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, internet4_address const & rhs);
 
-    friend std::size_t hash_value(internet4_address const & rhs);
+    friend std::size_t hash_value(internet4_address const & rhs) noexcept;
 
-    friend int netmask_length(internet4_address const & rhs);
+    friend int netmask_length(internet4_address const & rhs) noexcept;
 
 private:
     bytes_type bytes_;

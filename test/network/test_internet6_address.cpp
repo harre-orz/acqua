@@ -1,6 +1,5 @@
 #define BOOST_TEST_MAIN
 #include <boost/test/included/unit_test.hpp>
-
 #include <acqua/network/internet6_address.hpp>
 #include <boost/asio/ip/address_v6.hpp>
 
@@ -14,8 +13,7 @@ using boost::system::error_code;
 BOOST_AUTO_TEST_CASE(internet6_address__construct)
 {
     BOOST_CHECK_EQUAL(internet6_address(), internet6_address::any());
-    char addr[] { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 };
-    BOOST_CHECK_EQUAL(internet6_address(addr), internet6_address::from_string("::1"));
+    BOOST_CHECK_EQUAL(internet6_address(typename internet6_address::bytes_type({ 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 })), internet6_address::from_string("::1"));
 }
 
 BOOST_AUTO_TEST_CASE(internet6_address__increment)

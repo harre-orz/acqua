@@ -21,14 +21,14 @@ struct address_impl<linklayer_address>
     : address_impl_base
 {
     template <typename T, uint N>
-    static char * to_string(T const & bytes, char (&buf)[N])
+    static char * to_string(T const & bytes, char (&buf)[N]) noexcept
     {
         return buf + std::sprintf(buf, "%02X:%02X:%02X:%02X:%02X:%02X",
                                   bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]);
     }
 
     template <typename It, typename T>
-    static void from_string(It beg, It end, T & bytes, boost::system::error_code & ec)
+    static void from_string(It beg, It end, T & bytes, boost::system::error_code & ec) noexcept
     {
         namespace qi = boost::spirit::qi;
         qi::uint_parser<unsigned char, 16, 2, 2> hex;
@@ -36,23 +36,23 @@ struct address_impl<linklayer_address>
         if (qi::parse(beg, end, hex >> sep >> hex >> sep >> hex >> sep >> hex >> sep >> hex >> sep >> hex,
                       bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]))
             return;
-        ec.assign(EAFNOSUPPORT, boost::system::generic_category());
+        ec = make_error_code(boost::system::errc::address_family_not_supported);
         bytes[0] = bytes[1] = bytes[2] = bytes[3] = bytes[4] = bytes[5] = 0;
     }
 
     template <typename T>
-    static std::size_t hash_func(void const * data);
+    static std::size_t hash_func(void const * data) noexcept;
 };
 
 template <>
-inline std::size_t address_impl<linklayer_address>::hash_func<std::uint32_t>(void const * data)
+inline std::size_t address_impl<linklayer_address>::hash_func<std::uint32_t>(void const * data) noexcept
 {
     return (*((std::uint32_t const *)(((char const *)data) + 0)))
         ^  (*((std::uint16_t const *)(((char const *)data) + 4)));
 }
 
 template <>
-inline std::size_t address_impl<linklayer_address>::hash_func<std::uint64_t>(void const * data)
+inline std::size_t address_impl<linklayer_address>::hash_func<std::uint64_t>(void const * data) noexcept
 {
     return ((*((std::uint32_t const *)(((char const *)data) + 0))) << 16)
         ^  (*((std::uint16_t const *)(((char const *)data) + 4)));
@@ -60,78 +60,47 @@ inline std::size_t address_impl<linklayer_address>::hash_func<std::uint64_t>(voi
 
 }  // detail
 
-inline linklayer_address::linklayer_address()
+inline constexpr linklayer_address::linklayer_address() noexcept
+    : bytes_{{0,0,0,0,0,0}}
 {
-    bytes_.fill(0);
 }
 
-inline linklayer_address::linklayer_address(linklayer_address const &) = default;
-
-inline linklayer_address::linklayer_address(linklayer_address &&) = default;
-
-inline linklayer_address::linklayer_address(bytes_type const & bytes)
+inline constexpr linklayer_address::linklayer_address(bytes_type const & bytes) noexcept
     : bytes_(bytes)
 {
 }
 
-inline linklayer_address::linklayer_address(char const addr[6])
-{
-    using namespace std;
-    memcpy(bytes_.data(), addr, 6);
-}
-
-inline linklayer_address::linklayer_address(unsigned char const addr[6])
-{
-    using namespace std;
-    memcpy(bytes_.data(), addr, 6);
-}
-
-inline linklayer_address::linklayer_address(signed char const addr[6])
-{
-    using namespace std;
-    memcpy(bytes_.data(), addr, 6);
-}
-
-inline linklayer_address & linklayer_address::operator=(linklayer_address const &) = default;
-
-inline linklayer_address & linklayer_address::operator=(linklayer_address &&) = default;
-
-inline linklayer_address & linklayer_address::operator++()
+inline linklayer_address & linklayer_address::operator++() noexcept
 {
     detail::address_impl<linklayer_address>::incr(bytes_);
     return *this;
 }
 
-inline linklayer_address & linklayer_address::operator--()
+inline linklayer_address & linklayer_address::operator--() noexcept
 {
     detail::address_impl<linklayer_address>::decr(bytes_);
     return *this;
 }
 
-inline linklayer_address & linklayer_address::operator+=(long int num)
+inline linklayer_address & linklayer_address::operator+=(long int num) noexcept
 {
     detail::address_impl<linklayer_address>::add(bytes_, num);
     return *this;
 }
 
-inline linklayer_address & linklayer_address::operator-=(long int num)
+inline linklayer_address & linklayer_address::operator-=(long int num) noexcept
 {
     detail::address_impl<linklayer_address>::sub(bytes_, num);
     return *this;
 }
 
-inline bool linklayer_address::is_unspecified() const
+inline bool linklayer_address::is_unspecified() const noexcept
 {
     return bytes_[0] == 0 && bytes_[1] == 0 && bytes_[2] == 0
         && bytes_[3] == 0 && bytes_[4] == 0 && bytes_[5] == 0;
 }
 
-inline linklayer_address::bytes_type linklayer_address::to_bytes() const
-{
-    return bytes_;
-}
-
-inline std::uint32_t linklayer_address::to_oui() const
+inline std::uint32_t linklayer_address::to_oui() const noexcept
 {
     std::uint32_t oui = bytes_[0];
     oui <<= 8;;
@@ -147,17 +116,6 @@ inline std::string linklayer_address::to_string() const
     return buf;
 }
 
-inline linklayer_address linklayer_address::any()
-{
-    return linklayer_address();
-}
-
-inline linklayer_address linklayer_address::broadcast()
-{
-    char addr[] = { -1,-1,-1,-1,-1,-1 };
-    return linklayer_address(addr);
-}
-
 inline linklayer_address linklayer_address::from_string(std::string const & str)
 {
     linklayer_address addr;
@@ -167,7 +125,7 @@ inline linklayer_address linklayer_address::from_string(std::string const & str)
     return addr;
 }
 
-inline linklayer_address linklayer_address::from_string(std::string const & str, boost::system::error_code & ec)
+inline linklayer_address linklayer_address::from_string(std::string const & str, boost::system::error_code & ec) noexcept
 {
     linklayer_address addr;
     detail::address_impl<linklayer_address>::from_string(str.begin(), str.end(), addr.bytes_, ec);
@@ -179,7 +137,7 @@ inline linklayer_address linklayer_address::from_string(char const * str)
     linklayer_address addr;
     boost::system::error_code ec;
     if (str == nullptr) {
-        ec.assign(EINVAL, boost::system::generic_category());
+        ec = make_error_code(boost::system::errc::invalid_argument);
     } else {
         detail::address_impl<linklayer_address>::from_string(str, str + std::strlen(str), addr.bytes_, ec);
         boost::asio::detail::throw_error(ec, "from_string");
@@ -187,28 +145,33 @@ inline linklayer_address linklayer_address::from_string(char const * str)
     return addr;
 }
 
-inline linklayer_address linklayer_address::from_string(char const * str, boost::system::error_code & ec)
+inline linklayer_address linklayer_address::from_string(char const * str, boost::system::error_code & ec) noexcept
 {
     linklayer_address addr;
     if (str == nullptr) {
-        ec.assign(EINVAL, boost::system::generic_category());
+        ec = make_error_code(boost::system::errc::invalid_argument);
     } else {
         detail::address_impl<linklayer_address>::from_string(str, str + std::strlen(str), addr.bytes_, ec);
     }
     return addr;
 }
 
-inline bool operator==(linklayer_address const & lhs, linklayer_address const & rhs)
+inline linklayer_address linklayer_address::from_voidptr(void const * ptr) noexcept
+{
+    return *reinterpret_cast<bytes_type const *>(ptr);
+}
+
+inline bool operator==(linklayer_address const & lhs, linklayer_address const & rhs) noexcept
 {
     return lhs.bytes_ == rhs.bytes_;
 }
 
-inline bool operator<(linklayer_address const & lhs, linklayer_address const & rhs)
+inline bool operator<(linklayer_address const & lhs, linklayer_address const & rhs) noexcept
 {
     return lhs.bytes_ < rhs.bytes_;
 }
 
-inline std::size_t hash_value(linklayer_address const & rhs)
+inline std::size_t hash_value(linklayer_address const & rhs) noexcept
 {
     return detail::address_impl<linklayer_address>::template hash_func<std::size_t>(rhs.bytes_.data());
 }

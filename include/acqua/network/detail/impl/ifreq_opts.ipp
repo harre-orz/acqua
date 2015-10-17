@@ -4,7 +4,7 @@
 
 namespace acqua { namespace network { namespace detail {
 
-inline ifreq_opts::ifreq_opts(char const * if_name)
+inline ifreq_opts::ifreq_opts(char const * if_name) noexcept
     : fd_(-1)
 {
     using namespace std;
@@ -14,13 +14,13 @@ inline ifreq_opts::ifreq_opts(char const * if_name)
     }
 }
 
-inline ifreq_opts::~ifreq_opts()
+inline ifreq_opts::~ifreq_opts() noexcept
 {
     if (fd_ >= 0)
         ::close(fd_);
 }
 
-inline bool ifreq_opts::open_once(boost::system::error_code &ec)
+inline bool ifreq_opts::open_once(boost::system::error_code & ec) noexcept
 {
     if (fd_ < 0) {
         if ((fd_ = ::socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -31,7 +31,7 @@ inline bool ifreq_opts::open_once(boost::system::error_code &ec)
     return true;
 }
 
-inline int ifreq_opts::get_index(boost::system::error_code & ec)
+inline int ifreq_opts::get_index(boost::system::error_code & ec) noexcept
 {
     if (!open_once(ec))
         return -1;
@@ -44,7 +44,7 @@ inline int ifreq_opts::get_index(boost::system::error_code & ec)
     return ifr_.ifr_ifindex;
 }
 
-inline int ifreq_opts::get_mtu(boost::system::error_code & ec)
+inline int ifreq_opts::get_mtu(boost::system::error_code & ec) noexcept
 {
     if (!open_once(ec))
         return -1;
@@ -57,7 +57,7 @@ inline int ifreq_opts::get_mtu(boost::system::error_code & ec)
     return ifr_.ifr_mtu;
 }
 
-inline void ifreq_opts::set_mtu(int mtu, boost::system::error_code & ec)
+inline void ifreq_opts::set_mtu(int mtu, boost::system::error_code & ec) noexcept
 {
     if (!open_once(ec))
         return;
@@ -69,7 +69,7 @@ inline void ifreq_opts::set_mtu(int mtu, boost::system::error_code & ec)
     }
 }
 
-inline linklayer_address ifreq_opts::get_lladdr(boost::system::error_code & ec)
+inline linklayer_address ifreq_opts::get_lladdr(boost::system::error_code & ec) noexcept
 {
     if (!open_once(ec))
         return linklayer_address();
@@ -79,10 +79,10 @@ inline linklayer_address ifreq_opts::get_lladdr(boost::system::error_code & ec)
         return linklayer_address();
     }
 
-    return linklayer_address(ifr_.ifr_hwaddr.sa_data);
+    return linklayer_address::from_voidptr(ifr_.ifr_hwaddr.sa_data);
 }
 
-inline void ifreq_opts::set_lladdr(linklayer_address const & lladdr, boost::system::error_code & ec)
+inline void ifreq_opts::set_lladdr(linklayer_address const & lladdr, boost::system::error_code & ec) noexcept
 {
     if (!open_once(ec))
         return;

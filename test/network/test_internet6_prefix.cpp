@@ -2,6 +2,7 @@
 #include <boost/test/included/unit_test.hpp>
 #include <acqua/network/internet6_prefix.hpp>
 
+
 BOOST_AUTO_TEST_SUITE(internet6_prefix)
 
 BOOST_AUTO_TEST_CASE(internet6_prefix__construct)
@@ -11,7 +12,7 @@ BOOST_AUTO_TEST_CASE(internet6_prefix__construct)
     internet6_prefix prefix(internet6_address::from_string("fe80::1"), 112);
     BOOST_CHECK_EQUAL(prefix.masklen(), 112);
     BOOST_CHECK_EQUAL(prefix.address(), internet6_address::from_string("fe80::"));
-    BOOST_CHECK_EQUAL(prefix.netmask(), internet6_address::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:"));
+    BOOST_CHECK_EQUAL(prefix.netmask(), internet6_address::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:0"));
     BOOST_CHECK_EQUAL(netmask_length(prefix.netmask()), 112);
 }
 

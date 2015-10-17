@@ -1,8 +1,5 @@
 #define BOOST_TEST_MAIN
 #include <boost/test/included/unit_test.hpp>
-
-#define private public
-#define protected public
 #include <acqua/network/internet4_address.hpp>
 
 BOOST_AUTO_TEST_SUITE(internet4_address)
@@ -15,8 +12,7 @@ BOOST_AUTO_TEST_CASE(internet4_address__construct)
 {
     BOOST_CHECK_EQUAL(internet4_address(), internet4_address::any());
 
-    char addr[] = { (char)192, (char)168, (char)0, (char)1 };
-    BOOST_CHECK_EQUAL(internet4_address(addr), internet4_address::from_string("192.168.0.1"));
+    BOOST_CHECK_EQUAL(internet4_address({192,168,0,1}), internet4_address::from_string("192.168.0.1"));
 }
 
 BOOST_AUTO_TEST_CASE(internet4_address__loopback)
