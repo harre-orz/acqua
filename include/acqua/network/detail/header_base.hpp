@@ -15,11 +15,11 @@ class header_base
 {
 public:
     //! ヘッダーの有効サイズを返す.
-    constexpr std::size_t size() const { return sizeof(Derived); }
+    constexpr std::size_t header_size() const noexcept { return sizeof(Derived); }
 
-    //! end を縮小させる.
+    //! データ長の終端をヘッダー情報より算出した終了位置にする
     template <typename It>
-    void shrink(It &) const {}
+    constexpr void shrink_into_end(It &) const noexcept {}
 };
 
 } } }

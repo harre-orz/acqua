@@ -39,11 +39,11 @@ public:
 
     constexpr internet4_address(bytes_type const & bytes) noexcept;
 
-    constexpr internet4_address(struct ::in_addr const & addr) noexcept;
+    internet4_address(struct ::in_addr const & addr) noexcept;
 
     internet4_address(boost::asio::ip::address_v4 const & addr) noexcept;
 
-    explicit constexpr internet4_address(std::uint32_t addr) noexcept;
+    explicit internet4_address(std::uint32_t addr) noexcept;
 
     constexpr internet4_address(internet4_address const & rhs) noexcept = default;
 
@@ -97,12 +97,12 @@ public:
 
     static constexpr internet4_address broadcast() noexcept
     {
-        return internet4_address(0xFFFFFFFF);
+        return bytes_type{{255,255,255,255}};
     }
 
     static constexpr internet4_address loopback() noexcept
     {
-        return internet4_address(0x7F000001);
+        return bytes_type{{127,0,0,1}};
     }
 
     static internet4_address from_string(std::string const & str);

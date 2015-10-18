@@ -65,7 +65,7 @@ public:
 
     static constexpr linklayer_address broadcast() noexcept
     {
-        return linklayer_address{{255,255,255,255,255,255}};
+        return bytes_type{{255,255,255,255,255,255}};
     }
 
     static linklayer_address from_string(std::string const & str);

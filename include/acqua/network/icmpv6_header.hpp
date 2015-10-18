@@ -142,9 +142,9 @@ class icmpv6_neighbor
     using base_type = header_base<icmpv6_neighbor>;
 
 public:
-    std::size_t size() const noexcept
+    std::size_t header_size() const noexcept
     {
-        return base_type::size() + sizeof(internet6_address);
+        return base_type::header_size() + sizeof(internet6_address);
     }
 
     using icmpv6_header::is_router;
@@ -167,6 +167,7 @@ public:
 } // detail;
 
 using icmpv6_header = detail::icmpv6_header;
+using icmpv6_echo = detail::icmpv6_echo;
 
 } }
 

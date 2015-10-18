@@ -20,6 +20,15 @@ inline std::ostream & operator<<(std::ostream & os, icmp_header const & rhs)
                << " id=" << rhs.id()
                << " seq=" << rhs.seq();
             break;
+        case icmp_header::destination_unrechable_message:
+            os << "(destination unreachable message)";
+            break;
+        case icmp_header::source_quench_message:
+            os << "(source quench message)";
+            break;
+        case icmp_header::redirect_message:
+            os << "(redirect message)";
+            break;
     }
     return os;
 }

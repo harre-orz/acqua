@@ -18,7 +18,7 @@ namespace acqua {
   std::bind の引数などで、move が使えないときに使用することを想定している。乱用は厳禁
  */
 template <typename T>
-inline utility::move_on_copy_wrapper< typename std::remove_reference<T>::type > mref(T t)
+inline utility::move_on_copy_wrapper< typename std::remove_reference<T>::type > mref(T && t)
 {
     return utility::move_on_copy_wrapper< typename std::remove_reference<T>::type >( std::move(t) );
 }

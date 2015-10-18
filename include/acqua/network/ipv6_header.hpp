@@ -36,7 +36,7 @@ public:
     };
 
     template <typename It>
-    void shrink(It & end) const;
+    void shrink_into_end(It & end) const;
 
     protocol_type protocol() const
     {
@@ -53,8 +53,8 @@ public:
         return 0;
     }
 
-    template <typename It>
-    void commit(It const & end);
+    // template <typename It>
+    // void commit(It const & end);
 
     friend std::ostream & operator<<(std::ostream & os, ipv6_header const & rhs);
 };

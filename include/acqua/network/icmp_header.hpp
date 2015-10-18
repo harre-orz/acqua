@@ -132,8 +132,6 @@ class icmp_echo
     using base_type = header_base<icmp_echo>;
 
 public:
-    using base_type::size;
-    using base_type::shrink;
     using icmp_header::id;
     using icmp_header::seq;
 };

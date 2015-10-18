@@ -7,14 +7,14 @@
 
 namespace acqua { namespace network { namespace detail {
 
-inline std::size_t ipv4_header::size() const
+inline std::size_t ipv4_header::header_size() const
 {
     return value_type::ip_hl * 4;
 }
 
 
 template <typename It>
-inline void ipv4_header::shrink(It & end) const
+inline void ipv4_header::shrink_into_end(It & end) const
 {
     int len = (reinterpret_cast<std::uint8_t const *>(&(*end)) - reinterpret_cast<std::uint8_t const *>(this)) - ntohs(value_type
                                                                                                                        ::ip_len);
@@ -39,7 +39,7 @@ inline std::ostream & operator<<(std::ostream & os, ipv4_header const & rhs)
     }
     os << " src=" << rhs.source()
        << " dst=" << rhs.destinate()
-       << " size=" << rhs.size()
+       << " size=" << rhs.header_size()
        << " check=" << std::hex << rhs.checksum() << std::dec
        << " ver=" << rhs.version()
        << " hlen=" << rhs.header_length()
@@ -81,7 +81,7 @@ private:
     std::uint8_t dummy_;
     std::uint8_t protocol_;
     std::uint16_t length_;
-} __attribute__((__packed__));
+};
 
 
 template <>

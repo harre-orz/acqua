@@ -52,7 +52,7 @@ inline constexpr internet4_address::internet4_address(bytes_type const & bytes) 
 {
 }
 
-inline constexpr internet4_address::internet4_address(struct ::in_addr const & addr) noexcept
+inline internet4_address::internet4_address(struct ::in_addr const & addr) noexcept
     : bytes_(*reinterpret_cast<bytes_type const *>(&addr))
 {
 }
@@ -62,7 +62,7 @@ inline internet4_address::internet4_address(boost::asio::ip::address_v4 const & 
 {
 }
 
-inline constexpr internet4_address::internet4_address(std::uint32_t addr) noexcept
+inline internet4_address::internet4_address(std::uint32_t addr) noexcept
     : bytes_{{
 #ifdef BOOST_BIG_ENDIAN
         reinterpret_cast<std::uint8_t const *>(&addr)[0],

@@ -39,11 +39,11 @@ public:
     };
 
     // IPv4ヘッダーとヘッダーオプションの長さ.
-    std::size_t size() const;
+    std::size_t header_size() const;
 
     // ペイロードの終端 end を IPv4 の total_length に基づき調整する.
     template <typename It>
-    void shrink(It & end) const;
+    void shrink_into_end(It & end) const;
 
     protocol_type protocol() const noexcept
     {

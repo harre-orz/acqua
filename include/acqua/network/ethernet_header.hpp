@@ -57,9 +57,6 @@ public:
         loopback = 0x9000,
     };
 
-    using base_type::size;
-    using base_type::shrink;
-
     protocol_type protocol() const
     {
         return static_cast<protocol_type>( ntohs(value_type::ether_type) );

@@ -15,44 +15,119 @@
 
 namespace acqua { namespace network {
 
-//! Derived ヘッダーにパース
-template <
-    typename Derived,
-    typename Header,
-    typename It,
-    typename std::enable_if<std::is_base_of<detail::header_base<Header>, Header>::value>::type * = nullptr
-    >
-ACQUA_DECL Derived * parse(Header * hdr, It & end) noexcept
+namespace detail {
+
+template <typename T, typename Enabler = void>
+struct is_parseable_header
 {
-    static_assert(std::is_base_of<detail::header_base<Derived>, Derived>::value, "Derived is base of header_base<Derived>");
+    static const bool value = false;
+};
 
-    auto * ptr = reinterpret_cast<typename std::iterator_traits<It>::pointer>(hdr);
+template <typename T>
+struct is_parseable_header<
+    T,
+    typename std::enable_if<
+        std::is_base_of<
+            header_base<typename std::remove_const<T>::type>, T
+            >::value
+        >::type>
+{
+    static const bool value = true;
+};
 
-    if (ptr + sizeof(*hdr) < &(*end)) {
-        auto * nxt = reinterpret_cast<Derived *>(ptr + hdr->size());
-        if (ptr + nxt->size() < &(*end) && detail::is_match_condition<Header, Derived>()(*hdr, *nxt)) {
-            nxt->shrink(end);
-            return nxt;
+}
+
+
+/*!
+  ミュータブルな beg から end までのバッファを Hdr 型にキャストする.
+ */
+template <typename Hdr, typename It,
+          typename std::enable_if<!std::is_const< typename std::remove_pointer< typename std::iterator_traits<It>::pointer >::type>::value>::type * = nullptr>
+inline Hdr * parse(It beg, It & end) noexcept
+{
+    static_assert(sizeof(typename std::iterator_traits<It>::value_type) == 1, "");
+    static_assert(detail::is_parseable_header<Hdr>::value, "Hdr is base of header_base");
+
+    if (beg + sizeof(Hdr) < end) {
+        auto * hdr = reinterpret_cast<Hdr *>(&(*beg));
+        if (beg + hdr->header_size() < end) {
+            hdr->shrink_into_end(end);
+            return hdr;
         }
     }
     return nullptr;
 }
 
 
-//! Derived ヘッダーにパース
-template <typename Derived, typename It>
-ACQUA_DECL Derived * parse(It & beg, It & end) noexcept
+/*!
+  イミュータブルな beg から end までのバッファを Hdr const型にキャストする.
+ */
+template <typename Hdr, typename It,
+          typename std::enable_if<std::is_const< typename std::remove_pointer< typename std::iterator_traits<It>::pointer >::type>::value>::type * = nullptr>
+inline typename std::remove_const<Hdr>::type const * parse(It beg, It & end) noexcept
 {
-    static_assert(std::is_base_of<detail::header_base<Derived>, Derived>::value, "Derived is base of header_base<Derived>");
-    static_assert(sizeof(typename std::iterator_traits<It>::value_type) == 1, "It was must iterator of 1 byte.");
+    static_assert(sizeof(typename std::iterator_traits<It>::value_type) == 1, "");
+    static_assert(detail::is_parseable_header<Hdr>::value, "Hdr is base of header_base");
 
-    if (beg + sizeof(Derived) < end) {
-        auto * hdr = reinterpret_cast<Derived *>(&(*beg));
-        if (beg + hdr->size() < end) {
-            hdr->shrink(end);
+    if (beg + sizeof(Hdr) < end) {
+        auto * hdr = reinterpret_cast<typename std::remove_const<Hdr>::type const *>(&(*beg));
+        if (beg + hdr->header_size() < end) {
+            hdr->shrink_into_end(end);
             return hdr;
         }
     }
+    return nullptr;
+}
+
+
+/*!
+  ミュータブルな hdr と end から、hdr の次のヘッダー Hdr 型を取得する.
+  次のヘッダーが Hdr でない場合は nullptr が返る
+  T から Hdr への変換が不明な場合は、コンパイルエラーになる
+ */
+template <typename Hdr, typename T, typename It,
+          typename std::enable_if<detail::is_parseable_header<T>::value>::type * = nullptr>
+inline Hdr * parse(T * hdr, It & end) noexcept
+{
+    static_assert(sizeof(typename std::iterator_traits<It>::value_type) == 1, "");
+    static_assert(detail::is_parseable_header<Hdr>::value, "Hdr is base of header_base");
+
+    auto * beg = reinterpret_cast<typename std::iterator_traits<It>::pointer>(hdr);
+    if (beg + hdr->header_size() < &(*end)) {
+        auto * nxt = reinterpret_cast<Hdr *>(beg + hdr->header_size());
+        if (beg + nxt->header_size() < &(*end) &&
+            detail::is_match_condition<typename std::remove_const<T>::type, typename std::remove_const<Hdr>::type>()(*hdr, *nxt)) {
+            nxt->shrink_into_end(end);
+            return nxt;
+        }
+    }
+
+    return nullptr;
+}
+
+
+/*!
+  イミュータブルな hdr と end から、hdr の次のヘッダー Hdr const 型を取得する.
+  次のヘッダーが Hdr でない場合は nullptr が返る
+  T から Hdr への変換が不明な場合は、コンパイルエラーになる
+ */
+template <typename Hdr, typename T, typename It,
+          typename std::enable_if<detail::is_parseable_header<T>::value>::type * = nullptr>
+inline typename std::remove_const<Hdr>::type const * parse(T const * hdr, It & end) noexcept
+{
+    static_assert(sizeof(typename std::iterator_traits<It>::value_type) == 1, "");
+    static_assert(detail::is_parseable_header<Hdr>::value, "Hdr is base of header_base");
+
+    auto const * beg = reinterpret_cast<typename std::iterator_traits<It>::pointer>(const_cast<T *>(hdr));
+    if (beg + hdr->header_size() < &(*end)) {
+        auto * nxt = reinterpret_cast<Hdr const *>(beg + hdr->header_size());
+        if (beg + nxt->header_size() < &(*end) &&
+            detail::is_match_condition<typename std::remove_const<T>::type, typename std::remove_const<Hdr>::type>()(*hdr, *nxt)) {
+            nxt->shrink_into_end(end);
+            return nxt;
+        }
+    }
+
     return nullptr;
 }
 
