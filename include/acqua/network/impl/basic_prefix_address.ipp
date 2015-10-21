@@ -18,7 +18,7 @@ class internet6_address;
 
 namespace detail {
 
-template <typename T> std::size_t max_masklen() noexcept;
+template <typename T> constexpr std::size_t max_masklen() noexcept;
 template <> inline constexpr std::size_t max_masklen<internet4_address>() noexcept { return  32; }
 template <> inline constexpr std::size_t max_masklen<internet6_address>() noexcept { return 128; }
 

@@ -32,7 +32,7 @@ class internet4_address
 
 public:
     using bytes_type = boost::asio::ip::address_v4::bytes_type;
-    using masklen_type = unsigned char;
+    using masklen_type = std::uint16_t;
 
 public:
     constexpr internet4_address() noexcept;
@@ -132,7 +132,7 @@ public:
 
 private:
     bytes_type bytes_;
-};
+} __attribute__((__packed__));
 
 } }
 
