@@ -9,10 +9,9 @@
 #pragma once
 
 #include <boost/optional.hpp>
-
-#include <acqua/exception/throw_error.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include <acqua/asio/server_traits.hpp>
-#include <acqua/asio/detail/internet_tag.hpp>
+#include <acqua/asio/internet_category.hpp>
 #include <acqua/asio/detail/simple_server_base.hpp>
 
 namespace acqua { namespace asio {
@@ -26,237 +25,161 @@ template <
     >
 class internet_server
     : private Traits
-    , private detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, detail::internet_v4_tag>
-    , private detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, detail::internet_v6_tag>
+    , private detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, internet_v4_tag>
+    , private detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, internet_v6_tag>
 {
-    using base_v4_type = detail::simple_server_base<internet_server<Connector, Traits>, Connector,boost::asio::ip::tcp, detail::internet_v4_tag>;
-    friend base_v4_type;
+    using v4_type = detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, internet_v4_tag>;
+    friend v4_type;
 
-    using base_v6_type = detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, detail::internet_v6_tag>;
-    friend base_v6_type;
+    using v6_type = detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, internet_v6_tag>;
+    friend v6_type;
 
-    static const int default_max_count = 100;
+    using atomic_size_type = typename v4_type::atomic_size_type;
+
 public:
     using traits_type = Traits;
-    using protocol_type = typename base_v4_type::protocol_type;
-    using acceptor_type = typename base_v4_type::acceptor_type;
-    using endpoint_type =  typename base_v4_type::endpoint_type;
+    using size_type = typename v4_type::size_type;
+    using protocol_type = typename v4_type::protocol_type;
+    using acceptor_type = typename v4_type::acceptor_type;
+    using endpoint_type = typename v4_type::endpoint_type;
 
 public:
     template <typename... Args>
-    explicit internet_server(boost::asio::io_service & io_service,
-                             boost::optional<boost::asio::ip::address> const & address,
-                             std::uint16_t port,
-                             std::size_t max_count,
-                             bool reuse_addr,
-                             Args... args)
-        : traits_type(args...)
-        , base_v4_type(io_service, count_)
-        , base_v6_type(io_service, count_)
+    explicit internet_server(boost::asio::io_service & io_service, Args&&... args)
+        : v4_type(io_service, args...)
+        , v6_type(io_service, args...)
         , count_(0)
     {
-        boost::system::error_code ec;
-        if (!address) {
-            set_max_count(max_count, 2, ec);
-            listen_v4(base_v4_type::acceptor(), endpoint_type(boost::asio::ip::address_v4::any(), port), ec, reuse_addr);
-            listen_v6(base_v6_type::acceptor(), endpoint_type(boost::asio::ip::address_v6::any(), port), ec, reuse_addr);
-        } else if (address->is_v4()) {
-            set_max_count(max_count, 1, ec);
-            listen_v4(base_v4_type::acceptor(), endpoint_type(*address, port), ec, reuse_addr);
-        } else if (address->is_v6()) {
-            set_max_count(max_count, 1, ec);
-            listen_v6(base_v6_type::acceptor(), endpoint_type(*address, port), ec, reuse_addr);
-        }
     }
 
-    explicit internet_server(boost::asio::io_service & io_service,
-                             boost::optional<boost::asio::ip::address> const & address,
-                             std::uint16_t port,
-                             std::size_t max_count,
-                             bool reuse_addr,
-                             traits_type traits = traits_type())
-        : traits_type(traits)
-        , base_v4_type(io_service, count_)
-        , base_v6_type(io_service, count_)
-        , count_(0)
-    {
-        boost::system::error_code ec;
-        if (!address) {
-            set_max_count(max_count, 2, ec);
-            listen_v4(base_v4_type::acceptor(), endpoint_type(boost::asio::ip::address_v4::any(), port), ec, reuse_addr);
-            listen_v6(base_v6_type::acceptor(), endpoint_type(boost::asio::ip::address_v6::any(), port), ec, reuse_addr);
-        } else if (address->is_v4()) {
-            set_max_count(max_count, 1, ec);
-            listen_v4(base_v4_type::acceptor(), endpoint_type(*address, port), ec, reuse_addr);
-        } else if (address->is_v6()) {
-            set_max_count(max_count, 1, ec);
-            listen_v6(base_v6_type::acceptor(), endpoint_type(*address, port), ec, reuse_addr);
-        }
-    }
-
-    explicit internet_server(boost::asio::io_service & io_service,
-                             boost::asio::ip::address_v4 const & address,
-                             std::uint16_t port,
-                             std::size_t max_count = default_max_count,
-                             bool reuse_addr = true,
-                             traits_type traits = traits_type())
-        : traits_type(traits)
-        , base_v4_type(io_service, count_)
-        , base_v6_type(io_service, count_)
-        , count_(0)
-    {
-        boost::system::error_code ec;
-        set_max_count(max_count, 1, ec);
-        listen_v4(base_v4_type::acceptor(), endpoint_type(address, port), ec, reuse_addr);
-    }
-
-    explicit internet_server(boost::asio::io_service & io_service,
-                             boost::asio::ip::address_v6 const & address,
-                             std::uint16_t port,
-                             std::size_t max_count = default_max_count,
-                             bool reuse_addr = true,
-                             traits_type traits = traits_type())
-        : traits_type(traits)
-        , base_v4_type(io_service, count_)
-        , base_v6_type(io_service, count_)
-        , count_(0)
-    {
-        boost::system::error_code ec;
-        set_max_count(max_count, 1, ec);
-        listen_v6(base_v4_type::acceptor(), endpoint_type(address, port), ec, reuse_addr);
-    }
-
-    explicit internet_server(boost::asio::io_service & io_service,
-                             endpoint_type const & endpoint,
-                             std::size_t max_count = default_max_count,
-                             bool reuse_addr = true,
-                             traits_type traits = traits_type())
-        : traits_type(traits)
-        , base_v4_type(io_service, count_)
-        , base_v6_type(io_service, count_)
-        , count_(0)
-    {
-        boost::system::error_code ec;
-        if (endpoint.protocol() == boost::asio::ip::tcp::v4()) {
-            set_max_count(max_count, 1, ec);
-            listen_v4(base_v4_type::acceptor(), endpoint, ec, reuse_addr);
-        } else if (endpoint.protocol() == boost::asio::ip::tcp::v6()) {
-            set_max_count(max_count, 1, ec);
-            listen_v6(base_v6_type::acceptor(), endpoint, ec, reuse_addr);
-        }
-    }
-
-    explicit internet_server(boost::asio::io_service & io_service,
-                             std::uint16_t port,
-                             std::size_t max_count = default_max_count,
-                             bool reuse_addr = true,
-                             traits_type traits = traits_type())
-        : traits_type(traits)
-        , base_v4_type(io_service, count_)
-        , base_v6_type(io_service, count_)
-        , count_(0)
-    {
-        boost::system::error_code ec;
-        set_max_count(max_count, 2, ec);
-        listen_v4(base_v4_type::acceptor(), endpoint_type(boost::asio::ip::address_v4::any(), port), ec, reuse_addr);
-        listen_v6(base_v6_type::acceptor(), endpoint_type(boost::asio::ip::address_v6::any(), port), ec, reuse_addr);
-    }
-
-    void start()
-    {
-        base_v4_type::start();
-        base_v6_type::start();
-    }
-
-    void stop()
-    {
-        base_v4_type::stop();
-        base_v6_type::stop();
-    }
-
-    std::size_t use_count() const noexcept
-    {
-        return count_;
-    }
-
-    std::size_t max_count() const noexcept
+    size_type max_count() const
     {
         return max_count_;
     }
 
+    void max_count(size_type count)
+    {
+        boost::system::error_code ec;
+        max_count(count, ec);
+        boost::asio::detail::throw_error(ec, "max_count");
+    }
+
+    void max_count(size_type count, boost::system::error_code & ec)
+    {
+        if (2 <= count)
+            count_ = count;
+        else
+            ec = make_error_code(boost::system::errc::invalid_argument);
+    }
+
+    void listen(endpoint_type const & endpoint, bool reuse_addr = true)
+    {
+        boost::system::error_code ec;
+        listen(endpoint, ec, reuse_addr);
+        boost::asio::detail::throw_error(ec, "listen");
+    }
+
+    void listen(endpoint_type const & endpoint, boost::system::error_code & ec, bool reuse_addr = true)
+    {
+        if (endpoint.protocol() == protocol_type::v4())
+            v4_type::listen(endpoint, ec, reuse_addr);
+        if (endpoint.protocol() == protocol_type::v6())
+            v6_type::listen(endpoint, ec, reuse_addr);
+    }
+
+    void listen(boost::asio::ip::address_v4 const & addr, std::uint16_t port, bool reuse_addr = true)
+    {
+        boost::system::error_code ec;
+        listen(addr, port, ec, reuse_addr);
+        boost::asio::detail::throw_error(ec, "listen");
+    }
+
+    void listen(boost::asio::ip::address_v4 const & addr, std::uint16_t port, boost::system::error_code & ec, bool reuse_addr = true)
+    {
+        v4_type::listen(endpoint_type(addr, port), ec, reuse_addr);
+    }
+
+    void listen(boost::asio::ip::address_v6 const & addr, std::uint16_t port, bool reuse_addr = true)
+    {
+        boost::system::error_code ec;
+        listen(addr, port, ec, reuse_addr);
+        boost::asio::detail::throw_error(ec, "listen");
+    }
+
+    void listen(boost::asio::ip::address_v6 const & addr, std::uint16_t port, boost::system::error_code & ec, bool reuse_addr = true)
+    {
+        v6_type::listen(endpoint_type(addr, port), ec, reuse_addr);
+    }
+
+    void listen(std::uint16_t port, bool reuse_addr = true)
+    {
+        boost::system::error_code ec;
+        listen(port, ec, reuse_addr);
+        boost::asio::detail::throw_error(ec, "listen");
+    }
+
+    void listen(std::uint16_t port, boost::system::error_code & ec, bool reuse_addr = true)
+    {
+        v4_type::listen(endpoint_type(boost::asio::ip::address_v4::any(), port), ec, reuse_addr);
+        v6_type::listen(endpoint_type(boost::asio::ip::address_v6::any(), port), ec, reuse_addr);
+    }
+
+    void start()
+    {
+        boost::system::error_code ec;
+        start(ec);
+        boost::asio::detail::throw_error(ec, "start");
+    }
+
+    void start(boost::system::error_code & ec)
+    {
+        if (!v4_type::get_acceptor().is_open()  && !v6_type::get_acceptor().is_open()) {
+            ec = make_error_code(boost::asio::error::not_socket);
+            return;
+        }
+
+        if (v4_type::get_acceptor().is_open())
+            v4_type::start(ec);
+
+        if (!ec && v6_type::get_acceptor().is_open()) {
+            v6_type::start(ec);
+
+            if (ec) {
+                boost::system::error_code ec2;
+                v4_type::cancel(ec2);
+            }
+        }
+    }
+
+    void cancel()
+    {
+        boost::system::error_code ec;
+        cancel(ec);
+        boost::asio::detail::throw_error(ec, "cancel");
+    }
+
+    void cancel(boost::system::error_code & ec)
+    {
+        boost::system::error_code ec2;
+
+        if (v4_type::get_acceptor().is_open())
+            v4_type::cancel(ec);
+
+        if (v6_type::get_acceptor().is_open())
+            v6_type::cancel(ec2);
+
+        if (!ec && ec2) ec = ec2;
+    }
+
 private:
-    void listen_v4(acceptor_type & acc, endpoint_type const & endpoint, boost::system::error_code & ec, bool reuse_addr)
-    {
-        acc.open(endpoint.protocol(), ec);
-        acqua::exception::throw_error(ec, "open");
-        if (reuse_addr) {
-            acc.set_option(boost::asio::socket_base::reuse_address(true), ec);
-            acqua::exception::throw_error(ec, "set_option");
-        }
-        static_cast<traits_type *>(this)->set_option(acc, ec);
-        static_cast<traits_type *>(this)->set_option_v4(acc, ec);
-        acc.bind(endpoint, ec);
-        acqua::exception::throw_error(ec, "bind");
-        acc.listen(boost::asio::socket_base::max_connections, ec);
-        acqua::exception::throw_error(ec, "listen");
-    }
-
-    void listen_v6(acceptor_type & acc, endpoint_type const & endpoint, boost::system::error_code & ec, bool reuse_addr)
-    {
-        acc.open(endpoint.protocol(), ec);
-        acqua::exception::throw_error(ec, "open");
-        if (reuse_addr) {
-            acc.set_option(boost::asio::socket_base::reuse_address(true), ec);
-            acqua::exception::throw_error(ec, "set_option");
-        }
-        acc.set_option(boost::asio::ip::v6_only(true));
-        acqua::exception::throw_error(ec, "set_option");
-        static_cast<traits_type *>(this)->set_option(acc, ec);
-        static_cast<traits_type *>(this)->set_option_v6(acc, ec);
-        acc.bind(endpoint, ec);
-        acqua::exception::throw_error(ec, "bind");
-        acc.listen(boost::asio::socket_base::max_connections, ec);
-        acqua::exception::throw_error(ec, "listen");
-    }
-
-    Connector * construct(boost::asio::io_service & io_service)
-    {
-        return static_cast<traits_type *>(this)->construct(io_service);
-    }
-
-    typename protocol_type::socket & server_socket(std::shared_ptr<Connector> & conn, detail::internet_v4_tag const &)
-    {
-        return static_cast<traits_type *>(this)->template socket_v4<typename protocol_type::socket>(&*conn);
-    }
-
-    typename protocol_type::socket & server_socket(std::shared_ptr<Connector> & conn, detail::internet_v6_tag const &)
-    {
-        return static_cast<traits_type *>(this)->template socket_v6<typename protocol_type::socket>(&*conn);
-    }
-
-    void connection_start(std::shared_ptr<Connector> & conn, detail::internet_v4_tag const &)
-    {
-        static_cast<traits_type *>(this)->start_v4(&*conn);
-    }
-
-    void connection_start(std::shared_ptr<Connector> & conn, detail::internet_v6_tag const &)
-    {
-        static_cast<traits_type *>(this)->start_v6(&*conn);
-    }
-
-    void set_max_count(std::size_t max_count, std::size_t lower_limit, boost::system::error_code & ec)
-    {
-        if (max_count < lower_limit) {
-            ec = boost::system::errc::make_error_code(boost::system::errc::invalid_argument);
-            acqua::exception::throw_error(ec, "max_count");
-        }
-
-        max_count_ = max_count;
-    }
+    using traits_type::set_option;
+    using traits_type::construct;
+    using traits_type::socket;
+    using traits_type::start;
 
 private:
-    std::atomic<std::size_t> count_;
-    std::size_t max_count_;
+    atomic_size_type count_;
+    size_type max_count_ = 100;
 };
 
 } }

@@ -8,7 +8,7 @@
 
 #pragma once
 
-namespace acqua { namespace asio { namespace detail {
+namespace acqua { namespace asio {
 
 //! IPv4用であることを示すタグ
 class internet_v4_tag {};
@@ -16,4 +16,4 @@ class internet_v4_tag {};
 //! IPv6用であることを示すタグ
 class internet_v6_tag {};
 
-} } }
+} }

@@ -15,72 +15,40 @@ namespace acqua { namespace asio {
 
 /*!
   simple_server クラス, internet_server クラスに用いる特性を記述するクラス.
-
  */
 template <typename T>
 class server_traits
 {
 public:
-    T * construct(boost::asio::io_service & io_service)
+    //! サーバソケットを設定.
+    template <typename Tag, typename Acceptor>
+    void set_option(Tag, Acceptor & acc, boost::system::error_code & ec, bool reuse_addr)
     {
-        return new T(io_service);
+        if (reuse_addr) {
+            acc.set_option(boost::asio::socket_base::reuse_address(true), ec);
+        }
     }
 
-    /*!
-      Acceptorクラスのオプションを指定するメソッドを記述します.
-    */
-    template <typename Acceptor>
-    static void set_option(Acceptor &, boost::system::error_code &)
+    //! 接続済みソケットのコンテキストを作成.
+    //! 第二引数以降は、サーバサービスのコンストラクタ第二引数以降に対応している
+    template <typename... Args>
+    static T * construct( boost::asio::io_service & io_service, Args&&... args)
     {
+        return new T(io_service, args...);
     }
 
-    /*!
-      internet_server クラスで、IPv4用の Acceptor のオプションを設定するメソッドを記述します.
-    */
-    template <typename Acceptor>
-    static void set_option_v4(Acceptor &, boost::system::error_code &)
+    //! 接続済みソケットの最下位レイヤーを返す.
+    template <typename Tag, typename SocketPtr>
+    typename SocketPtr::element_type::lowest_layer_type & socket(Tag, SocketPtr soc)
     {
+        return soc->socket();
     }
 
-    /*!
-      internet_server クラスで、IPv6用の Acceptor のオプションを設定するメソッドを記述します.
-    */
-    template <typename Acceptor>
-    static void set_option_v6(Acceptor &, boost::system::error_code &)
+    //! クライアントと接続し、接続済みソケットの処理を開始.
+    template <typename Tag, typename SocketPtr>
+    static void start(Tag, SocketPtr soc)
     {
-    }
-
-    template <typename Socket>
-    Socket & socket(T * t)
-    {
-        return t->socket();
-    }
-
-    template <typename Socket>
-    Socket & socket_v4(T * t)
-    {
-        return socket<Socket>(t);
-    }
-
-    template <typename Socket>
-    Socket & socket_v6(T * t)
-    {
-        return socket<Socket>(t);
-    }
-
-    void start(T * t)
-    {
-        t->start();
-    }
-
-    void start_v4(T * t)
-    {
-        start(t);
-    }
-
-    void start_v6(T * t)
-    {
-        start(t);
+        soc->start();
     }
 };
 

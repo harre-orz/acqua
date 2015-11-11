@@ -10,18 +10,14 @@
 
 #include <boost/asio/io_service.hpp>
 #include <acqua/asio/detail/simple_server_base.hpp>
-#include <acqua/exception/throw_error.hpp>
 #include <acqua/asio/server_traits.hpp>
 
 namespace acqua { namespace asio {
 
 /*!
-  accept がある度に Connector クラスを生成して、また accept が来るまで待つだけのシンプルなサーバ.
-
-  boost::asio::ip::tcp::acceptor もしくは boost::asio::local::stream_protocol::acceptor の待受ソケットを使い、コネクションクラスを自動生成することができる
-
-  \tparam Connector std::shared_ptr で管理されるので、Connector クラスは必ず std::enable_shared_from_this を継承していなければならない。
-
+  accept がある度に Connector クラスを生成するシンプルなサーバクラス.
+  \tparam Connector std::enable_shared_from_this を継承していること
+  \tparam Protocol boost::asio::ip::tcp もしくは boost::asio::local::stream_protocol
 */
 template <
     typename Connector,
@@ -31,107 +27,83 @@ template <
 class simple_server
     : private Traits
     , private detail::simple_server_base<simple_server<Connector, Traits, Protocol>, Connector, Protocol>
-
 {
-    using base_type = detail::simple_server_base<simple_server<Connector, Traits, Protocol>, Connector, Protocol>;
+    using base_type = typename simple_server::base_type;
     friend base_type;
 
-    static const int default_max_count = 100;
+    using atomic_size_type = typename base_type::atomic_size_type;
 
 public:
     using traits_type = Traits;
+    using size_type = typename base_type::size_type;
     using protocol_type = typename base_type::protocol_type;
     using acceptor_type = typename base_type::acceptor_type;
     using endpoint_type = typename base_type::endpoint_type;
 
 public:
     template <typename... Args>
-    explicit simple_server(boost::asio::io_service & io_service,
-                           endpoint_type const & endpoint,
-                           std::size_t max_count,
-                           bool reuse_addr,
-                           Args... args)
-        : traits_type(args...)
-        , base_type(io_service, count_)
-        , max_count_(max_count)
+    explicit simple_server(boost::asio::io_service & io_service, Args&&... args)
+        : base_type(io_service, args...)
         , count_(0)
     {
-        boost::system::error_code ec;
-        if (max_count_ <= 0)
-            throw boost::system::system_error(EINVAL, boost::system::generic_category());
-        listen(base_type::acceptor(), endpoint, ec, reuse_addr);
     }
 
-    explicit simple_server(boost::asio::io_service & io_service,
-                           endpoint_type const & endpoint,
-                           std::size_t max_count = default_max_count,
-                           bool reuse_addr = true,
-                           traits_type traits = traits_type())
-        : traits_type(traits)
-        , base_type(io_service, count_)
-        , max_count_(max_count)
-        , count_(0)
-    {
-        boost::system::error_code ec;
-        if (max_count_ <= 0)
-            throw boost::system::system_error(EINVAL, boost::system::generic_category());
-        listen(base_type::acceptor(), endpoint, ec, reuse_addr);
-    }
-
-    void start()
-    {
-        base_type::start();
-    }
-
-    void stop()
-    {
-        base_type::stop();
-    }
-
-    std::size_t use_count() const noexcept
-    {
-        return count_;
-    }
-
-    std::size_t max_count() const noexcept
+    size_type max_count() const
     {
         return max_count_;
     }
 
+    void max_count(size_type count)
+    {
+        boost::system::error_code ec;
+        max_count(count, ec);
+        boost::asio::detail::throw_error(ec, "max_count");
+    }
+
+    void max_count(size_type count, boost::system::error_code & ec)
+    {
+        if (1 <= count)
+            count_ = count;
+        else
+            ec = make_error_code(boost::system::errc::invalid_argument);
+    }
+
+    void listen(endpoint_type const & endpoint, bool reuse_addr = true)
+    {
+        boost::system::error_code ec;
+        listen(endpoint, ec, reuse_addr);
+        boost::asio::detail::throw_error(ec, "listen");
+    }
+
+    using base_type::listen;
+
+    void start()
+    {
+        boost::system::error_code ec;
+        start(ec);
+        boost::asio::detail::throw_error(ec);
+    }
+
+    using base_type::start;
+
+    void cancel()
+    {
+        boost::system::error_code ec;
+        cancel(ec);
+        boost::asio::detail::throw_error(ec);
+    }
+
+    using base_type::cancel;
+
 private:
-    void listen(acceptor_type & acc, endpoint_type const & endpoint, boost::system::error_code & ec, bool reuse_addr)
-    {
-        acc.open(endpoint.protocol(), ec);
-        acqua::exception::throw_error(ec, "open");
-        if (reuse_addr) {
-            acc.set_option(boost::asio::socket_base::reuse_address(true), ec);
-            acqua::exception::throw_error(ec, "set_option");
-        }
-        static_cast<traits_type *>(this)->set_option(acc, ec);
-        acc.bind(endpoint, ec);
-        acqua::exception::throw_error(ec, "bind");
-        acc.listen(boost::asio::socket_base::max_connections, ec);
-        acqua::exception::throw_error(ec, "listen");
-    }
-
-    Connector * construct(boost::asio::io_service & io_service)
-    {
-        return static_cast<Traits *>(this)->construct(io_service);
-    }
-
-    typename Protocol::socket & server_socket(std::shared_ptr<Connector> & conn, boost::blank const &)
-    {
-        return static_cast<Traits *>(this)->template socket<typename Protocol::socket>(&*conn);
-    }
-
-    void connection_start(std::shared_ptr<Connector> & conn, boost::blank const &)
-    {
-        static_cast<Traits *>(this)->start(&*conn);
-    }
+    using traits_type::set_option;
+    using traits_type::construct;
+    using traits_type::socket;
+    using traits_type::start;
 
 private:
-    std::size_t max_count_;
-    std::atomic<std::size_t> count_;
+    atomic_size_type count_;
+    size_type max_count_ = 100;
 };
 
 } }

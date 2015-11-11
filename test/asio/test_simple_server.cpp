@@ -1,14 +1,15 @@
 #include <acqua/asio/simple_server.hpp>
 #include <iostream>
 
-class echo_reply
-    : public std::enable_shared_from_this<echo_reply>
+class echo
+    : public std::enable_shared_from_this<echo>
 {
 public:
-    typedef boost::asio::ip::tcp protocol_type;
-    typedef typename protocol_type::socket socket_type;
+    using protocol_type = boost::asio::ip::tcp;
+    using socket_type = typename protocol_type::socket;
+    using lowest_layer_type = typename socket_type::lowest_layer_type;
 
-    explicit echo_reply(boost::asio::io_service & io_service)
+    explicit echo(boost::asio::io_service & io_service)
         : socket_(io_service)
     {
     }
@@ -20,15 +21,6 @@ public:
 
     void start()
     {
-        boost::system::error_code ec;
-        boost::asio::streambuf buf;
-
-        std::cout << "connected from " << socket_.remote_endpoint(ec) << std::endl;
-        for(;;) {
-            boost::asio::read_until(socket_, buf, "\r\n");
-            std::cout << "bytes-transferred " << buf.size() << std::endl;
-            boost::asio::write(socket_, buf);
-        }
     }
 
 private:
@@ -38,7 +30,8 @@ private:
 int main(int, char ** argv)
 {
     boost::asio::io_service io_service;
-    acqua::asio::simple_server<echo_reply> sv(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::address_v4::any(), std::atoi(argv[1])));
+    acqua::asio::simple_server<echo> sv(io_service);
+    sv.listen(boost::asio::ip::tcp::endpoint(boost::asio::ip::address_v4::any(), atoi(argv[1])));
     sv.start();
     io_service.run();
 }

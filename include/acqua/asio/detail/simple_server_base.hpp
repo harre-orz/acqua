@@ -14,16 +14,20 @@
 #include <type_traits>
 #include <boost/utility.hpp>
 #include <boost/blank.hpp>
-#include <boost/asio.hpp>
-#include <acqua/exception/throw_error.hpp>
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/socket_base.hpp>
+#include <boost/asio/ip/v6_only.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/fusion/include/vector.hpp>
+#include <boost/fusion/include/make_fused.hpp>
+#include <acqua/asio/internet_category.hpp>
 
 namespace acqua { namespace asio { namespace detail {
 
 /*!
-  Stream Protocol の接続数を管理するクラス
-
+  サーバソケットの接続数を管理するクラス.
   \tparam Enabler Connector クラスは、std::enable_shared_from_this<Connector> を継承をチェックするSFINAE
- */
+*/
 template <
     typename Derived,
     typename Connector,
@@ -31,28 +35,13 @@ template <
     typename Tag = boost::blank,
     typename Enabler = void
     >
-class simple_server_base
-{
-protected:
-    using protocol_type = Protocol;
-    using acceptor_type = typename Protocol::acceptor;
-    using endpoint_type = typename Protocol::endpoint;
-
-    ~simple_server_base() noexcept;
-
-    acceptor_type & acceptor();
-
-public:
-    explicit simple_server_base(boost::asio::io_service & io_service, std::atomic<std::size_t> & count);
-
-    void start();
-
-    void stop();
-};
+class simple_server_base;
 
 
 /*!
- */
+  サーバソケットの接続数を管理するクラス.
+  \tparam Enabler Connector クラスは、std::enable_shared_from_this<Connector> を継承をチェックするSFINAE
+*/
 template <
     typename Derived,
     typename Connector,
@@ -60,116 +49,182 @@ template <
     typename Tag
     >
 class simple_server_base<
-    Derived, Connector, Protocol, Tag,
+    Derived,
+    Connector,
+    Protocol,
+    Tag,
     typename std::enable_if<std::is_base_of<std::enable_shared_from_this<Connector>, Connector>::value>::type
-    > : boost::noncopyable
+    > : private boost::noncopyable
 {
 protected:
+    using base_type = simple_server_base;
+
+public:
     using protocol_type = Protocol;
     using acceptor_type = typename Protocol::acceptor;
     using endpoint_type = typename Protocol::endpoint;
+    using size_type = std::size_t;
 
-    acceptor_type & acceptor()
+protected:
+    using atomic_size_type = std::atomic<size_type>;
+    using atomic_bool_type = std::atomic<bool>;
+
+    ~simple_server_base() = default;
+
+private:
+    struct placeholder
+    {
+        virtual Connector * construct(simple_server_base * this_, boost::asio::io_service & io_service) = 0;
+        virtual ~placeholder() = default;
+    };
+
+    template <typename... Args>
+    struct holder
+        : placeholder
+    {
+        explicit holder(Args... args)
+            : args_(args...)
+        {
+        }
+
+        virtual Connector * construct(simple_server_base * this_, boost::asio::io_service & io_service)
+        {
+            return boost::fusion::make_fused(&simple_server_base::construct_impl<Args...>)(
+                boost::fusion::push_front(boost::fusion::push_front(args_, std::ref(io_service)), this_));
+        }
+
+        boost::fusion::vector<Args...> args_;
+    };
+
+public:
+    template <typename... Args>
+    explicit simple_server_base(boost::asio::io_service & io_service, Args&&... args)
+        : acceptor_(io_service)
+        , holder_(std::make_unique< holder<Args...> >(args...))
+        , is_running_(false)
+        , is_waiting_(false)
+    {
+    }
+
+    void listen(endpoint_type const & endpoint, boost::system::error_code & ec, bool reuse_addr = true)
+    {
+        acceptor_.open(endpoint.protocol(), ec);
+        if (ec) return;
+
+        static_cast<Derived *>(this)->set_option(Tag(), acceptor_, ec, reuse_addr);
+        if (ec) return;
+
+        set_v6only(Tag(), endpoint);
+
+        acceptor_.bind(endpoint, ec);
+        if (ec) return;
+
+        acceptor_.listen(boost::asio::socket_base::max_connections, ec);
+    }
+
+    void start(boost::system::error_code & ec)
+    {
+        if (acceptor_.is_open()) {
+            if (is_running_.exchange(true) == false) {
+                async_accept();
+            } else {
+                ec = make_error_code(boost::asio::error::already_started);
+            }
+        } else {
+            ec = make_error_code(boost::asio::error::not_socket);
+        }
+    }
+
+    void cancel(boost::system::error_code & ec)
+    {
+        is_running_ = false;
+        acceptor_.cancel(ec);
+    }
+
+protected:
+    acceptor_type & get_acceptor()
     {
         return acceptor_;
     }
 
-public:
-    explicit simple_server_base(boost::asio::io_service & io_service, std::atomic<std::size_t> & count)
-        : acceptor_(io_service)
-        , count_(count)
-        , is_running_(false)
-        , is_waiting_(false)
-    {}
-
-    //! 非同期の接続待ち状態を開始する.
-    void start()
-    {
-        if (acceptor_.is_open()) {
-            if (is_running_.exchange(true) == false) {
-                is_waiting_ = false;
-                async_accept();
-            }
-        }
-    }
-
-    //! 非同期の接続待ち状態を解除する.
-    void stop()
-    {
-        is_running_ = false;
-        acceptor_.cancel();
-    }
-
 private:
+    Connector * construct(boost::asio::io_service & io_service)
+    {
+        return holder_->construct(this, io_service);
+    }
+
+    template <typename... Args>
+    static Connector * construct_impl(simple_server_base * this_, boost::asio::io_service & io_service, Args&&... args)
+    {
+        return static_cast<Derived *>(this_)->construct(io_service, args...);
+    }
+
+    //! true のときは async_accept() を行う
+    bool incr()
+    {
+        return !is_waiting_ && static_cast<Derived *>(this)->count_++ < static_cast<Derived *>(this)->max_count_;
+    }
+
+    //! true のときは async_accept() を行う
+    bool decl()
+    {
+        return --static_cast<Derived *>(this)->count_ < static_cast<Derived *>(this)->max_count_ && is_waiting_.exchange(false) == true;
+    }
+
     void on_disconnect(Connector * conn)
     {
         delete conn;
-        count_--;
-        if (is_waiting_.exchange(false) == true) {
+        if (decl()) {
             async_accept();
+        }
+    }
+
+    void on_accept(boost::system::error_code const & error, std::shared_ptr<Connector> conn)
+    {
+        if (error) {
+            is_running_ = false;
+            is_waiting_ = false;
+            boost::asio::detail::throw_error(error, "on_accept");
+        } else if (is_running_) {
+            async_accept();
+            static_cast<Derived *>(this)->start(Tag(), conn);
         }
     }
 
     void async_accept()
     {
-        // async_accept と on_disconnect が並列に呼び出されると、
-        // レースコンディションになるので、十分に注意して実装すること。
-        if (count_ < max_count()) {
-            ++count_;
-            // count_ はここでしか加算していないので、
-            // count_ < max_count() の条件を満たせなくなることはない
-
+        if (incr()) {
             std::shared_ptr<Connector> conn(
-                static_cast<Derived *>(this)->construct(acceptor_.get_io_service()),
-                std::bind(&simple_server_base::on_disconnect, this, std::placeholders::_1)
-            );
+                holder_->construct(this, acceptor_.get_io_service()),
+                std::bind(&simple_server_base::on_disconnect, this, std::placeholders::_1));
             acceptor_.async_accept(
-                lowest_layer_socket(static_cast<Derived *>(this)->server_socket(conn, Tag())),
-                std::bind(&simple_server_base::on_accept, this, std::placeholders::_1, conn)
-            );
+                static_cast<Derived *>(this)->socket(Tag(), conn),
+                std::bind(&simple_server_base::on_accept, this, std::placeholders::_1, conn));
         } else {
-            // 発生しにくいが is_waiting_ のフラグが設定する直前に
-            // on_disconnect のフラグ処理が行われると、accept しない状態になる。
-            // たとえ accept しない状態になったとしても、十分に max_count を設定していれば、
-            // 次の connector の破棄のタイミングで復活するから大丈夫。
             is_waiting_ = true;
         }
     }
 
-    void on_accept(boost::system::error_code const & error, std::shared_ptr<Connector> & conn)
+    template <typename Tag_>
+    void set_v6only(Tag_, endpoint_type const & endpoint)
     {
-        if (!error) {
-            async_accept();
-            static_cast<Derived *>(this)->connection_start(conn, Tag());
-        } else if (is_running_.exchange(false) == true) {
-            acqua::exception::throw_error(error, "accept");
+        if (endpoint.protocol() == boost::asio::ip::tcp::v6()) {
+            boost::system::error_code ec;
+            acceptor_.set_option(boost::asio::ip::v6_only(true), ec);
         }
     }
 
-    template <typename SocketService>
-    static boost::asio::basic_stream_socket<Protocol, SocketService> & lowest_layer_socket(boost::asio::basic_stream_socket<Protocol, SocketService> & socket)
+    void set_v6only(internet_v6_tag, endpoint_type const &)
     {
-        return socket;
-    }
-
-    // for ssl_socket
-    template <typename Socket>
-    static typename Socket::lowest_layer_type & lowest_layer_socket(Socket & socket, typename Socket::lowest_layer_type * = nullptr)
-    {
-        return socket.lowest_layer();
-    }
-
-    //! 最大接続数を返す.
-    std::size_t max_count() const noexcept
-    {
-        return static_cast<Derived const *>(this)->max_count();
+        boost::system::error_code ec;
+        acceptor_.set_option(boost::asio::ip::v6_only(true), ec);
     }
 
 private:
     acceptor_type acceptor_;
-    std::atomic<std::size_t> & count_;
-    std::atomic<bool> is_running_;
-    std::atomic<bool> is_waiting_;
+    std::unique_ptr<placeholder> holder_;
+    atomic_bool_type is_running_;
+    atomic_bool_type is_waiting_;
 };
 
 } } }

@@ -1,14 +1,15 @@
 #include <acqua/asio/internet_server.hpp>
 #include <iostream>
 
-class echo_reply
-    : public std::enable_shared_from_this<echo_reply>
+class echo
+    : public std::enable_shared_from_this<echo>
 {
 public:
-    typedef boost::asio::ip::tcp protocol_type;
-    typedef typename protocol_type::socket socket_type;
+    using protocol_type = boost::asio::ip::tcp;
+    using socket_type = typename protocol_type::socket;
+    using lowest_layer_type = typename socket_type::lowest_layer_type;
 
-    explicit echo_reply(boost::asio::io_service & io_service)
+    explicit echo(boost::asio::io_service & io_service)
         : socket_(io_service)
     {
     }
@@ -20,15 +21,6 @@ public:
 
     void start()
     {
-        boost::asio::streambuf buf;
-        for(;;) {
-            std::size_t size = boost::asio::read(socket_, buf.prepare(10));
-            std::cout << "read size:" << size << std::endl;
-
-            buf.commit(size);
-            size = boost::asio::write(socket_, buf);
-            std::cout << "write size:" << size << std::endl;
-        }
     }
 
 private:
@@ -38,7 +30,8 @@ private:
 int main(int, char ** argv)
 {
     boost::asio::io_service io_service;
-    acqua::asio::internet_server<echo_reply> sv(io_service, std::atoi(argv[1]));
+    acqua::asio::internet_server<echo> sv(io_service);
+    sv.listen(atoi(argv[1]));
     sv.start();
     io_service.run();
 }
