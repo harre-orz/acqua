@@ -13,14 +13,13 @@
 #include <atomic>
 #include <type_traits>
 #include <boost/utility.hpp>
-#include <boost/blank.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/socket_base.hpp>
 #include <boost/asio/ip/v6_only.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/fusion/include/vector.hpp>
 #include <boost/fusion/include/make_fused.hpp>
-#include <acqua/asio/internet_category.hpp>
+#include <acqua/asio/socket_category.hpp>
 
 namespace acqua { namespace asio { namespace detail {
 
@@ -32,7 +31,7 @@ template <
     typename Derived,
     typename Connector,
     typename Protocol,
-    typename Tag = boost::blank,
+    typename Tag = unspecified_tag,
     typename Enabler = void
     >
 class simple_server_base;
@@ -108,13 +107,20 @@ public:
 
     void listen(endpoint_type const & endpoint, boost::system::error_code & ec, bool reuse_addr = true)
     {
-        acceptor_.open(endpoint.protocol(), ec);
+        protocol_type proto = endpoint.protocol();
+        acceptor_.open(proto, ec);
         if (ec) return;
 
-        static_cast<Derived *>(this)->set_option(Tag(), acceptor_, ec, reuse_addr);
+        if (reuse_addr) {
+            set_reuseaddr(Tag(), proto, ec);
+            if (ec) return;
+        }
+
+        set_v6only(Tag(), proto, ec);
         if (ec) return;
 
-        set_v6only(Tag(), endpoint);
+        static_cast<Derived *>(this)->set_option(Tag(), acceptor_, proto, ec);
+        if (ec) return;
 
         acceptor_.bind(endpoint, ec);
         if (ec) return;
@@ -205,18 +211,26 @@ private:
         }
     }
 
-    template <typename Tag_>
-    void set_v6only(Tag_, endpoint_type const & endpoint)
+    template <typename Tag_, typename Protocol_>
+    void set_reuseaddr(Tag_, Protocol_ const &, boost::system::error_code & ec)
     {
-        if (endpoint.protocol() == boost::asio::ip::tcp::v6()) {
-            boost::system::error_code ec;
+        acceptor_.set_option(boost::asio::socket_base::reuse_address(true), ec);
+    }
+
+    template <typename Tag_, typename Protocol_>
+    void set_v6only(Tag_, Protocol_ const &, boost::system::error_code &)
+    {
+    }
+
+    void set_v6only(unspecified_tag, boost::asio::ip::tcp const & proto, boost::system::error_code & ec)
+    {
+        if (proto == boost::asio::ip::tcp::v6()) {
             acceptor_.set_option(boost::asio::ip::v6_only(true), ec);
         }
     }
 
-    void set_v6only(internet_v6_tag, endpoint_type const &)
+    void set_v6only(internet_v6_tag, protocol_type const &, boost::system::error_code & ec)
     {
-        boost::system::error_code ec;
         acceptor_.set_option(boost::asio::ip::v6_only(true), ec);
     }
 

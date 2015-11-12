@@ -5,26 +5,13 @@
 namespace acqua { namespace asio {
 
 template <typename T>
-class proxy_traits
-    : public server_traits<T>
+struct proxy_traits
+    : server_traits<T>
 {
-public:
-    template <typename Socket>
-    Socket & socket(T * t)
+    template <typename Tag>
+    static typename T::lowest_layer_type & socket(Tag, std::shared_ptr<T> soc)
     {
-        return t->server_socket();
-    }
-
-    template <typename Socket>
-    Socket & socket_v4(T * t)
-    {
-        return socket<Socket>(t);
-    }
-
-    template <typename Socket>
-    Socket & socket_v6(T * t)
-    {
-        return socket<Socket>(t);
+        return soc->server_socket();
     }
 };
 

@@ -10,10 +10,16 @@
 
 namespace acqua { namespace asio {
 
+//! どのタイプか不明なことを示すタグ
+class unspecified_tag {};
+
 //! IPv4用であることを示すタグ
 class internet_v4_tag {};
 
 //! IPv6用であることを示すタグ
 class internet_v6_tag {};
+
+//! UNNIX Domainソケット用であることを示すタグ
+class unix_local_tag {};
 
 } }

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <memory>
 #include <boost/system/error_code.hpp>
 #include <boost/asio/io_service.hpp>
 
@@ -17,16 +18,12 @@ namespace acqua { namespace asio {
   simple_server クラス, internet_server クラスに用いる特性を記述するクラス.
  */
 template <typename T>
-class server_traits
+struct server_traits
 {
-public:
     //! サーバソケットを設定.
-    template <typename Tag, typename Acceptor>
-    void set_option(Tag, Acceptor & acc, boost::system::error_code & ec, bool reuse_addr)
+    template <typename Tag, typename Socket, typename Protocol>
+    static void set_option(Tag, Socket &, Protocol const &, boost::system::error_code & ec)
     {
-        if (reuse_addr) {
-            acc.set_option(boost::asio::socket_base::reuse_address(true), ec);
-        }
     }
 
     //! 接続済みソケットのコンテキストを作成.
@@ -38,15 +35,15 @@ public:
     }
 
     //! 接続済みソケットの最下位レイヤーを返す.
-    template <typename Tag, typename SocketPtr>
-    typename SocketPtr::element_type::lowest_layer_type & socket(Tag, SocketPtr soc)
+    template <typename Tag>
+    static typename T::lowest_layer_type & socket(Tag, std::shared_ptr<T> soc)
     {
         return soc->socket();
     }
 
     //! クライアントと接続し、接続済みソケットの処理を開始.
-    template <typename Tag, typename SocketPtr>
-    static void start(Tag, SocketPtr soc)
+    template <typename Tag>
+    static void start(Tag, std::shared_ptr<T> soc)
     {
         soc->start();
     }

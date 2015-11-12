@@ -11,7 +11,7 @@
 #include <boost/optional.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <acqua/asio/server_traits.hpp>
-#include <acqua/asio/internet_category.hpp>
+#include <acqua/asio/socket_category.hpp>
 #include <acqua/asio/detail/simple_server_base.hpp>
 
 namespace acqua { namespace asio {

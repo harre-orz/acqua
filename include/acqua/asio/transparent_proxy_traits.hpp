@@ -6,51 +6,62 @@ extern "C" {
 }
 
 #include <boost/asio/ip/tcp.hpp>
-#include <acqua/asio/socket_base/transparent_options.hpp>
+#include <acqua/asio/socket_category.hpp>
 #include <acqua/asio/proxy_traits.hpp>
+#include <acqua/asio/socket_base/transparent_options.hpp>
 
 namespace acqua { namespace asio {
 
 /*!
   透過プロキシサーバトレイト.
+  Linux 限定
 */
 template <typename T>
-class transparent_proxy_traits
+struct transparent_proxy_traits
     : public proxy_traits<T>
 {
-public:
-    template <typename Acceptor>
-    static void set_option_v4(Acceptor & acc, boost::system::error_code &)
+    template <typename Tag, typename Socket>
+    static void set_option(Tag, Socket & soc, boost::asio::ip::tcp const & proto, boost::system::error_code & ec)
     {
-        acc.set_option(socket_base::transparent_v4(true));
+        if (proto == protocol_type::v4())
+            soc.set_option(socket_base::transparent_v4(true), ec);
+        if (proto == protocol_type::v6())
+            soc.set_option(socket_base::transparent_v6(true), ec);
     }
 
-    template <typename Acceptor>
-    static void set_option_v6(Acceptor & acc, boost::system::error_code &)
+    template <typename Socket>
+    static void set_option(internet4_tag, Socket & soc, boost::asio::ip::tcp const & proto, boost::system::error_code & ec)
     {
-        acc.set_option(socket_base::transparent_v6(true));
+        soc.set_option(socket_base::transparent_v4(true), ec);
     }
 
-    void start_v4(T * t)
+    template <typename Socket>
+    static void set_option(internet6_tag, Socket & soc, boost::asio::ip::tcp const & proto, boost::system::error_code & ec)
     {
+        soc.set_option(socket_base::transparent_v6(true), ec);
+    }
+
+    template <typename Tag>
+    static void start(Tag tag, std::shared_ptr<T> soc)
+    {
+        auto & sv = soc->server_socket();
+        auto & cl = soc->client_socket();
+
         boost::system::error_code ec;
-        auto & sv = t->server_socket();
-        auto & cl = t->client_socket();
-        cl.open(boost::asio::ip::tcp::v4(), ec);
-        cl.set_option(socket_base::transparent_v4(true), ec);
-        cl.bind(sv.local_endpoint(ec), ec);
-        t->start();
-    }
+        auto ep = sv.local_endpoint(ec);
+        if (ec) return;
 
-    void start_v6(T * t)
-    {
-        boost::system::error_code ec;
-        auto & sv = t->server_socket();
-        auto & cl = t->client_socket();
-        cl.open(boost::asio::ip::tcp::v6(), ec);
-        cl.set_option(socket_base::transparent_v6(true), ec);
-        cl.bind(sv.local_endpoint(ec), ec);
-        t->start();
+        auto proto = ep.protocol();
+        cl.open(proto, ec);
+        if (ec) return;
+
+        set_option(tag, cl, proto, ec);
+        if (ec) return;
+
+        cl.bind(ep, ec);
+        if (ec) return;
+
+        soc->start();
     }
 };
 
