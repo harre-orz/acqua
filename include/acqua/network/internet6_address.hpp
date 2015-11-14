@@ -41,7 +41,7 @@ public:
 
     constexpr internet6_address(bytes_type const & bytes) noexcept;
 
-    constexpr internet6_address(struct ::in6_addr const & addr) noexcept;
+    internet6_address(struct ::in6_addr const & addr) noexcept;
 
     internet6_address(boost::asio::ip::address_v6 const & rhs) noexcept;
 
@@ -94,6 +94,8 @@ public:
     bytes_type to_bytes() const noexcept;
 
     std::string to_string() const;
+
+    void checksum(std::size_t & sum) const noexcept;
 
     static constexpr internet6_address any() noexcept
     {

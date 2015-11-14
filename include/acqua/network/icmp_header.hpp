@@ -47,78 +47,24 @@ public:
 
     using checkable::checksum;  // Linux の場合、::icmphdr の checksum と衝突するため
 
-    message_type type() const noexcept
-    {
-#ifdef __linux__
-        return static_cast<message_type>(value_type::type);
-#else
-        return static_cast<message_type>(value_type::icmp_type);
-#endif
-    }
+    message_type type() const noexcept;
 
-    void type(message_type msg) noexcept
-    {
-#ifdef __linux__
-        value_type::type = msg;
-#else
-        value_type::icmp_type = msg;
-#endif
-    }
+    void type(message_type msg) noexcept;
 
-    int code() const noexcept
-    {
-#ifdef __linux__
-        return value_type::code;
-#else
-        return value_type::icmp_code;
-#endif
-    }
+    int code() const noexcept;
 
-    void code(int n) noexcept
-    {
-#ifdef __linux__
-        value_type::code = n;
-#else
-        value_type::icmp_code = n;
-#endif
-    }
+    void code(int n) noexcept;
 
 protected:
-    int id() const noexcept
-    {
-#ifdef __linux__
-        return ntohs(value_type::un.echo.id);
-#else
-        return ntohs(value_type::icmp_hun.ih_idseq.icd_id);
-#endif
-    }
+    ~icmp_header() = default;
 
-    void id(int n) noexcept
-    {
-#ifdef __linux__
-        value_type::un.echo.id = htons(n);
-#else
-        value_type::icmp_hun.ih_idseq.icd_id = htons(n);
-#endif
-    }
+    int id() const noexcept;
 
-    int seq() const noexcept
-    {
-#ifdef __linux__
-        return ntohs(value_type::un.echo.sequence);
-#else
-        return ntohs(value_type::icmp_hun.ih_idseq.icd_seq);
-#endif
-    }
+    void id(int n) noexcept;
 
-    void seq(int n) noexcept
-    {
-#ifdef __linux__
-        value_type::un.echo.sequence = htons(n);
-#else
-        value_type::icmp_hun.ih_idseq.icd_seq = htons(n);
-#endif
-    }
+    int seq() const noexcept;
+
+    void seq(int n) noexcept;
 
 public:
     friend std::ostream & operator<<(std::ostream & os, icmp_header const & rhs);
@@ -142,4 +88,4 @@ using icmp_echo = detail::icmp_echo;
 
 } }
 
-#include <acqua/network/detail/impl/icmp_header.ipp>
+#include <acqua/network/impl/icmp_header.ipp>

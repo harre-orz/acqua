@@ -6,6 +6,79 @@
 
 namespace acqua { namespace network { namespace detail {
 
+inline auto icmp_header::type() const noexcept -> message_type
+{
+#ifdef __linux__
+    return static_cast<message_type>(value_type::type);
+#else
+    return static_cast<message_type>(value_type::icmp_type);
+#endif
+}
+
+inline void icmp_header::type(message_type msg) noexcept
+{
+#ifdef __linux__
+    value_type::type = msg;
+#else
+    value_type::icmp_type = msg;
+#endif
+}
+
+inline int icmp_header::code() const noexcept
+{
+#ifdef __linux__
+    return value_type::code;
+#else
+    return value_type::icmp_code;
+#endif
+}
+
+inline void icmp_header::code(int n) noexcept
+{
+#ifdef __linux__
+    value_type::code = n;
+#else
+    value_type::icmp_code = n;
+#endif
+}
+
+inline int icmp_header::id() const noexcept
+{
+#ifdef __linux__
+    return ntohs(value_type::un.echo.id);
+#else
+    return ntohs(value_type::icmp_hun.ih_idseq.icd_id);
+#endif
+}
+
+inline void icmp_header::id(int n) noexcept
+{
+#ifdef __linux__
+    value_type::un.echo.id = htons(n);
+#else
+    value_type::icmp_hun.ih_idseq.icd_id = htons(n);
+#endif
+}
+
+inline int icmp_header::seq() const noexcept
+{
+#ifdef __linux__
+    return ntohs(value_type::un.echo.sequence);
+#else
+    return ntohs(value_type::icmp_hun.ih_idseq.icd_seq);
+#endif
+}
+
+inline void icmp_header::seq(int n) noexcept
+{
+#ifdef __linux__
+    value_type::un.echo.sequence = htons(n);
+#else
+    value_type::icmp_hun.ih_idseq.icd_seq = htons(n);
+#endif
+}
+
+
 inline std::ostream & operator<<(std::ostream & os, icmp_header const & rhs)
 {
     os << "icmp type:" << rhs.type();

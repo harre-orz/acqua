@@ -8,12 +8,13 @@
 
 #pragma once
 
-#include <boost/system/error_code.hpp>
-#include <boost/spirit/include/qi.hpp>
-
 extern "C" {
 #include <arpa/inet.h>
 }
+
+#include <numeric>
+#include <boost/system/error_code.hpp>
+#include <boost/spirit/include/qi.hpp>
 
 namespace acqua { namespace network {
 

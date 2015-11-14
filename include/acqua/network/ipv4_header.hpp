@@ -21,8 +21,8 @@ extern "C" {
 namespace acqua { namespace network { namespace detail {
 
 class ipv4_header
-    : private ::ip
-    , public header_base<ipv4_header>
+    : public header_base<ipv4_header>
+    , private ::ip
     , public sourceable_and_destinable<ipv4_header, internet4_address, ::ip, struct in_addr, &::ip::ip_src, &::ip::ip_dst>
     , public checkable<ipv4_header, ::ip, u_short, &::ip::ip_sum, ipv4_checksum >
 {
@@ -45,85 +45,37 @@ public:
     template <typename It>
     void shrink_into_end(It & end) const;
 
-    protocol_type protocol() const noexcept
-    {
-        return static_cast<protocol_type>(value_type::ip_p);
-    }
+    protocol_type protocol() const noexcept;
 
-    void protocol(protocol_type n) noexcept
-    {
-        value_type::ip_p = n;
-    }
+    void protocol(protocol_type n) noexcept;
 
-    int version() const noexcept
-    {
-        return value_type::ip_v;
-    }
+    std::uint8_t version() const noexcept;
 
-    void version(int n) noexcept
-    {
-        value_type::ip_v = n & 0x0f;
-    }
+    void version(std::uint8_t n) noexcept;
 
-    int header_length() const noexcept
-    {
-        return value_type::ip_hl * 4;
-    }
+    std::uint16_t header_length() const noexcept;
 
-    void header_length(int n) noexcept
-    {
-        value_type::ip_hl = (n / 4) & 0x0f;
-    }
+    void header_length(std::uint16_t n) noexcept;
 
-    int type_of_service() const noexcept
-    {
-        return value_type::ip_tos;
-    }
+    std::uint8_t type_of_service() const noexcept;
 
-    void type_of_service(int n) noexcept
-    {
-        value_type::ip_tos = n;
-    }
+    void type_of_service(std::uint8_t n) noexcept;
 
-    int total_length() const noexcept
-    {
-        return ntohs(value_type::ip_len);
-    }
+    std::uint16_t total_length() const noexcept;
 
-    void total_length(int n) noexcept
-    {
-        value_type::ip_len = htons(n);
-    }
+    void total_length(std::uint16_t n) noexcept;
 
-    int id() const noexcept
-    {
-        return ntohs(value_type::ip_id);
-    }
+    std::uint16_t id() const noexcept;
 
-    void id(int n) noexcept
-    {
-        value_type::ip_id = htons(n);
-    }
+    void id(std::uint16_t n) noexcept;
 
-    bool is_dont_flagment() const noexcept
-    {
-        return ntohs(value_type::ip_off) & IP_DF;
-    }
+    bool is_dont_flagment() const noexcept;
 
-    void set_dont_flagment() noexcept
-    {
-        value_type::ip_off = htons(IP_DF);
-    }
+    void set_dont_flagment() noexcept;
 
-    int time_of_live() const noexcept
-    {
-        return value_type::ip_ttl;
-    }
+    std::uint8_t time_of_live() const noexcept;
 
-    void time_of_live(int n) noexcept
-    {
-        value_type::ip_ttl = n;
-    }
+    void time_of_live(std::uint8_t n) noexcept;
 
     friend std::ostream & operator<<(std::ostream & os, ipv4_header const & rhs);
 };
@@ -134,4 +86,4 @@ using ipv4_header = detail::ipv4_header;
 
 } }
 
-#include <acqua/network/detail/impl/ipv4_header.ipp>
+#include <acqua/network/impl/ipv4_header.ipp>

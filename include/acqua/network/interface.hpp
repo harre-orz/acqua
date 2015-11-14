@@ -121,7 +121,7 @@ private:
 
 
 class interface::iterator
-    : public std::iterator<std::forward_iterator_tag, interface>
+    : public std::iterator<std::forward_iterator_tag, interface const>
 {
     friend interface;
 
@@ -153,6 +153,21 @@ public:
 private:
     std::shared_ptr<internal_value_type> base_;
     interface value_;
+};
+
+
+class interfaces
+{
+public:
+    interface::iterator begin() const
+    {
+        return interface::begin();
+    }
+
+    interface::iterator end() const
+    {
+        return interface::end();
+    }
 };
 
 } }

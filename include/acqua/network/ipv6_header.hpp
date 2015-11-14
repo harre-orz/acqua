@@ -21,8 +21,8 @@ extern "C" {
 namespace acqua { namespace network { namespace detail {
 
 class ipv6_header
-    : private ::ip6_hdr
-    , public header_base<ipv6_header>
+    : public header_base<ipv6_header>
+    , private ::ip6_hdr
     , public sourceable_and_destinable<ipv6_header, internet6_address, ::ip6_hdr, struct ::in6_addr, &::ip6_hdr::ip6_src, &ip6_hdr::ip6_dst >
 {
     friend sourceable_and_destinable;
@@ -38,23 +38,16 @@ public:
     template <typename It>
     void shrink_into_end(It & end) const;
 
-    protocol_type protocol() const
-    {
-        return static_cast<protocol_type>(value_type::ip6_nxt);
-    }
+    protocol_type protocol() const;
 
-    void protocol(protocol_type n)
-    {
-        value_type::ip6_nxt = n;
-    }
-
-    int checksum() const
-    {
-        return 0;
-    }
+    void protocol(protocol_type n);
 
     // template <typename It>
-    // void commit(It const & end);
+    // void commit(It const & end)
+    // {
+    //     int len = (reinterpret_cast<std::uint8_t const *>(*&end) - reinterpret_cast<std::uint8_t const *>(this)) - sizeof(*this);
+    //     value_type::ip6_ctlun.ip6_un1.ip6_un1_plen = htons(len);
+    // }
 
     friend std::ostream & operator<<(std::ostream & os, ipv6_header const & rhs);
 };
@@ -65,4 +58,4 @@ using ipv6_header = detail::ipv6_header;
 
 } }
 
-#include <acqua/network/detail/impl/ipv6_header.ipp>
+#include <acqua/network/impl/ipv6_header.ipp>

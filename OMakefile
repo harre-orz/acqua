@@ -1,12 +1,17 @@
-FULLWARNINGS = -W -Wall -Wextra -Wwrite-strings -Wstrict-aliasing -Wconversion -Wfloat-equal -Wpointer-arith -Wcast-align -Wcast-qual -Wcomment -Wformat -Winline -Wlong-long -Wno-import -Wparentheses -Wredundant-decls -Wreturn-type -Wshadow -Wswitch -Wtrigraphs -Wunused -Wwrite-strings -Wmain -Wmultichar -Wold-style-cast -Woverloaded-virtual -Wsign-promo -Weffc++ 
+FULLWARNINGS = -W -Wall -Wextra -Wwrite-strings -Wstrict-aliasing -Wconversion -Wfloat-equal -Wpointer-arith -Wcast-align -Wcast-qual -Wcomment -Wformat -Winline -Wlong-long -Wno-import -Wparentheses -Wredundant-decls -Wreturn-type -Wshadow -Wswitch -Wtrigraphs -Wunused -Wwrite-strings -Wmain -Wmultichar -Wold-style-cast -Woverloaded-virtual -Wsign-promo -Weffc++
 
 #CXX = g++-mp-4.9
 #CXX = clang++
 CXXFLAGS += -std=c++14 $(FULLWARNINGS)
 ASFLAGS +=
-LDFLAGS += -lstdc++ -lpthread -lm -lcrypto  -lssl
-LDFLAGS += -lboost_system -lboost_thread -lboost_locale -lboost_date_time -lboost_iostreams
 INCLUDES += /opt/local/include
+LDFLAGS += -lstdc++ -lpthread -lm -lcrypto  -lssl
+if $(equal $(SYSNAME), Darwin)
+	LDFLAGS += -L/opt/local/lib -lboost_system-mt -lboost_thread-mt -lboost_locale-mt -lboost_date_time-mt -lboost_iostreams-mt
+	export
+else
+	LDFLAGS += -lboost_system -lboost_thread -lboost_locale -lboost_date_time -lboost_iostreams
+	export
 
 .PHONY: build clean doc
 .DEFAULT: build

@@ -11,7 +11,6 @@
 #include <iostream>
 #include <boost/operators.hpp>
 #include <boost/asio/ip/address_v4.hpp>
-#include <boost/endian/arithmetic.hpp>
 #include <acqua/network/basic_prefix_address.hpp>
 
 
@@ -89,6 +88,8 @@ public:
     std::string to_string() const;
 
     std::uint32_t to_ulong() const noexcept;
+
+    void checksum(std::size_t & sum) const noexcept;
 
     static constexpr internet4_address any() noexcept
     {

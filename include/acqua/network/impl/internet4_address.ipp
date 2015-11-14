@@ -170,6 +170,13 @@ inline std::uint32_t internet4_address::to_ulong() const noexcept
     return sum;
 }
 
+inline void internet4_address::checksum(std::size_t & sum) const noexcept
+{
+    auto * buf = reinterpret_cast<std::uint16_t const *>(bytes_.data());
+    for(int i = 0; i < sizeof(*this)/sizeof(*buf); ++i)
+        sum += *buf++;
+}
+
 inline internet4_address internet4_address::from_string(std::string const & str)
 {
     internet4_address addr;

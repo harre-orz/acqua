@@ -33,90 +33,39 @@ public:
         neighbor_advertisement_message = 136,
     };
 
-    message_type type() const noexcept
-    {
-        return static_cast<message_type>(value_type::icmp6_type);
-    }
+    message_type type() const noexcept;
 
-    void type(message_type n) noexcept
-    {
-        value_type::icmp6_type = n;
-    }
+    void type(message_type n) noexcept;
 
-    std::uint8_t code() const noexcept
-    {
-        return value_type::icmp6_code;
-    }
+    std::uint8_t code() const noexcept;
 
-    void code(std::uint8_t n) noexcept
-    {
-        value_type::icmp6_code = n;
-    }
+    void code(std::uint8_t n) noexcept;
 
 protected:
-    std::uint16_t id() const noexcept
-    {
-        return ntohs(value_type::icmp6_dataun.icmp6_un_data16[0]);
-    }
+    std::uint16_t id() const noexcept;
 
-    void id(std::uint16_t n) noexcept
-    {
-        value_type::icmp6_dataun.icmp6_un_data16[0] = htons(n);
-    }
+    void id(std::uint16_t n) noexcept;
 
-    std::uint16_t seq() const noexcept
-    {
-        return ntohs(value_type::icmp6_dataun.icmp6_un_data16[1]);
-    }
+    std::uint16_t seq() const noexcept;
 
-    void seq(std::uint16_t n) noexcept
-    {
-        value_type::icmp6_dataun.icmp6_un_data16[1] = htons(n);
-    }
+    void seq(std::uint16_t n) noexcept;
 
 protected:
-    bool is_router() const noexcept
-    {
-        return value_type::icmp6_dataun.icmp6_un_data8[0] & 0x80;
-    }
+    bool is_router() const noexcept;
 
-    void is_router(bool b) noexcept
-    {
-        if (b) value_type::icmp6_dataun.icmp6_un_data8[0] |=  0x80;
-        else   value_type::icmp6_dataun.icmp6_un_data8[0] &= ~0x80;
-    }
+    void set_router(bool b) noexcept;
 
-    bool is_solicited() const noexcept
-    {
-        return value_type::icmp6_dataun.icmp6_un_data8[0] & 0x40;
-    }
+    bool is_solicited() const noexcept;
 
-    void is_solicited(bool b) noexcept
-    {
-        if (b) value_type::icmp6_dataun.icmp6_un_data8[0] |=  0x40;
-        else   value_type::icmp6_dataun.icmp6_un_data8[0] &= ~0x40;
-    }
+    void set_solicited(bool b) noexcept;
 
-    bool is_override() const noexcept
-    {
-        return value_type::icmp6_dataun.icmp6_un_data8[0] & 0x20;
-    }
+    bool is_override() const noexcept;
 
-    void is_override(bool b) noexcept
-    {
-        if (b) value_type::icmp6_dataun.icmp6_un_data8[0] |=  0x20;
-        else   value_type::icmp6_dataun.icmp6_un_data8[0] &= ~0x20;
-    }
+    void set_override(bool b) noexcept;
 
-    internet6_address const & target_address() const noexcept
-    {
-        return *reinterpret_cast<internet6_address const *>(value_type::icmp6_dataun.icmp6_un_data8 + 4);
-    }
+    internet6_address const & target_address() const noexcept;
 
-    void target_address(internet6_address const & addr) noexcept
-    {
-        *reinterpret_cast<internet6_address *>(value_type::icmp6_dataun.icmp6_un_data8 + 4) = addr;
-    }
+    void target_address(internet6_address const & addr) noexcept;
 
 public:
     friend std::ostream & operator<<(std::ostream & os, icmpv6_header const & rhs);
@@ -171,4 +120,4 @@ using icmpv6_echo = detail::icmpv6_echo;
 
 } }
 
-#include <acqua/network/detail/impl/icmpv6_header.ipp>
+#include <acqua/network/impl/icmpv6_header.ipp>

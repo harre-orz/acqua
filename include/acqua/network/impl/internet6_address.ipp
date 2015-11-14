@@ -80,7 +80,7 @@ inline constexpr internet6_address::internet6_address(bytes_type const & bytes) 
 {
 }
 
-inline constexpr internet6_address::internet6_address(struct ::in6_addr const & addr) noexcept
+inline internet6_address::internet6_address(struct ::in6_addr const & addr) noexcept
     : bytes_(*reinterpret_cast<bytes_type const *>(&addr))
 {
 }
@@ -210,6 +210,13 @@ inline std::string internet6_address::to_string() const
     char buf[64];
     detail::address_impl<internet6_address>::to_string(bytes_, buf);
     return buf;
+}
+
+inline void internet6_address::checksum(std::size_t & sum) const noexcept
+{
+    auto * buf = reinterpret_cast<std::uint16_t const *>(bytes_.data());
+    for(int i = 0; i < sizeof(*this)/sizeof(*buf); ++i)
+        sum += *buf++;
 }
 
 inline internet6_address internet6_address::from_string(std::string const & str)

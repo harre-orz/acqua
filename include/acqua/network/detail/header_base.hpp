@@ -13,6 +13,9 @@ namespace acqua { namespace network { namespace detail {
 template <typename Derived>
 class header_base
 {
+protected:
+    ~header_base() = default;
+
 public:
     //! ヘッダーの有効サイズを返す.
     constexpr std::size_t header_size() const noexcept { return sizeof(Derived); }

@@ -22,8 +22,8 @@ namespace acqua { namespace network { namespace detail {
   イーサネットヘッダークラス.
 */
 class ethernet_header
-    : private ::ether_header
-    , private header_base<ethernet_header>
+    : public header_base<ethernet_header>
+    , private ::ether_header
 #ifdef __linux__
     , public sourceable_and_destinable<
         ethernet_header,
@@ -57,15 +57,9 @@ public:
         loopback = 0x9000,
     };
 
-    protocol_type protocol() const
-    {
-        return static_cast<protocol_type>( ntohs(value_type::ether_type) );
-    }
+    protocol_type protocol() const;
 
-    void protocol(protocol_type code)
-    {
-        value_type::ether_type = htons(code);
-    }
+    void protocol(protocol_type code);
 
     friend std::ostream & operator<<(std::ostream & os, ethernet_header const & rhs);
 };
@@ -76,4 +70,4 @@ using ethernet_header = detail::ethernet_header;
 
 } }
 
-#include <acqua/network/detail/impl/ethernet_header.ipp>
+#include <acqua/network/impl/ethernet_header.ipp>

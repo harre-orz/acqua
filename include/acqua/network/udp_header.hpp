@@ -66,4 +66,4 @@ public:
 
 } }
 
-#include <acqua/network/detail/impl/udp_header.ipp>
+#include <acqua/network/impl/udp_header.ipp>

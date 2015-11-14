@@ -68,4 +68,4 @@ public:
 
 } }
 
-#include <acqua/network/detail/impl/tcp_header.ipp>
+#include <acqua/network/impl/tcp_header.ipp>
