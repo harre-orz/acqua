@@ -73,6 +73,14 @@ public:
 
     const_reverse_iterator rend() const;
 
+    const_iterator cbegin() const;
+
+    const_iterator cend() const;
+
+    const_reverse_iterator crbegin() const;
+
+    const_reverse_iterator crend() const;
+
     value_type & front();
 
     value_type const & front() const;
@@ -91,9 +99,22 @@ public:
 
     iterator erase(const_iterator beg, const_iterator end);
 
-    bool push(value_type val);
+    iterator erase(key_type const & key);
+
+    template <typename U>
+    bool push(U && val);
 
     void pop();
+
+    std::pair<iterator, bool> insert(value_type const & val);
+
+    iterator insert(const_iterator, value_type const & val);
+
+    template <typename... Args>
+    std::pair<iterator, bool> emplace(Args&&... args);
+
+    template <typename... Args>
+    iterator emplace_hint(const_iterator, Args&&... args);
 
     void shrink_to_fit();
 

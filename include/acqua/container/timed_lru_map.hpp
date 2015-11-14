@@ -61,161 +61,29 @@ public:
 
     timed_lru_map & operator=(timed_lru_map && rhs) = default;
 
-    allocator_type get_allocator() const
-    {
-        return base_type::get_allocator();
-    }
-
-    bool empty() const
-    {
-        return base_type::empty();
-    }
-
-    size_type size() const
-    {
-        return base_type::size();
-    }
-
-    iterator begin()
-    {
-        return base_type::begin();
-    }
-
-    const_iterator begin() const
-    {
-        return base_type::begin();
-    }
-
-    iterator end()
-    {
-        return base_type::end();
-    }
-
-    const_iterator end() const
-    {
-        return base_type::end();
-    }
-
-    reverse_iterator rbegin()
-    {
-        return base_type::rbegin();
-    }
-
-    const_reverse_iterator rbegin() const
-    {
-        return base_type::rbegin();
-    }
-
-    reverse_iterator rend()
-    {
-        return base_type::rend();
-    }
-
-    const_reverse_iterator rend() const
-    {
-        return base_type::rend();
-    }
-
-    value_type & front()
-    {
-        return base_type::front();
-    }
-
-    value_type const & front() const
-    {
-        return base_type::front();
-    }
-
-    value_type & back()
-    {
-        return base_type::back();
-    }
-
-    value_type const & back() const
-    {
-        return base_type::back();
-    }
-
-    iterator find(key_type const & key)
-    {
-        return base_type::find(key);
-    }
-
-    const_iterator find(key_type const & key) const
-    {
-        return base_type::find(key);
-    }
-
-    iterator erase(iterator it)
-    {
-        return base_type::erase(it);
-    }
-
-    iterator erase(const_iterator it)
-    {
-        return base_type::erase(it);
-    }
-
-    iterator erase(iterator beg, iterator end)
-    {
-        return base_type::erase(beg, end);
-    }
-
-    iterator erase(const_iterator beg, const_iterator end)
-    {
-        return base_type::erase(beg, end);
-    }
-
-    iterator erase(key_type const & key)
-    {
-        return base_type::erase(base_type::find(key));
-    }
-
-    bool push(value_type const & val)
-    {
-        return base_type::push(val);
-    }
-
-    bool push(value_type && val)
-    {
-        return base_type::push(std::move(val));
-    }
-
-    void pop()
-    {
-        base_type::pop();
-    }
-
-    std::pair<iterator, bool> insert(value_type const & val)
-    {
-        bool res = push(val);
-        return std::make_pair(begin(), res);
-    }
-
-    iterator insert(const_iterator, value_type const & val)
-    {
-        push(val);
-        return begin();
-    }
-
-    template <typename ... Args>
-    std::pair<iterator, bool> emplace(Args... args)
-    {
-        bool res = push(value_type(args...));
-        return std::make_pair(begin(), res);
-    }
-
-    template <typename ... Args>
-    iterator emplace_hint(const_iterator, Args... args)
-    {
-        push(value_type(args...));
-        return begin();
-    }
-
-    void shrink_to_fit()
-    {
-        base_type::shrink_to_fit();
-    }
+    using base_type::get_allocator;
+    using base_type::empty;
+    using base_type::size;
+    using base_type::begin;
+    using base_type::end;
+    using base_type::rbegin;
+    using base_type::rend;
+    using base_type::cbegin;
+    using base_type::cend;
+    using base_type::crbegin;
+    using base_type::crend;
+    using base_type::front;
+    using base_type::back;
+    using base_type::find;
+    using base_type::erase;
+    using base_type::push;
+    using base_type::pop;
+    using base_type::insert;
+    using base_type::emplace;
+    using base_type::emplace_hint;
+    using base_type::shrink_to_fit;
+    using base_type::node_element_size;
+    using base_type::bucket_count;
 
     size_type max_size() const
     {
@@ -237,11 +105,6 @@ public:
     {
         impl_type::set_expire(duration);
         shrink_to_fit();
-    }
-
-    size_type node_element_size() const
-    {
-        return base_type::node_element_size();
     }
 };
 
