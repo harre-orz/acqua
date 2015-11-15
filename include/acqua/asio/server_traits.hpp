@@ -22,7 +22,7 @@ struct server_traits
 {
     //! サーバソケットを設定.
     template <typename Tag, typename Socket, typename Protocol>
-    static void set_option(Tag, Socket &, Protocol const &, boost::system::error_code & ec)
+    static void set_option(Tag, Socket &, Protocol const &, boost::system::error_code &)
     {
     }
 

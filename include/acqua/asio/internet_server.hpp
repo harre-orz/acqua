@@ -48,8 +48,13 @@ public:
     explicit internet_server(boost::asio::io_service & io_service, Args&&... args)
         : v4_type(io_service, args...)
         , v6_type(io_service, args...)
-        , count_(0)
+        , use_count_(0)
     {
+    }
+
+    size_type use_count() const
+    {
+        return use_count_;
     }
 
     size_type max_count() const
@@ -67,7 +72,7 @@ public:
     void max_count(size_type count, boost::system::error_code & ec)
     {
         if (2 <= count)
-            count_ = count;
+            max_count_ = count;
         else
             ec = make_error_code(boost::system::errc::invalid_argument);
     }
@@ -178,7 +183,7 @@ private:
     using traits_type::start;
 
 private:
-    atomic_size_type count_;
+    atomic_size_type use_count_;
     size_type max_count_ = 100;
 };
 

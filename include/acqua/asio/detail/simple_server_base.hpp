@@ -168,13 +168,19 @@ private:
     //! true のときは async_accept() を行う
     bool incr()
     {
-        return !is_waiting_ && static_cast<Derived *>(this)->count_++ < static_cast<Derived *>(this)->max_count_;
+        if (is_waiting_)
+            return false;
+        if (++static_cast<Derived *>(this)->use_count_ >= static_cast<Derived *>(this)->max_count_)
+            is_waiting_ = true;
+        return true;
     }
 
     //! true のときは async_accept() を行う
     bool decl()
     {
-        return --static_cast<Derived *>(this)->count_ < static_cast<Derived *>(this)->max_count_ && is_waiting_.exchange(false) == true;
+        if (acceptor_.get_io_service().stopped())
+            return false;
+        return --static_cast<Derived *>(this)->use_count_ < static_cast<Derived *>(this)->max_count_ && is_waiting_.exchange(false) == true;
     }
 
     void on_disconnect(Connector * conn)
@@ -206,8 +212,6 @@ private:
             acceptor_.async_accept(
                 static_cast<Derived *>(this)->socket(Tag(), conn),
                 std::bind(&simple_server_base::on_accept, this, std::placeholders::_1, conn));
-        } else {
-            is_waiting_ = true;
         }
     }
 
