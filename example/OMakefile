@@ -1,7 +1,8 @@
 INCLUDES += ../include/
 
 .DEFAULT: $(CXXProgram thttpproxy, thttpproxy) \
-          $(CXXProgram interfaces, interfaces)
+          $(CXXProgram interfaces, interfaces) \
+          $(CXXProgram gitlabot, gitlabot)
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc

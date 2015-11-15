@@ -23,20 +23,20 @@ struct transparent_proxy_traits
     template <typename Tag, typename Socket>
     static void set_option(Tag, Socket & soc, boost::asio::ip::tcp const & proto, boost::system::error_code & ec)
     {
-        if (proto == protocol_type::v4())
+        if (proto == transparent_proxy_traits::protocol_type::v4())
             soc.set_option(socket_base::transparent_v4(true), ec);
-        if (proto == protocol_type::v6())
+        if (proto == transparent_proxy_traits::protocol_type::v6())
             soc.set_option(socket_base::transparent_v6(true), ec);
     }
 
     template <typename Socket>
-    static void set_option(internet4_tag, Socket & soc, boost::asio::ip::tcp const & proto, boost::system::error_code & ec)
+    static void set_option(internet_v4_tag, Socket & soc, boost::asio::ip::tcp const &, boost::system::error_code & ec)
     {
         soc.set_option(socket_base::transparent_v4(true), ec);
     }
 
     template <typename Socket>
-    static void set_option(internet6_tag, Socket & soc, boost::asio::ip::tcp const & proto, boost::system::error_code & ec)
+    static void set_option(internet_v6_tag, Socket & soc, boost::asio::ip::tcp const &, boost::system::error_code & ec)
     {
         soc.set_option(socket_base::transparent_v6(true), ec);
     }

@@ -49,10 +49,28 @@ struct is_match_condition<acqua::asio::detail::match_buffer_size>
 };
 
 /*!
-  streambuf を使い、size バイトまで受信する (特殊化)
+  streambuf を使い、size バイトまで受信する.
+ */
+template <typename SyncReadStream, typename Allocator>
+std::size_t read_until(SyncReadStream & s, basic_streambuf< Allocator > & b, std::size_t size)
+{
+    return read_until(s, b, acqua::asio::detail::match_buffer_size(size));
+}
+
+/*!
+  streambuf を使い、size バイトまで受信する.
+ */
+template <typename SyncReadStream, typename Allocator>
+std::size_t read_until(SyncReadStream & s, basic_streambuf< Allocator > & b, std::size_t size, boost::system::error_code & ec)
+{
+    return read_until(s, b, acqua::asio::detail::match_buffer_size(size), ec);
+}
+
+/*!
+  streambuf を使い、size バイトまで非同期に受信する.
  */
 template<typename AsyncReadStream, typename Allocator, typename ReadHandler>
-auto async_read_until(AsyncReadStream & s, basic_streambuf< Allocator > & b, std::size_t size, ReadHandler handler) -> void
+void async_read_until(AsyncReadStream & s, basic_streambuf< Allocator > & b, std::size_t size, ReadHandler handler)
 {
     async_read_until(s, b, acqua::asio::detail::match_buffer_size(size), handler);
 }

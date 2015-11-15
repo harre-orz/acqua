@@ -20,6 +20,7 @@ class http_proxy
 {
 public:
     using socket_type = boost::asio::ip::tcp::socket;
+    using lowest_layer_type = socket_type;
 
 public:
     explicit http_proxy(boost::asio::io_service & io_service)
@@ -76,7 +77,7 @@ private:
                             on_error(error, "request header");
                             return;
                         }
-                        header_["Connection"] = "close";
+                        //header_["Connection"] = "close";
 
                         // プロキシヘッダーを再作成して、サーバに転送
                         it = header_.find("Host");
@@ -338,8 +339,9 @@ int main(int argc, char ** argv)
     boost::asio::io_service io_service;
     boost::asio::io_service::work work(io_service);
 
-    acqua::asio::internet_server<http_proxy, acqua::asio::transparent_proxy_traits<http_proxy> > httpproxy(io_service, boost::asio::ip::address_v4::any(), 8080);
-    //acqua::asio::internet_server<http_proxy, acqua::asio::proxy_traits<http_proxy> > httpproxy(io_service, boost::asio::ip::address_v4::any(), 8080);
+    acqua::asio::internet_server<http_proxy, acqua::asio::transparent_proxy_traits<http_proxy> > httpproxy(io_service);
+    //acqua::asio::internet_server<http_proxy, acqua::asio::proxy_traits<http_proxy> > httpproxy(io_service);
+    httpproxy.listen(8080);
 
     boost::thread_group tg;
     for(int i = 0; i < 10; ++i)

@@ -121,7 +121,7 @@ private:
 
 
 class interface::iterator
-    : public std::iterator<std::forward_iterator_tag, interface const>
+    : public std::iterator<std::input_iterator_tag, interface>
 {
     friend interface;
 
