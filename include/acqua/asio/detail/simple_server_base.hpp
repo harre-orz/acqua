@@ -170,8 +170,10 @@ private:
     {
         if (is_waiting_)
             return false;
-        if (++static_cast<Derived *>(this)->use_count_ >= static_cast<Derived *>(this)->max_count_)
-            is_waiting_ = true;
+        if (++static_cast<Derived *>(this)->use_count_ >= static_cast<Derived *>(this)->max_count_ && is_waiting_.exchange(true) == true) {
+            static_cast<Derived *>(this)->use_count_--;
+            return false;
+        }
         return true;
     }
 
