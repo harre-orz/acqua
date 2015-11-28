@@ -1,9 +1,7 @@
 .PHONY: build clean
 .DEFAULT: build
 
-build: $(CXXProgram test_base64, test_base64) \
-       $(CXXProgram test_quoted_printable, test_quoted_printable) \
-       $(CXXProgram test_rfc2047, test_rfc2047) 
+build: $(CXXProgram test_qprint, test_qprint)
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc
