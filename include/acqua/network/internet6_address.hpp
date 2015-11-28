@@ -23,7 +23,7 @@ namespace acqua { namespace network {
   IPv6アドレスクラス.
 
   trivial なデータ型
-  boost::asio::ip::address_v5 と互換性あり
+  boost::asio::ip::address_v6 と互換性あり
 */
 class internet6_address
     : private boost::totally_ordered<internet6_address>
@@ -97,15 +97,9 @@ public:
 
     void checksum(std::size_t & sum) const noexcept;
 
-    static constexpr internet6_address any() noexcept
-    {
-        return internet6_address();
-    }
+    static constexpr internet6_address any() noexcept;
 
-    static constexpr internet6_address loopback() noexcept
-    {
-        return bytes_type({0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1});
-    }
+    static constexpr internet6_address loopback() noexcept;
 
     static internet6_address from_string(std::string const & str);
 

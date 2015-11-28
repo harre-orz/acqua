@@ -1,12 +1,34 @@
-FULLWARNINGS = -W -Wall -Wextra -Wwrite-strings -Wstrict-aliasing -Wconversion -Wfloat-equal -Wpointer-arith -Wcast-align -Wcast-qual -Wcomment -Wformat -Winline -Wlong-long -Wno-import -Wparentheses -Wredundant-decls -Wreturn-type -Wshadow -Wswitch -Wtrigraphs -Wunused -Wwrite-strings -Wmain -Wmultichar -Wold-style-cast -Woverloaded-virtual -Wsign-promo -Weffc++
+Linux() =
+	return $(equal $(SYSNAME), Linux)
 
+Mac() =
+	return $(equal $(SYSNAME), Darwin)
+
+Win() =
+	return $(equal $(SYSNAME), Win32)
+
+RunTest() =
+	foreach(f => ..., $(ls .))
+		if $(test -x $(f))
+			echo ./$(f)
+			$(f)
+			echo ------------------------------------
+	return
+
+CXXBuild(lst) =
+	foreach(f => ..., $(lst))
+		CXXProgram($(f), $(f))
+	return $(lst)
+
+FULLWARNINGS = -W -Wall -Wextra -Wwrite-strings -Wstrict-aliasing -Wconversion -Wfloat-equal -Wpointer-arith -Wcast-align -Wcast-qual -Wcomment -Wformat -Winline -Wlong-long -Wno-import -Wparentheses -Wredundant-decls -Wreturn-type -Wshadow -Wswitch -Wtrigraphs -Wunused -Wwrite-strings -Wmain -Wmultichar -Wold-style-cast -Woverloaded-virtual -Wsign-promo -Weffc++
 #CXX = g++-mp-4.9
-#CXX = clang++
+CXX = clang++
 CXXFLAGS += -std=c++14 $(FULLWARNINGS)
 ASFLAGS +=
-INCLUDES += /opt/local/include
-LDFLAGS += -lstdc++ -lpthread -lm -lcrypto  -lssl
-if $(equal $(SYSNAME), Darwin)
+LDFLAGS += -lstdc++ -lpthread -lm -lcrypto -lssl
+LIBS +=
+if $(Mac)
+	INCLUDES += /opt/local/include
 	LDFLAGS += -L/opt/local/lib -lboost_system-mt -lboost_thread-mt -lboost_locale-mt -lboost_date_time-mt -lboost_iostreams-mt
 	export
 else
@@ -18,8 +40,7 @@ else
 .SUBDIRS: test example
 
 doc:
-	./gen_todo.sh ./include > ./.TODO.md
 	doxygen
 
 clean:
-	rm -rf doc/ *.omc
+	rm -rf doc/ $(filter-proper-targets $(ls R, .)) *.omc

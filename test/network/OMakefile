@@ -1,10 +1,20 @@
-.DEFAULT: $(CXXProgram test_linklayer_address, test_linklayer_address) \
-          $(CXXProgram test_internet4_address, test_internet4_address) \
-          $(CXXProgram test_internet6_address, test_internet6_address) \
-          $(CXXProgram test_internet4_prefix, test_internet4_prefix) \
-          $(CXXProgram test_internet6_prefix, test_internet6_prefix) \
-          $(CXXProgram test_parse, test_parse) \
-          $(CXXProgram test_interface, test_interface)
+PROGRAMS = \
+	test_linklayer_address \
+	test_internet4_address \
+	test_internet6_address \
+	test_internet4_prefix \
+	test_internet6_prefix \
+
+if $(Linux)
+#	PROGRAMS += test_interface
+	export
+
+if $(or $(Linux), $(Mac))
+	PROGRAMS += test_parse
+	export
+
+.DEFAULT: $(CXXBuild $(PROGRAMS))
+	$(RunTest)
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc

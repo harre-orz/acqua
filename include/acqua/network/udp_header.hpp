@@ -60,6 +60,7 @@ class udp_header
 
 public:
     friend std::ostream & operator<<(std::ostream & os, udp_header const & rhs);
+    using sourceable_and_destinable::source;
 };
 
 }  // detail

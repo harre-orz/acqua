@@ -1,5 +1,5 @@
-CXXFLAGS += -O0 -g -DACQUA_USE_BACKTRACE
-#CXXFLAGS += -O2
+CXXFLAGS += -g -DBOOST_TEST_MAIN
+CXXFLAGS += -O2
 INCLUDES += ../../include/
 
 .SUBDIRS: utility exception container network iostreams asio webclient email

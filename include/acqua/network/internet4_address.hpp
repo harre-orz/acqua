@@ -38,6 +38,8 @@ public:
 
     constexpr internet4_address(bytes_type const & bytes) noexcept;
 
+    constexpr internet4_address(std::uint8_t a, std::uint8_t b, std::uint8_t c, std::uint8_t d) noexcept;
+
     internet4_address(struct ::in_addr const & addr) noexcept;
 
     internet4_address(boost::asio::ip::address_v4 const & addr) noexcept;
@@ -80,10 +82,7 @@ public:
 
     bool is_netmask() const noexcept;
 
-    constexpr bytes_type to_bytes() const noexcept
-    {
-        return bytes_;
-    }
+    constexpr bytes_type to_bytes() const noexcept;
 
     std::string to_string() const;
 
@@ -91,20 +90,11 @@ public:
 
     void checksum(std::size_t & sum) const noexcept;
 
-    static constexpr internet4_address any() noexcept
-    {
-        return internet4_address();
-    }
+    static constexpr internet4_address any() noexcept;
 
-    static constexpr internet4_address broadcast() noexcept
-    {
-        return bytes_type{{255,255,255,255}};
-    }
+    static constexpr internet4_address broadcast() noexcept;
 
-    static constexpr internet4_address loopback() noexcept
-    {
-        return bytes_type{{127,0,0,1}};
-    }
+    static constexpr internet4_address loopback() noexcept;
 
     static internet4_address from_string(std::string const & str);
 

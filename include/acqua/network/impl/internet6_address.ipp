@@ -53,17 +53,17 @@ struct address_impl<internet6_address>
 template <>
 inline std::size_t address_impl<internet6_address>::hash_func<std::uint32_t>(void const * data) noexcept
 {
-    return ((std::uint32_t const *)data)[0]
-        ^  ((std::uint32_t const *)data)[1]
-        ^  ((std::uint32_t const *)data)[2]
-        ^  ((std::uint32_t const *)data)[3];
+    return static_cast<std::uint32_t const *>(data)[0]
+        ^  static_cast<std::uint32_t const *>(data)[1]
+        ^  static_cast<std::uint32_t const *>(data)[2]
+        ^  static_cast<std::uint32_t const *>(data)[3];
 }
 
 template <>
 inline std::size_t address_impl<internet6_address>::hash_func<std::uint64_t>(void const * data) noexcept
 {
-    return ((std::uint64_t const *)data)[0]
-        ^  ((std::uint64_t const *)data)[1];
+    return static_cast<std::uint64_t const *>(data)[0]
+        ^  static_cast<std::uint64_t const *>(data)[1];
 }
 
 }  // detail
@@ -215,8 +215,18 @@ inline std::string internet6_address::to_string() const
 inline void internet6_address::checksum(std::size_t & sum) const noexcept
 {
     auto * buf = reinterpret_cast<std::uint16_t const *>(bytes_.data());
-    for(int i = 0; i < sizeof(*this)/sizeof(*buf); ++i)
+    for(uint i = 0; i < sizeof(*this)/sizeof(*buf); ++i)
         sum += *buf++;
+}
+
+inline constexpr internet6_address internet6_address::any() noexcept
+{
+    return internet6_address();
+}
+
+inline constexpr internet6_address internet6_address::loopback() noexcept
+{
+    return bytes_type{{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}};
 }
 
 inline internet6_address internet6_address::from_string(std::string const & str)

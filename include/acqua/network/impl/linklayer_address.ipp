@@ -47,15 +47,15 @@ struct address_impl<linklayer_address>
 template <>
 inline std::size_t address_impl<linklayer_address>::hash_func<std::uint32_t>(void const * data) noexcept
 {
-    return (*((std::uint32_t const *)(((char const *)data) + 0)))
-        ^  (*((std::uint16_t const *)(((char const *)data) + 4)));
+    return *reinterpret_cast<std::uint32_t const *>(reinterpret_cast<std::uint8_t const *>(data) + 0)
+        ^  *reinterpret_cast<std::uint16_t const *>(reinterpret_cast<std::uint8_t const *>(data) + 4);
 }
 
 template <>
 inline std::size_t address_impl<linklayer_address>::hash_func<std::uint64_t>(void const * data) noexcept
 {
-    return ((*((std::uint32_t const *)(((char const *)data) + 0))) << 16)
-        ^  (*((std::uint16_t const *)(((char const *)data) + 4)));
+    return (*reinterpret_cast<std::uint32_t const *>(reinterpret_cast<std::uint8_t const *>(data) + 0) << 16)
+        ^  (*reinterpret_cast<std::uint16_t const *>(reinterpret_cast<std::uint8_t const *>(data) + 4));
 }
 
 }  // detail

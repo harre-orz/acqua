@@ -13,8 +13,8 @@ inline void ipv6_header::shrink_into_end(It & it) const
 {
     auto * beg = reinterpret_cast<std::uint8_t const *>(this);
     auto * end = reinterpret_cast<std::uint8_t const *>(&*it);
-    int size = end - beg;
-    int len = size - (ntohs(value_type::ip6_ctlun.ip6_un1.ip6_un1_plen) + sizeof(*this));
+    std::ptrdiff_t size = end - beg;
+    std::ptrdiff_t len = size - static_cast<std::ptrdiff_t>(static_cast<std::size_t>(ntohs(value_type::ip6_ctlun.ip6_un1.ip6_un1_plen)) + sizeof(*this));
     if (len < size)
         std::advance(it, -len);
 }

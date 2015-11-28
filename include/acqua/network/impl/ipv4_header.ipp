@@ -18,8 +18,8 @@ inline void ipv4_header::shrink_into_end(It & it) const
 {
     auto * beg = reinterpret_cast<std::uint8_t const *>(this);
     auto * end = reinterpret_cast<std::uint8_t const *>(&*it);
-    int size = end - beg;
-    int len = size - ntohs(value_type::ip_len);
+    std::ptrdiff_t size = end - beg;
+    std::ptrdiff_t len = size - ntohs(static_cast<std::uint16_t>(value_type::ip_len));
     if (0 < len && len < size)
         std::advance(it, -len);
 }
@@ -141,11 +141,11 @@ public:
         hdr->source().checksum(sum_);
         hdr->destinate().checksum(sum_);
         sum_ += htons(size);
-        sum_ += static_cast<std::uint16_t>(hdr->protocol())
+        sum_ += (static_cast<int>(hdr->protocol())
 #ifdef BOOST_ENDIAN_LITTLE_BYTE
-            << 8
+            << 8u
 #endif
-            ;
+        );
     }
 
     void checksum(std::size_t & sum) const

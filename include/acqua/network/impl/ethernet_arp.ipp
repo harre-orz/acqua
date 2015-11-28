@@ -164,8 +164,9 @@ inline std::ostream & operator<<(std::ostream & os, ethernet_arp const & rhs)
 }
 
 template <>
-struct is_match_condition<ethernet_header, ethernet_arp>
+class is_match_condition<ethernet_header, ethernet_arp>
 {
+public:
     bool operator()(ethernet_header const & from, ethernet_arp const &) const
     {
         return from.protocol() == ethernet_header::arp;

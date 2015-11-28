@@ -1,6 +1,3 @@
-#define BOOST_TEST_MAIN
-#include <boost/test/included/unit_test.hpp>
-
 #include <acqua/network/ethernet_header.hpp>
 #include <acqua/network/ethernet_arp.hpp>
 #include <acqua/network/ipv4_header.hpp>
@@ -10,6 +7,7 @@
 #include <acqua/network/udp_header.hpp>
 #include <acqua/network/tcp_header.hpp>
 #include <acqua/network/parse.hpp>
+#include <boost/test/included/unit_test.hpp>
 
 BOOST_AUTO_TEST_SUITE(parse)
 

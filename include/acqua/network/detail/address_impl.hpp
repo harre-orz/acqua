@@ -12,13 +12,12 @@ extern "C" {
 #include <arpa/inet.h>
 }
 
+#include <iostream>
 #include <numeric>
 #include <boost/system/error_code.hpp>
 #include <boost/spirit/include/qi.hpp>
 
-namespace acqua { namespace network {
-
-namespace detail {
+namespace acqua { namespace network { namespace detail {
 
 struct address_impl_base
 {
@@ -36,7 +35,7 @@ struct address_impl_base
                 case 0b11111000:
                 case 0b11111100:
                 case 0b11111110:
-                    return std::accumulate(it, end, (uint)0) == 0;
+                    return std::accumulate(it, end, 0) == 0;
                 default:
                     return false;
             }
@@ -57,24 +56,29 @@ struct address_impl_base
     }
 
     template <typename T>
-    static void add(T & bytes, long int num) noexcept
+    static void add(T & bytes, std::ptrdiff_t num) noexcept
     {
         if (num < 0)
             sub(bytes, -num);
         for(auto it = bytes.rbegin(); it != bytes.rend() && num; ++it) {
-            *it += (num & 0xFF);
+            auto rhs = static_cast<std::uint8_t>(num);
+            *it += rhs;
             num >>= 8;
+            num += (*it < rhs) ? 1 : 0;
         }
     }
 
     template <typename T>
-    static void sub(T & bytes, long int num) noexcept
+    static void sub(T & bytes, std::ptrdiff_t num) noexcept
     {
         if (num < 0)
             add(bytes, -num);
         for(auto it = bytes.rbegin(); it != bytes.rend() && num; ++it) {
-            *it -= (num & 0xFF);
+            auto lhs = *it;
+            auto rhs = static_cast<std::uint8_t>(num);
+            *it -= rhs;
             num >>= 8;
+            num += (lhs < rhs) ? 1 : 0;
         }
     }
 
@@ -97,6 +101,4 @@ struct address_impl_base
 template <typename T>
 struct address_impl;
 
-}  // detail
-
-} }
+} } }

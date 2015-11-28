@@ -25,7 +25,7 @@ inline void ethernet_header::protocol(protocol_type code)
 inline std::ostream & operator<<(std::ostream & os, ethernet_header const & rhs)
 {
     auto pro = rhs.protocol();
-    os << "ethernet 0x" << std::hex << (int)pro << std::dec;
+    os << "ethernet 0x" << std::hex << static_cast<int>(pro) << std::dec;
     switch(pro) {
         case ethernet_header::ip:
             os << "(ip)";

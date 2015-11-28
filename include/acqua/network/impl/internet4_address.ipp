@@ -48,17 +48,22 @@ inline constexpr internet4_address::internet4_address() noexcept
 }
 
 inline constexpr internet4_address::internet4_address(bytes_type const & bytes) noexcept
-    : bytes_(bytes)
+    : bytes_{bytes}
+{
+}
+
+inline constexpr internet4_address::internet4_address(std::uint8_t a, std::uint8_t b, std::uint8_t c, std::uint8_t d) noexcept
+    : bytes_{{a,b,c,d}}
 {
 }
 
 inline internet4_address::internet4_address(struct ::in_addr const & addr) noexcept
-    : bytes_(*reinterpret_cast<bytes_type const *>(&addr))
+    : bytes_{*reinterpret_cast<bytes_type const *>(&addr)}
 {
 }
 
 inline internet4_address::internet4_address(boost::asio::ip::address_v4 const & addr) noexcept
-    : internet4_address(addr.to_ulong())
+    : internet4_address{static_cast<std::uint32_t>(addr.to_ulong())}
 {
 }
 
@@ -110,7 +115,7 @@ inline internet4_address::operator ::in_addr() const noexcept
 
 inline internet4_address::operator boost::asio::ip::address_v4() const noexcept
 {
-    return boost::asio::ip::address_v4(to_ulong());
+    return boost::asio::ip::address_v4{to_ulong()};
 }
 
 inline bool internet4_address::is_unspecified() const noexcept
@@ -153,6 +158,11 @@ inline bool internet4_address::is_netmask() const noexcept
     return detail::address_impl<internet4_address>::in_mask(bytes_);
 }
 
+inline constexpr auto internet4_address::to_bytes() const noexcept -> bytes_type
+{
+    return bytes_;
+}
+
 inline std::string internet4_address::to_string() const
 {
     char buf[4*4];
@@ -165,7 +175,7 @@ inline std::uint32_t internet4_address::to_ulong() const noexcept
     std::uint32_t sum = 0;
     for(auto it = bytes_.begin(); it != bytes_.end(); ++it) {
         sum <<= 8;
-        sum += (std::uint8_t)*it;
+        sum += static_cast<std::uint8_t>(*it);
     }
     return sum;
 }
@@ -173,8 +183,23 @@ inline std::uint32_t internet4_address::to_ulong() const noexcept
 inline void internet4_address::checksum(std::size_t & sum) const noexcept
 {
     auto * buf = reinterpret_cast<std::uint16_t const *>(bytes_.data());
-    for(int i = 0; i < sizeof(*this)/sizeof(*buf); ++i)
+    for(uint i = 0; i < sizeof(*this)/sizeof(*buf); ++i)
         sum += *buf++;
+}
+
+inline constexpr internet4_address internet4_address::any() noexcept
+{
+    return internet4_address{};
+}
+
+inline constexpr internet4_address internet4_address::broadcast() noexcept
+{
+    return bytes_type{{255,255,255,255}};
+}
+
+inline constexpr internet4_address internet4_address::loopback() noexcept
+{
+    return bytes_type{{127,0,0,1}};
 }
 
 inline internet4_address internet4_address::from_string(std::string const & str)
@@ -254,7 +279,7 @@ inline std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, 
 
 inline std::size_t hash_value(internet4_address const & rhs) noexcept
 {
-    return std::accumulate(rhs.bytes_.begin(), rhs.bytes_.end(), (uint)0);
+    return std::accumulate(rhs.bytes_.begin(), rhs.bytes_.end(), 0ul);
 }
 
 inline int netmask_length(internet4_address const & rhs) noexcept

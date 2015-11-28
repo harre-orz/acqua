@@ -36,9 +36,9 @@ inline int icmp_header::code() const noexcept
 inline void icmp_header::code(int n) noexcept
 {
 #ifdef __linux__
-    value_type::code = n;
+    value_type::code = static_cast<std::uint8_t>(n);
 #else
-    value_type::icmp_code = n;
+    value_type::icmp_code = static_cast<std::uint8_t>(n);
 #endif
 }
 
