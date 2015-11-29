@@ -6,7 +6,7 @@ PROGRAMS = \
 	test_internet6_prefix \
 
 if $(Linux)
-#	PROGRAMS += test_interface
+	PROGRAMS += test_interface
 	export
 
 if $(or $(Linux), $(Mac))

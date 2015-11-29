@@ -49,11 +49,11 @@ public:
         std::uint32_t len = htonl(size);
         sum_ += reinterpret_cast<std::uint16_t const *>(&len)[0];
         sum_ += reinterpret_cast<std::uint16_t const *>(&len)[1];
-        sum_ += static_cast<std::uint16_t>(hdr->protocol())
+        sum_ += static_cast<std::uint16_t>(hdr->protocol()
 #ifdef BOOST_ENDIAN_LITTLE_BYTE
-            << 8
+            << 8u
 #endif
-            ;
+        );
     }
 
     void checksum(std::size_t & sum) const noexcept

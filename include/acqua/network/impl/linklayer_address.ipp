@@ -61,7 +61,7 @@ inline std::size_t address_impl<linklayer_address>::hash_func<std::uint64_t>(voi
 }  // detail
 
 inline constexpr linklayer_address::linklayer_address() noexcept
-    : bytes_{{0,0,0,0,0,0}}
+    : bytes_({{0,0,0,0,0,0}})
 {
 }
 
@@ -100,6 +100,11 @@ inline bool linklayer_address::is_unspecified() const noexcept
         && bytes_[3] == 0 && bytes_[4] == 0 && bytes_[5] == 0;
 }
 
+inline constexpr auto linklayer_address::to_bytes() const noexcept -> bytes_type
+{
+    return bytes_;
+}
+
 inline std::uint32_t linklayer_address::to_oui() const noexcept
 {
     std::uint32_t oui = bytes_[0];
@@ -114,6 +119,16 @@ inline std::string linklayer_address::to_string() const
 {
     char buf[12];
     return buf;
+}
+
+inline constexpr linklayer_address linklayer_address::any() noexcept
+{
+    return linklayer_address();
+}
+
+inline constexpr linklayer_address linklayer_address::broadcast() noexcept
+{
+    return bytes_type({{255,255,255,255,255,255}});
 }
 
 inline linklayer_address linklayer_address::from_string(std::string const & str)

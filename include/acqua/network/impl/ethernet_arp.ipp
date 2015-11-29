@@ -134,7 +134,7 @@ inline void ethernet_arp::target_inaddr(internet4_address const & in_addr)
 
 inline std::ostream & operator<<(std::ostream & os, ethernet_arp const & rhs)
 {
-    os << "arp 0x" << std::hex << rhs.operation() << std::dec;
+    os << "arp 0x" << std::hex << static_cast<int>(rhs.operation()) << std::dec;
     switch(rhs.operation()) {
         case ethernet_arp::arp_request:
             os << "(arp request)";

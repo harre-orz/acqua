@@ -10,7 +10,7 @@ namespace acqua { namespace network { namespace detail {
 
 inline std::size_t ipv4_header::header_size() const
 {
-    return value_type::ip_hl * 4;
+    return value_type::ip_hl * 4u;
 }
 
 template <typename It>
@@ -46,7 +46,7 @@ inline void ipv4_header::version(std::uint8_t n) noexcept
 
 inline std::uint16_t ipv4_header::header_length() const noexcept
 {
-    return value_type::ip_hl * 4;
+    return value_type::ip_hl * 4u;
 }
 
 inline void ipv4_header::header_length(std::uint16_t n) noexcept
@@ -141,7 +141,7 @@ public:
         hdr->source().checksum(sum_);
         hdr->destinate().checksum(sum_);
         sum_ += htons(size);
-        sum_ += (static_cast<int>(hdr->protocol())
+        sum_ += static_cast<std::size_t>(hdr->protocol()
 #ifdef BOOST_ENDIAN_LITTLE_BYTE
             << 8u
 #endif

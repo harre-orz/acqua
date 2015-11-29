@@ -69,7 +69,7 @@ inline std::size_t address_impl<internet6_address>::hash_func<std::uint64_t>(voi
 }  // detail
 
 inline constexpr internet6_address::internet6_address() noexcept
-    : bytes_{{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}}
+    : bytes_({{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}})
 {
     static_assert(sizeof(*this) == 16, "");
     static_assert(sizeof(bytes_type) == 16, "");
@@ -226,7 +226,7 @@ inline constexpr internet6_address internet6_address::any() noexcept
 
 inline constexpr internet6_address internet6_address::loopback() noexcept
 {
-    return bytes_type{{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}};
+    return bytes_type({{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}});
 }
 
 inline internet6_address internet6_address::from_string(std::string const & str)

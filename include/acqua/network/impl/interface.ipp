@@ -151,13 +151,13 @@ inline internet6_address interface::to_point_to_point_v6() const noexcept
 inline int interface::scope_id() const noexcept
 {
     return is_v6()
-        ? reinterpret_cast<struct ::sockaddr_in6 const *>(ifa_->ifa_addr)->sin6_scope_id
+        ? static_cast<int>(reinterpret_cast<struct ::sockaddr_in6 const *>(ifa_->ifa_addr)->sin6_scope_id)
         : -1;
 }
 
 inline int interface::index() const noexcept
 {
-    return ::if_nametoindex(ifa_->ifa_name);
+    return static_cast<int>(::if_nametoindex(ifa_->ifa_name));
 }
 
 inline linklayer_address interface::physical_address() const
@@ -218,12 +218,12 @@ inline auto interface::begin() noexcept -> iterator
 {
     internal_value_type * ifa;
     ::getifaddrs(&ifa);
-    return iterator(ifa);
+    return iterator{ifa};
 }
 
 inline auto interface::end() noexcept -> iterator
 {
-    return iterator();
+    return iterator{};
 }
 
 inline bool operator==(interface const & lhs, interface const & rhs) noexcept
@@ -237,7 +237,7 @@ inline bool operator!=(interface const & lhs, interface const & rhs) noexcept
 }
 
 inline interface::iterator::iterator(internal_value_type * ifa) noexcept
-    : base_(ifa, [](internal_value_type * ifa) { ::freeifaddrs(ifa); })
+    : base_(ifa, [](internal_value_type * ptr) { ::freeifaddrs(ptr); })
     , value_(ifa)
 {
 }
@@ -292,7 +292,7 @@ inline interface::iterator & interface::iterator::operator++() noexcept
 
 inline interface::iterator interface::iterator::operator++(int) noexcept
 {
-    iterator it(*this);
+    iterator it{*this};
     operator++();
     return it;
 }

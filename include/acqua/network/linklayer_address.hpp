@@ -49,24 +49,15 @@ public:
 
     bool is_unspecified() const noexcept;
 
-    constexpr bytes_type to_bytes() const noexcept
-    {
-        return bytes_;
-    }
+    constexpr bytes_type to_bytes() const noexcept;
 
     std::uint32_t to_oui() const noexcept;
 
     std::string to_string() const;
 
-    static constexpr linklayer_address any() noexcept
-    {
-        return linklayer_address();
-    }
+    static constexpr linklayer_address any() noexcept;
 
-    static constexpr linklayer_address broadcast() noexcept
-    {
-        return bytes_type{{255,255,255,255,255,255}};
-    }
+    static constexpr linklayer_address broadcast() noexcept;
 
     static linklayer_address from_string(std::string const & str);
 

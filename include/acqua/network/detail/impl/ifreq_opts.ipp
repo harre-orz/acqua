@@ -5,7 +5,7 @@
 namespace acqua { namespace network { namespace detail {
 
 inline ifreq_opts::ifreq_opts(char const * if_name) noexcept
-    : fd_(-1)
+    : fd_(-1), ifr_(::ifreq())
 {
     using namespace std;
     memset(&ifr_, 0, sizeof(ifr_));

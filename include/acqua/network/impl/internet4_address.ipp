@@ -41,34 +41,34 @@ struct address_impl<internet4_address>
 }  // detail
 
 inline constexpr internet4_address::internet4_address() noexcept
-    : bytes_{{0,0,0,0}}
+    : bytes_({{0,0,0,0}})
 {
     static_assert(sizeof(*this) == 4, "");
     static_assert(sizeof(bytes_type) == 4, "");
 }
 
 inline constexpr internet4_address::internet4_address(bytes_type const & bytes) noexcept
-    : bytes_{bytes}
+    : bytes_(bytes)
 {
 }
 
 inline constexpr internet4_address::internet4_address(std::uint8_t a, std::uint8_t b, std::uint8_t c, std::uint8_t d) noexcept
-    : bytes_{{a,b,c,d}}
+    : bytes_({{a,b,c,d}})
 {
 }
 
 inline internet4_address::internet4_address(struct ::in_addr const & addr) noexcept
-    : bytes_{*reinterpret_cast<bytes_type const *>(&addr)}
+    : bytes_(*reinterpret_cast<bytes_type const *>(&addr))
 {
 }
 
 inline internet4_address::internet4_address(boost::asio::ip::address_v4 const & addr) noexcept
-    : internet4_address{static_cast<std::uint32_t>(addr.to_ulong())}
+    : internet4_address(static_cast<std::uint32_t>(addr.to_ulong()))
 {
 }
 
 inline internet4_address::internet4_address(std::uint32_t addr) noexcept
-    : bytes_{{
+    : bytes_({{
 #ifdef BOOST_BIG_ENDIAN
         reinterpret_cast<std::uint8_t const *>(&addr)[0],
         reinterpret_cast<std::uint8_t const *>(&addr)[1],
@@ -80,7 +80,7 @@ inline internet4_address::internet4_address(std::uint32_t addr) noexcept
         reinterpret_cast<std::uint8_t const *>(&addr)[1],
         reinterpret_cast<std::uint8_t const *>(&addr)[0]
 #endif
-            }}
+            }})
 {
 }
 
@@ -115,7 +115,7 @@ inline internet4_address::operator ::in_addr() const noexcept
 
 inline internet4_address::operator boost::asio::ip::address_v4() const noexcept
 {
-    return boost::asio::ip::address_v4{to_ulong()};
+    return boost::asio::ip::address_v4(to_ulong());
 }
 
 inline bool internet4_address::is_unspecified() const noexcept
@@ -189,17 +189,17 @@ inline void internet4_address::checksum(std::size_t & sum) const noexcept
 
 inline constexpr internet4_address internet4_address::any() noexcept
 {
-    return internet4_address{};
+    return internet4_address();
 }
 
 inline constexpr internet4_address internet4_address::broadcast() noexcept
 {
-    return bytes_type{{255,255,255,255}};
+    return bytes_type({{255,255,255,255}});
 }
 
 inline constexpr internet4_address internet4_address::loopback() noexcept
 {
-    return bytes_type{{127,0,0,1}};
+    return bytes_type({{127,0,0,1}});
 }
 
 inline internet4_address internet4_address::from_string(std::string const & str)
