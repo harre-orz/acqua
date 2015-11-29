@@ -1,6 +1,6 @@
 #pragma once
 
-#include <acqua/Container/detail/recursive_iterator.hpp>
+#include <acqua/container/detail/recursive_iterator.hpp>
 
 namespace acqua { namespace container { namespace detail {
 

@@ -9,6 +9,8 @@
 #pragma once
 
 #include <stdexcept>
+#include <algorithm>
+#include <boost/iterator/iterator_adaptor.hpp>
 
 namespace acqua { namespace container { namespace detail {
 

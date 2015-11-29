@@ -1,7 +1,5 @@
-#define BOOST_TEST_MAIN
-#include <boost/test/included/unit_test.hpp>
 #include <acqua/container/recursive_iterator.hpp>
-
+#include <boost/test/included/unit_test.hpp>
 #include <list>
 
 struct node {
@@ -39,15 +37,15 @@ BOOST_AUTO_TEST_CASE(preordered_recursive_iterator)
     n.children.front().children.push_back(node());
     acqua::container::preordered_recursive_iterator<decltype(n), typename decltype(n.children)::iterator> it(n);
     ++it;
-    BOOST_CHECK(it.depth() == 1);
+    BOOST_TEST(it.depth() == 1);
     ++it;
-    BOOST_CHECK(it.depth() == 2);
+    BOOST_TEST(it.depth() == 2);
     ++it;
-    BOOST_CHECK(it.depth() == 3);
+    BOOST_TEST(it.depth() == 3);
     ++it;
-    BOOST_CHECK(it.depth() == 4);
+    BOOST_TEST(it.depth() == 4);
     ++it;
-    BOOST_CHECK(it.depth() == 5);
+    BOOST_TEST(it.depth() == 5);
 }
 
 
