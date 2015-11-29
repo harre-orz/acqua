@@ -48,9 +48,9 @@ public:
         value_.data() = val;
     }
 
-    value_type & add_child(int index) const
+    value_type & add_child(int) const
     {
-        return value_.push_back(typename value_type::value_type(std::to_string(index), value_type()))->second;
+        return value_.push_back(typename value_type::value_type("", value_type()))->second;
     }
 
     value_type & add_child(Key const & key) const

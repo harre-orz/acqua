@@ -1,0 +1,47 @@
+[
+  {
+    "_id": "553b587f3212c95c5d160415",
+    "index": 0,
+    "guid": "7a05ac31-f974-4777-b2fb-2352ffc70311",
+    "isActive": true,
+    "balance": "$2,558.37",
+    "picture": "http://placehold.it/32x32",
+    "age": 40,
+    "eyeColor": "green",
+    "name": "Mcgowan Barry",
+    "gender": "male",
+    "company": "DANCERITY",
+    "email": "mcgowanbarry@dancerity.com",
+    "phone": "+1 (858) 532-3444",
+    "address": "701 Baltic Street, Bridgetown, Wyoming, 6310",
+    "about": "Consectetur nulla non proident velit officia do elit officia. Nulla veniam duis mollit cillum enim. Amet sunt exercitation culpa duis sunt sunt. In sunt aliqua labore minim ullamco magna ad et ex et commodo.\r\n",
+    "registered": "2014-09-01T00:37:18 -09:00",
+    "latitude": -28.880681,
+    "longitude": -172.850388,
+    "tags": [
+      "adipisicing",
+      "occaecat",
+      "esse",
+      "enim",
+      "reprehenderit",
+      "officia",
+      "dolor"
+    ],
+    "friends": [
+      {
+        "id": 0,
+        "name": "Le Flowers"
+      },
+      {
+        "id": 1,
+        "name": "Shanna Bray"
+      },
+      {
+        "id": 2,
+        "name": "Smith Leonard"
+      }
+    ],
+    "greeting": "Hello, Mcgowan Barry! You have 1 unread messages.",
+    "favoriteFruit": "apple"
+  }
+]

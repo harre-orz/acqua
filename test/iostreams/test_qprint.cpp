@@ -1,4 +1,3 @@
-#define BOOST_TEST_MAIN
 #include <acqua/iostreams/qprint.hpp>
 #include <boost/test/included/unit_test.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -7,7 +6,7 @@
 
 BOOST_AUTO_TEST_SUITE(qprint)
 
-BOOST_AUTO_TEST_CASE(qprint_encoder)
+BOOST_AUTO_TEST_CASE(encoder)
 {
     do {
         std::ostringstream oss;
@@ -40,7 +39,7 @@ BOOST_AUTO_TEST_CASE(qprint_encoder)
     } while(false);
 }
 
-BOOST_AUTO_TEST_CASE(qprint_decoder)
+BOOST_AUTO_TEST_CASE(decoder)
 {
     do {
         // LN
@@ -77,7 +76,7 @@ BOOST_AUTO_TEST_CASE(qprint_decoder)
 }
 
 
-BOOST_AUTO_TEST_CASE(qprint_multiline)
+BOOST_AUTO_TEST_CASE(multiline)
 {
     std::string str =
         "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.\n"

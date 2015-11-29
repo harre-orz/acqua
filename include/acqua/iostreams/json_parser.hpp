@@ -27,7 +27,7 @@ public:
 
 private:
     boost::system::error_code error_;
-    std::unique_ptr<impl> impl_;
+    std::shared_ptr<impl> impl_;
 };
 
 } }

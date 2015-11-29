@@ -1,4 +1,3 @@
-#define BOOST_TEST_MAIN
 #include <acqua/iostreams/base64.hpp>
 #include <boost/test/included/unit_test.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -7,7 +6,7 @@
 
 BOOST_AUTO_TEST_SUITE(base64)
 
-BOOST_AUTO_TEST_CASE(base64_encoder)
+BOOST_AUTO_TEST_CASE(encoder)
 {
     do {
         std::ostringstream oss;
@@ -46,7 +45,7 @@ BOOST_AUTO_TEST_CASE(base64_encoder)
     } while(false);
 }
 
-BOOST_AUTO_TEST_CASE(base64_decoder)
+BOOST_AUTO_TEST_CASE(decoder)
 {
     do {
         std::istringstream iss("SSBkb24ndCBkcmVhbSBhdCBuaWdodCwgSSBkcmVhbSBhbGwgZGF5OyBJIGRyZWFtIGZvciBhIGxp\ndmluZy4=\n");
@@ -79,7 +78,7 @@ BOOST_AUTO_TEST_CASE(base64_decoder)
     } while(false);
 }
 
-BOOST_AUTO_TEST_CASE(base64_multiline)
+BOOST_AUTO_TEST_CASE(multiline)
 {
     std::string str =
         "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.\n"
