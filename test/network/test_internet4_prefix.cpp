@@ -3,7 +3,7 @@
 
 BOOST_AUTO_TEST_SUITE(internet4_prefix)
 
-BOOST_AUTO_TEST_CASE(internet4_prefix__construct)
+BOOST_AUTO_TEST_CASE(construct)
 {
     using acqua::network::internet4_address;
     using acqua::network::internet4_prefix;
@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_CASE(internet4_prefix__construct)
     BOOST_TEST(netmask_length(prefix.netmask()) == 24);
 }
 
-BOOST_AUTO_TEST_CASE(internet4_prefix__incr)
+BOOST_AUTO_TEST_CASE(incr)
 {
     using acqua::network::internet4_address;
     using acqua::network::internet4_prefix;
@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_CASE(internet4_prefix__incr)
     BOOST_TEST(prefix2 == internet4_prefix(internet4_address::from_string("192.168.102.0"), 24));
 }
 
-BOOST_AUTO_TEST_CASE(internet4_prefix__decr)
+BOOST_AUTO_TEST_CASE(decr)
 {
     using acqua::network::internet4_address;
     using acqua::network::internet4_prefix;
@@ -37,6 +37,5 @@ BOOST_AUTO_TEST_CASE(internet4_prefix__decr)
     prefix2--;
     BOOST_TEST(prefix2 == internet4_prefix(internet4_address::from_string("192.168.98.0"), 24));
 }
-
 
 BOOST_AUTO_TEST_SUITE_END()

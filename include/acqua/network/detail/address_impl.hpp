@@ -24,10 +24,10 @@ struct address_impl_base
     template <typename T>
     static bool in_mask(T const & bytes) noexcept
     {
-        for(auto it = bytes.begin(), end = bytes.end(); it != end; ++it) {
+        for(auto it = bytes.begin(), end = bytes.end(); it != end;) {
             switch(*it) {
-                case 0b11111111:
-                    ;
+                case 0b00000000:
+                    if (it == bytes.begin()) return false;
                 case 0b10000000:
                 case 0b11000000:
                 case 0b11100000:
@@ -35,7 +35,10 @@ struct address_impl_base
                 case 0b11111000:
                 case 0b11111100:
                 case 0b11111110:
-                    return std::accumulate(it, end, 0) == 0;
+                    return std::accumulate(++it, end, 0) == 0;
+                case 0b11111111:
+                    ++it;
+                    break;
                 default:
                     return false;
             }
