@@ -1,6 +1,8 @@
 PROGRAMS = \
+	test_raw \
 	test_simple_server \
 	test_internet_server \
+	test_pinger \
 
 .DEFAULT: $(CXXBuild $(PROGRAMS))
 	$(RunTest)

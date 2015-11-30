@@ -18,10 +18,10 @@ class timer_traits
 {
 public:
     using timer_type = AsioTimer;
-    using time_point_type = typename timer_type::time_point;
-    using duration_type = typename timer_type::duration;
+    using time_point = typename timer_type::time_point;
+    using duration = typename timer_type::duration;
 
-    static time_point_type now()
+    static time_point now()
     {
         return timer_type::clock_type::now();
     }
@@ -33,10 +33,10 @@ class timer_traits<boost::asio::deadline_timer>
 {
 public:
     using timer_type = boost::asio::deadline_timer;
-    using time_point_type = typename timer_type::time_type;
-    using duration_type = typename timer_type::duration_type;
+    using time_point = typename timer_type::time_type;
+    using duration = typename timer_type::duration_type;
 
-    static time_point_type now()
+    static time_point now()
     {
         return timer_type::traits_type::now();
     }
