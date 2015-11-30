@@ -3,8 +3,9 @@
 #include <functional>
 #include <mutex>
 #include <atomic>
-#include <boost/asio.hpp>
+#include <boost/asio/ip/icmp.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/bind.hpp>
 #include <boost/container/flat_set.hpp>
 #include <boost/variant.hpp>
 #include <acqua/asio/socket_category.hpp>
@@ -32,7 +33,6 @@ private:
     using multicast_handler_arg1 = std::function<void(boost::system::error_code const &, std::vector<endpoint_type>)>;
     using multicast_handler_type = std::tuple<multicast_handler_arg1, std::vector<endpoint_type> >;
     using buffer_type = std::array<char, 1500>;
-    using resolver_iter = typename resolver_type::iterator;
 
     struct entry
     {
@@ -114,28 +114,26 @@ public:
     template <typename Handler>
     void ping_host(std::string const & host, time_point const & expire, Handler handler)
     {
-        using query = typename resolver_type::query;
         resolver_.async_resolve(
-            query(host, ""),
-            std::bind(
+            typename resolver_type::query(host, ""),
+            boost::bind(
                 &service_type::on_resolve_host<Handler>, this,
-                std::placeholders::_1, std::placeholders::_2,
-                expire, handler));
+                _1, _2, expire, handler));
     }
 
 private:
     template <typename Handler>
-    void on_resolve_host(boost::system::error_code const & error, resolver_iter it, time_point const & expire, Handler handler)
+    void on_resolve_host(boost::system::error_code const & error, typename resolver_type::iterator it, time_point const & expire, Handler handler)
     {
         if (error) {
             handler(error, endpoint_type());
             return;
         }
 
-        while(it != resolver_iter()) {
+        for(; it != typename resolver_type::iterator(); ++it) {
             auto ep = it->endpoint();
             if (check_address(category(), ep)) {
-                do_ping_host(ep, expire, handler);
+                send_ping(ep, expire, handler);
                 return;
             }
         }
@@ -153,8 +151,13 @@ private:
     }
 
     template <typename Handler>
-    void do_ping_host(endpoint_type const & host, time_point const & expire, Handler handler)
+    void send_ping(endpoint_type const & host, time_point const & expire, Handler handler)
     {
+        if (!socket_.is_open()) {
+            handler(make_error_code(boost::asio::error::bad_descriptor), endpoint_type());
+            return;
+        }
+
         buffer_type buf;
         auto beg = buf.begin(), end = buf.end();
         auto * echo = Impl::generate(beg, end);
@@ -170,26 +173,25 @@ private:
             *end++ = data[i % (sizeof(data)-1)];
         echo->compute_checksum(end);
 
-        std::lock_guard<decltype(mutex_)> lock(mutex_);
-        auto it = entries_.emplace_hint(entries_.begin(), echo->seq(), expire, handler);
-        if (it == entries_.begin()) {
-            timer_.expires_at(expire);
-            timer_.async_wait(std::bind(&service_type::on_wait, this, std::placeholders::_1));
-        }
-        mutex_.unlock();
+        do {
+            std::lock_guard<decltype(mutex_)> lock(mutex_);
+            auto it = entries_.emplace_hint(entries_.begin(), echo->seq(), expire, std::move(handler));
+            if (it == entries_.begin()) {
+                timer_.expires_at(expire);
+                timer_.async_wait(std::bind(&service_type::on_wait, this, std::placeholders::_1));
+            }
+        } while(false);
 
         boost::system::error_code ec;
         socket_.send_to(boost::asio::buffer(beg, end - beg), host, 0, ec);
         if (ec) {
-            mutex_.lock();
-            // it は無効になっているので、同じ seq のデータを探す
-            it = std::find_if(entries_.begin(), entries_.end(),[seq = echo->seq()](auto const & e) { return e.seq_ == seq; });
+            std::lock_guard<decltype(mutex_)> lock(mutex_);
+            auto it = std::find_if(entries_.begin(), entries_.end(),[seq = echo->seq()](auto const & e) { return e.seq_ == seq; });
             if (it != entries_.end()) {
                 entries_.erase(it);
                 mutex_.unlock();
                 handler(ec, host);
             }
-            return;
         }
     }
 

@@ -32,10 +32,9 @@ public:
     {
         static_assert(sizeof(typename std::iterator_traits<It>::value_type) == 1, "");
 
-        if (auto * ip = acqua::network::parse<acqua::network::ipv4_header const>(beg, end))
-            if (auto * echo = acqua::network::parse<icmp_echo>(ip, end))
-                if (echo->type() == icmp_echo::echo_reply_message)
-                    return echo;
+        if (auto * echo = acqua::network::parse<icmp_echo>(beg, end))
+            if (echo->type() == icmp_echo::echo_reply_message)
+                return echo;
         return nullptr;
     }
 };
