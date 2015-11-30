@@ -147,6 +147,12 @@ public:
         acceptor_.cancel(ec);
     }
 
+    void close(boost::system::error_code & ec)
+    {
+        is_running_ = false;
+        acceptor_.close(ec);
+    }
+
 protected:
     acceptor_type & get_acceptor()
     {

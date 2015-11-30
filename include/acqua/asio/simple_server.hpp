@@ -100,6 +100,15 @@ public:
 
     using base_type::cancel;
 
+    void close()
+    {
+        boost::system::error_code ec;
+        close(ec);
+        boost::asio::detail::throw_error(ec);
+    }
+
+    using base_type::close;
+
 private:
     using traits_type::set_option;
     using traits_type::construct;

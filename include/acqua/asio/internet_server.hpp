@@ -176,6 +176,26 @@ public:
         if (!ec && ec2) ec = ec2;
     }
 
+    void close()
+    {
+        boost::system::error_code ec;
+        close(ec);
+        boost::asio::detail::throw_error(ec, "close");
+    }
+
+    void close(boost::system::error_code & ec)
+    {
+        boost::system::error_code ec2;
+
+        if (v4_type::get_acceptor().is_open())
+            v4_type::close(ec);
+
+        if (v6_type::get_acceptor().is_open())
+            v6_type::close(ec2);
+
+        if (!ec && ec2) ec = ec2;
+    }
+
 private:
     using traits_type::set_option;
     using traits_type::construct;
