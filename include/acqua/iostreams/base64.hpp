@@ -19,7 +19,7 @@ public:
 
     char at(int ch) const
     {
-        return tbl[std::min<uint>(ch, npos)];
+        return tbl[std::min<uint>(static_cast<uint>(ch), static_cast<uint>(npos))];
     }
 
     int find(char ch) const
@@ -40,7 +40,7 @@ public:
 
     char at(int ch) const
     {
-        return tbl[std::min<uint>(ch, npos)];
+        return tbl[std::min<uint>(static_cast<uint>(ch), static_cast<uint>(npos))];
     }
 
     int find(char ch) const
@@ -120,14 +120,14 @@ private:
     }
 
     template <typename Sink>
-    bool line_break_impl(Sink & sink, boost::mpl::false_) const
+    bool line_break_impl(Sink &, boost::mpl::false_) const
     {
         return true;
     }
 
 private:
     std::size_t i_ = 0;
-    char prior_ = char();
+    char prior_ = {};
 };
 
 
@@ -163,7 +163,7 @@ public:
 
 private:
     std::size_t i_ = 0;
-    int prior_ = char();
+    int prior_ = {};
 };
 
 using base64_encoder = basic_base64_encoder<base64_traits>;

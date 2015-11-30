@@ -50,7 +50,7 @@ public:
 
     value_type & add_child(int) const
     {
-        return value_.push_back(typename value_type::value_type("", value_type()))->second;
+        return value_.push_back(typename value_type::value_type())->second;
     }
 
     value_type & add_child(Key const & key) const

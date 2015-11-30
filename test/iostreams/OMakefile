@@ -1,0 +1,11 @@
+PROGRAMS = \
+	test_json_parser \
+	test_ascii \
+	test_qprint \
+	test_base64 \
+
+.DEFAULT: $(CXXBuild $(PROGRAMS))
+	$(RunTest)
+
+clean:
+        rm -rf $(filter-proper-targets $(ls R, .)) *.omc

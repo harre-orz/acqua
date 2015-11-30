@@ -18,7 +18,6 @@ extern "C" {
 #include <iostream>
 #include <boost/asio/basic_raw_socket.hpp>
 #include <boost/asio/ip/basic_endpoint.hpp>
-#include <acqua/exception/throw_error.hpp>
 #include <acqua/network/linklayer_address.hpp>
 
 namespace acqua { namespace asio {
@@ -94,7 +93,7 @@ public:
     {
         boost::system::error_code ec;
         setup(ifname, ec);
-        acqua::exception::throw_error(ec, "if_nametoindex");
+        boost::asio::detail::throw_error(ec, "if_nametoindex");
     }
 
     basic_endpoint(std::string const & str, boost::system::error_code & ec) noexcept
@@ -106,7 +105,7 @@ public:
     {
         boost::system::error_code ec;
         setup(str.c_str(), ec);
-        acqua::exception::throw_error(ec, "if_nametoindex");
+        boost::asio::detail::throw_error(ec, "if_nametoindex");
     }
 
     friend bool operator==(basic_endpoint const & lhs, basic_endpoint const & rhs) noexcept
@@ -160,14 +159,14 @@ public:
 
     address_type address() const noexcept
     {
-        return address_type(sll_.sll_addr);
+        return address_type::from_voidptr(sll_.sll_addr);
     }
 
     template <typename Ch, typename Tr>
     friend std::basic_ostream<Ch, Tr> & operator<<(std::basic_ostream<Ch, Tr> & os, basic_endpoint const & rhs)
     {
         char buf[IF_NAMESIZE];
-        if (::if_indextoname(rhs.id(), buf) == nullptr)
+        if (::if_indextoname(static_cast<uint>(rhs.id()), buf) == nullptr)
             std::strcpy(buf, "null");
         std::copy_n(buf, std::strlen(buf), std::ostreambuf_iterator<char>(os));
         return os;
@@ -175,16 +174,16 @@ public:
 
     friend std::size_t hash_value(basic_endpoint const & rhs) noexcept
     {
-        return rhs.id();
+        return static_cast<std::size_t>(rhs.id());
     }
 
 private:
     void setup(char const * ifname, boost::system::error_code & ec) noexcept
     {
         std::memset(&sll_, 0, sizeof(sll_));
-        sll_.sll_family = protocol().family();
-        sll_.sll_protocol = protocol().protocol();
-        if ((sll_.sll_ifindex = ::if_nametoindex(ifname)) == 0) {
+        sll_.sll_family = static_cast<std::uint16_t>(protocol().family());
+        sll_.sll_protocol = static_cast<std::uint16_t>(protocol().protocol());
+        if ((sll_.sll_ifindex = static_cast<int>(::if_nametoindex(ifname))) == 0) {
             ec.assign(errno, boost::system::generic_category());
             return;
         }

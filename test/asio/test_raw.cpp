@@ -1,13 +1,17 @@
 #include <acqua/asio/raw.hpp>
+#include <boost/test/included/unit_test.hpp>
 
-int main(int, char ** argv)
+BOOST_AUTO_TEST_SUITE(raw)
+
+BOOST_AUTO_TEST_CASE(basics)
 {
-    boost::asio::io_service io_service;
-    acqua::asio::raw::socket socket(io_service, acqua::asio::raw::endpoint(argv[1]));
     boost::system::error_code ec;
-    std::cout << ec << std::endl;
-    std::cout << socket.local_endpoint(ec) << std::endl;
-    std::cout << ec << std::endl;
-    std::cout << socket.local_endpoint(ec).address(ec) << std::endl;
-    std::cout << ec << std::endl;
+    boost::asio::io_service io_service;
+    acqua::asio::raw::endpoint ep("lo", ec);
+    acqua::asio::raw::socket socket(io_service);
+    socket.open(acqua::asio::raw(), ec);
+    socket.bind(ep, ec);
+    BOOST_TEST((ep.protocol() == acqua::asio::raw()));
 }
+
+BOOST_AUTO_TEST_SUITE_END()

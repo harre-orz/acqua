@@ -24,10 +24,12 @@ struct address_impl_base
     template <typename T>
     static bool in_mask(T const & bytes) noexcept
     {
-        for(auto it = bytes.begin(), end = bytes.end(); it != end; ++it) {
+        auto it = bytes.begin(), end = bytes.end();
+        if (*it == 0)
+            return false;
+        for(;it != end; ++it) {
             switch(*it) {
                 case 0b00000000:
-                    if (it == bytes.begin()) return false;
                 case 0b10000000:
                 case 0b11000000:
                 case 0b11100000:
