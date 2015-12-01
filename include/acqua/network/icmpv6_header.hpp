@@ -20,7 +20,7 @@ namespace acqua { namespace network { namespace detail {
 
 class icmpv6_header
     : private ::icmp6_hdr
-    , public checkable<icmpv6_header, ::icmp6_hdr, u_int16_t, &icmp6_hdr::icmp6_cksum, data_checksum >
+    , public checkable<icmpv6_header, ::icmp6_hdr, u_int16_t, &icmp6_hdr::icmp6_cksum, payload_checksum_method>
 {
     friend checkable;
     using value_type = ::icmp6_hdr;

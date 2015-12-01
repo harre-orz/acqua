@@ -95,7 +95,7 @@ inline void basic_prefix_address<T>::assign(address_type const & address, maskle
     auto oit = address_.bytes_.begin();
     for(masklen = masklen_; masklen > 0; masklen -= 8)
         *oit++ = *iit++;
-    *oit = *iit & ~((0x01 << (8 - masklen)) - 1);
+    *oit = *iit & ~static_cast<std::uint8_t>((0x01 << (8 - masklen)) - 1);
 }
 
 
@@ -106,7 +106,7 @@ inline auto basic_prefix_address<T>::netmask() const noexcept -> address_type
     auto it = addr.bytes_.begin();
     for(masklen_type len = masklen_ / 8; len; --len)
         *it++ = 0xFF;
-    *it = ~((0x01 << (8 - masklen_ % 8)) - 1);
+    *it = ~static_cast<std::uint8_t>((0x01 << (8 - masklen_ % 8)) - 1);
     return addr;
 }
 

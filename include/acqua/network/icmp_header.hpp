@@ -21,10 +21,10 @@ namespace acqua { namespace network { namespace detail {
 class icmp_header
 #ifdef __linux__
     : private ::icmphdr
-    , public checkable<icmp_header, ::icmphdr, u_int16_t, &::icmphdr::checksum, data_checksum>
+    , public checkable<icmp_header, ::icmphdr, u_int16_t, &::icmphdr::checksum, payload_checksum_method>
 #else
     : private ::icmp
-    , public checkable<icmp_header, ::icmp, u_short, &::icmp::icmp_cksum, data_checksum>
+    , public checkable<icmp_header, ::icmp, u_short, &::icmp::icmp_cksum, payload_checksum_method>
 #endif
 {
     friend checkable;
@@ -51,20 +51,20 @@ public:
 
     void type(message_type msg) noexcept;
 
-    int code() const noexcept;
+    uint code() const noexcept;
 
-    void code(int n) noexcept;
+    void code(uint n) noexcept;
 
 protected:
     ~icmp_header() = default;
 
-    int id() const noexcept;
+    uint id() const noexcept;
 
-    void id(int n) noexcept;
+    void id(uint n) noexcept;
 
-    int seq() const noexcept;
+    uint seq() const noexcept;
 
-    void seq(int n) noexcept;
+    void seq(uint n) noexcept;
 
 public:
     friend std::ostream & operator<<(std::ostream & os, icmp_header const & rhs);

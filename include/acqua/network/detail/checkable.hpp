@@ -31,17 +31,14 @@ inline std::size_t total_checksum(T const * beg, U const * end) noexcept
         a += 2;
     }
 
-    return htons(sum);
+    return htons(static_cast<std::uint16_t>(sum));
 }
 
 
 //! IPv4ヘッダー用のチェックサム計算メソッド
 template <typename Derived>
-class ipv4_checksum
+class ipv4_checksum_method
 {
-protected:
-    ~ipv4_checksum() = default;
-
 public:
     bool check_checksum() const noexcept
     {
@@ -70,11 +67,8 @@ private:
 
 //! ICMP, ICMPv6 のためのチェックサム計算メソッド
 template <typename Derived>
-class data_checksum
+class payload_checksum_method
 {
-protected:
-    ~data_checksum() = default;
-
 public:
     template <typename It>
     bool check_checksum(It const & end) const noexcept
@@ -103,11 +97,8 @@ public:
 
 //! TCP, UDPのためのチェックサム計算メソッド
 template <typename Derived>
-class header_and_data_checksum
+class pseudo_checksum_method
 {
-protected:
-    ~header_and_data_checksum() = default;
-
 public:
     template <typename Hdr, typename It>
     bool check_checksum(Hdr const * hdr, It const & end) const noexcept
@@ -159,9 +150,8 @@ public:
 
     void checksum(std::size_t sum) noexcept
     {
-        static_cast<Class *>(static_cast<Derived *>(this))->*PtrToMember = sum;
+        static_cast<Class *>(static_cast<Derived *>(this))->*PtrToMember = static_cast<std::uint16_t>(sum);
     }
-
 };
 
 } } }

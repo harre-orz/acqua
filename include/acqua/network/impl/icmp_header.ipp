@@ -24,7 +24,7 @@ inline void icmp_header::type(message_type msg) noexcept
 #endif
 }
 
-inline int icmp_header::code() const noexcept
+inline uint icmp_header::code() const noexcept
 {
 #ifdef __linux__
     return value_type::code;
@@ -33,7 +33,7 @@ inline int icmp_header::code() const noexcept
 #endif
 }
 
-inline void icmp_header::code(int n) noexcept
+inline void icmp_header::code(uint n) noexcept
 {
 #ifdef __linux__
     value_type::code = static_cast<std::uint8_t>(n);
@@ -42,7 +42,7 @@ inline void icmp_header::code(int n) noexcept
 #endif
 }
 
-inline int icmp_header::id() const noexcept
+inline uint icmp_header::id() const noexcept
 {
 #ifdef __linux__
     return ntohs(value_type::un.echo.id);
@@ -51,16 +51,16 @@ inline int icmp_header::id() const noexcept
 #endif
 }
 
-inline void icmp_header::id(int n) noexcept
+inline void icmp_header::id(uint n) noexcept
 {
 #ifdef __linux__
-    value_type::un.echo.id = htons(n);
+    value_type::un.echo.id = htons(static_cast<std::uint16_t>(n));
 #else
-    value_type::icmp_hun.ih_idseq.icd_id = htons(n);
+    value_type::icmp_hun.ih_idseq.icd_id = htons(static_cast<std::uint16_t>(n));
 #endif
 }
 
-inline int icmp_header::seq() const noexcept
+inline uint icmp_header::seq() const noexcept
 {
 #ifdef __linux__
     return ntohs(value_type::un.echo.sequence);
@@ -69,12 +69,12 @@ inline int icmp_header::seq() const noexcept
 #endif
 }
 
-inline void icmp_header::seq(int n) noexcept
+inline void icmp_header::seq(uint n) noexcept
 {
 #ifdef __linux__
-    value_type::un.echo.sequence = htons(n);
+    value_type::un.echo.sequence = htons(static_cast<std::uint16_t>(n));
 #else
-    value_type::icmp_hun.ih_idseq.icd_seq = htons(n);
+    value_type::icmp_hun.ih_idseq.icd_seq = htons(static_cast<std::uint16_t>(n));
 #endif
 }
 

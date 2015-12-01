@@ -24,7 +24,7 @@ class ipv4_header
     : public header_base<ipv4_header>
     , private ::ip
     , public sourceable_and_destinable<ipv4_header, internet4_address, ::ip, struct in_addr, &::ip::ip_src, &::ip::ip_dst>
-    , public checkable<ipv4_header, ::ip, u_short, &::ip::ip_sum, ipv4_checksum >
+    , public checkable<ipv4_header, ::ip, u_short, &::ip::ip_sum, ipv4_checksum_method>
 {
     friend sourceable_and_destinable;
     friend checkable;

@@ -46,7 +46,7 @@ public:
     {
         hdr->source().checksum(sum_);
         hdr->destinate().checksum(sum_);
-        std::uint32_t len = htonl(size);
+        std::uint32_t len = htonl(static_cast<std::uint32_t>(size));
         sum_ += reinterpret_cast<std::uint16_t const *>(&len)[0];
         sum_ += reinterpret_cast<std::uint16_t const *>(&len)[1];
         sum_ += static_cast<std::uint16_t>(hdr->protocol()

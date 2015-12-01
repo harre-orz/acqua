@@ -33,7 +33,7 @@ class tcp_header
         tcp_header,
         ::tcphdr, u_int16_t,
         &::tcphdr::check,
-        header_and_data_checksum
+        pseudo_checksum_method
     >
 #else  // BSD
     , public sourceable_and_destinable<
@@ -49,7 +49,7 @@ class tcp_header
         ::tcphdr,
         u_int16_t,
         &::tcphdr::th_sum,
-        header_and_data_checksum
+        pseudo_checksum_method
     >
 #endif
 {

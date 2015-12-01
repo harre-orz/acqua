@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <functional>
 #include <mutex>
 #include <atomic>
@@ -8,6 +9,7 @@
 #include <boost/bind.hpp>
 #include <boost/container/flat_set.hpp>
 #include <boost/variant.hpp>
+#include <boost/function.hpp>
 #include <acqua/asio/socket_category.hpp>
 
 namespace acqua { namespace asio { namespace detail {
@@ -29,32 +31,64 @@ public:
 
 private:
     using category = typename Impl::category;
-    using host_handler_type = std::function<void(boost::system::error_code const &, endpoint_type const &)>;
-    using multicast_handler_arg1 = std::function<void(boost::system::error_code const &, std::vector<endpoint_type>)>;
-    using multicast_handler_type = std::tuple<multicast_handler_arg1, std::vector<endpoint_type> >;
+    using any_handler_type = boost::function<void(boost::system::error_code const &, endpoint_type)>;
+    using all_handler_arg1 = std::vector<endpoint_type>;
+    using all_handler_args = boost::function<void(boost::system::error_code const &, all_handler_arg1)>;
+    using all_handler_type = std::tuple<all_handler_args, all_handler_arg1>;
     using buffer_type = std::array<char, 1500>;
+
+    struct any_tag {};
+    struct all_tag {};
 
     struct entry
     {
         std::uint16_t seq_;
         time_point expire_;
-        boost::variant<host_handler_type, multicast_handler_type> handler_;
+        boost::variant<any_handler_type, all_handler_type> handler_;
 
-        explicit entry(int seq, time_point const & expire, host_handler_type handler)
-            : seq_(static_cast<std::uint16_t>(seq)), expire_(expire), handler_(handler)
-        {
-        }
+        template <typename Handler>
+        entry(uint seq, time_point const & expire, Handler handler, any_tag)
+            : seq_(static_cast<std::uint16_t>(seq)), expire_(expire), handler_(handler) {}
 
-        explicit entry(int seq, time_point const & expire, multicast_handler_arg1 handler)
-            : seq_(static_cast<std::uint16_t>(seq)), expire_(expire), handler_(std::make_tuple(handler, std::vector<endpoint_type>()))
-        {
-        }
+        template <typename Handler>
+        explicit entry(int seq, time_point const & expire, Handler handler, all_tag)
+            : seq_(static_cast<std::uint16_t>(seq)), expire_(expire), handler_(all_handler_type(handler, all_handler_arg1())) {}
 
         friend bool operator<(entry const & lhs, entry const & rhs) noexcept
         {
             return lhs.expire_ < rhs.expire_;
         }
     };
+
+    void socket_open(internet_v4_tag, boost::system::error_code & ec)
+    {
+        socket_.open(protocol_type::v4(), ec);
+    }
+
+    void socket_open(internet_v6_tag, boost::system::error_code & ec)
+    {
+        socket_.open(protocol_type::v6(), ec);
+    }
+
+    void socket_bind(internet_v4_tag, boost::system::error_code & ec)
+    {
+        socket_.bind(endpoint_type(boost::asio::ip::address_v4::any(), 0), ec);
+    }
+
+    void socket_bind(internet_v6_tag, boost::system::error_code & ec)
+    {
+        socket_.bind(endpoint_type(boost::asio::ip::address_v6::any(), 0), ec);
+    }
+
+    bool check_endpoint(internet_v4_tag, endpoint_type const & ep)
+    {
+        return ep.address().is_v4();
+    }
+
+    bool check_endpoint(internet_v6_tag, endpoint_type const & ep)
+    {
+        return ep.address().is_v6();
+    }
 
 public:
     explicit pinger_service(boost::asio::io_service & io_service, int id)
@@ -79,28 +113,6 @@ public:
         async_receive();
     }
 
-private:
-    void socket_open(internet_v4_tag, boost::system::error_code & ec)
-    {
-        socket_.open(protocol_type::v4(), ec);
-    }
-
-    void socket_open(internet_v6_tag, boost::system::error_code & ec)
-    {
-        socket_.open(protocol_type::v6(), ec);
-    }
-
-    void socket_bind(internet_v4_tag, boost::system::error_code & ec)
-    {
-        socket_.bind(endpoint_type(boost::asio::ip::address_v4::any(), 0), ec);
-    }
-
-    void socket_bind(internet_v6_tag, boost::system::error_code & ec)
-    {
-        socket_.bind(endpoint_type(boost::asio::ip::address_v6::any(), 0), ec);
-    }
-
-public:
     void cancel(boost::system::error_code & ec)
     {
         socket_.cancel(ec);
@@ -111,50 +123,60 @@ public:
         socket_.close(ec);
     }
 
-    template <typename Handler>
-    void ping_host(std::string const & host, time_point const & expire, Handler handler)
+    template <typename Target, typename Handler>
+    void ping_any(Target const & target, time_point const & expire, Handler handler)
     {
-        resolver_.async_resolve(
-            typename resolver_type::query(host, ""),
-            boost::bind(
-                &service_type::on_resolve_host<Handler>, this,
-                _1, _2, expire, handler));
+        ping<any_tag>(target, expire, handler);
+    }
+
+    template <typename Target, typename Handler>
+    void ping_all(Target const & target, time_point const & expire, Handler handler)
+    {
+        ping<all_tag>(target, expire, handler);
     }
 
 private:
-    template <typename Handler>
+    template <typename Tag, typename Handler>
+    void ping(endpoint_type const & host, time_point const & expire, Handler handler)
+    {
+        if (check_endpoint(category(), host))
+            resolver_.get_io_service().post(boost::bind(&service_type::send_ping<Tag, Handler>, this, host, expire, handler));
+        else
+            on_error(Tag(), make_error_code(boost::asio::error::address_family_not_supported), handler);
+    }
+
+    template <typename Tag, typename Handler>
+    void ping(std::string const & host, time_point const & expire, Handler handler)
+    {
+        resolver_.async_resolve(
+            typename resolver_type::query(host, ""),
+            boost::bind(&service_type::on_resolve_host<Tag, Handler>, this, _1, _2, expire, handler));
+    }
+
+    template <typename Tag, typename Handler>
     void on_resolve_host(boost::system::error_code const & error, typename resolver_type::iterator it, time_point const & expire, Handler handler)
     {
         if (error) {
-            handler(error, endpoint_type());
+            on_error(Tag(), error, handler);
             return;
         }
 
         for(; it != typename resolver_type::iterator(); ++it) {
             auto ep = it->endpoint();
-            if (check_address(category(), ep)) {
-                send_ping(ep, expire, handler);
+            if (check_endpoint(category(), ep)) {
+                send_ping<Tag>(ep, expire, handler);
                 return;
             }
         }
-        handler(make_error_code(boost::asio::error::no_data), endpoint_type());
+
+        on_error(Tag(), make_error_code(boost::asio::error::no_data), handler);
     }
 
-    bool check_address(internet_v4_tag, endpoint_type const & ep)
-    {
-        return ep.address().is_v4();
-    }
-
-    bool check_address(internet_v6_tag, endpoint_type const & ep)
-    {
-        return ep.address().is_v6();
-    }
-
-    template <typename Handler>
-    void send_ping(endpoint_type const & host, time_point const & expire, Handler handler)
+    template <typename Tag, typename Handler>
+    void send_ping(endpoint_type const & ep, time_point const & expire, Handler handler)
     {
         if (!socket_.is_open()) {
-            handler(make_error_code(boost::asio::error::bad_descriptor), endpoint_type());
+            on_error(Tag(), make_error_code(boost::asio::error::bad_descriptor), handler);
             return;
         }
 
@@ -162,7 +184,7 @@ private:
         auto beg = buf.begin(), end = buf.end();
         auto * echo = Impl::generate(beg, end);
         if (!echo) {
-            handler(make_error_code(boost::asio::error::no_buffer_space), endpoint_type());
+            on_error(Tag(), make_error_code(boost::asio::error::no_buffer_space), handler);
             return;
         }
 
@@ -173,24 +195,26 @@ private:
             *end++ = data[i % (sizeof(data)-1)];
         echo->compute_checksum(end);
 
-        do {
-            std::lock_guard<decltype(mutex_)> lock(mutex_);
-            auto it = entries_.emplace_hint(entries_.begin(), echo->seq(), expire, std::move(handler));
-            if (it == entries_.begin()) {
-                timer_.expires_at(expire);
-                timer_.async_wait(std::bind(&service_type::on_wait, this, std::placeholders::_1));
-            }
-        } while(false);
+        std::lock_guard<decltype(mutex_)> lock(mutex_);
+        auto it = entries_.emplace_hint(entries_.begin(), echo->seq(), expire, handler, Tag());
+        if (it != entries_.begin()) {
+            mutex_.unlock();
+        } else {
+            mutex_.unlock();
+            timer_.expires_at(expire);
+            timer_.async_wait(std::bind(&service_type::on_wait, this, std::placeholders::_1));
+        }
 
         boost::system::error_code ec;
-        socket_.send_to(boost::asio::buffer(beg, end - beg), host, 0, ec);
+        socket_.send_to(boost::asio::buffer(beg, static_cast<std::size_t>(end - beg)), ep, 0, ec);
         if (ec) {
-            std::lock_guard<decltype(mutex_)> lock(mutex_);
-            auto it = std::find_if(entries_.begin(), entries_.end(),[seq = echo->seq()](auto const & e) { return e.seq_ == seq; });
+            mutex_.lock();
+            it = std::find_if(entries_.begin(), entries_.end(),[seq = echo->seq()](auto const & e) { return e.seq_ == seq; });
             if (it != entries_.end()) {
                 entries_.erase(it);
                 mutex_.unlock();
-                handler(ec, host);
+                on_error(Tag(), ec, handler);
+                mutex_.lock();
             }
         }
     }
@@ -221,13 +245,13 @@ private:
         std::lock_guard<decltype(mutex_)> lock(mutex_);
         for(auto it = entries_.begin(); it != entries_.end(); ++it) {
             if (it->seq_ == seq) {
-                if (it->handler_.type() == typeid(host_handler_type)) {
-                    // ホスト問い合わせのときは、ハンドラを呼ぶ
+                if (it->handler_.type() == typeid(any_handler_type)) {
+                    // エニー問い合わせのときは、即座にハンドラを呼ぶ
                     auto handler = std::move(it->handler_);
                     entries_.erase(it);
 
                     mutex_.unlock();
-                    boost::get<host_handler_type>(handler)(error, ep);
+                    boost::get<any_handler_type>(handler)(error, ep);
                     mutex_.lock();
 
                     if (entries_.empty()) {
@@ -235,13 +259,13 @@ private:
                         return;
                     }
 
-                } else /* if (it->handler_.type() == typeid(multicast_args_type)) */ {
-                    // マルチキャスト問い合わせのときは、ep を保持する
-                    std::get<1>(boost::get<multicast_handler_type>(it->handler_)).emplace_back(ep);
-                }
+                } else // if (it->handler_.type() == typeid(all_args_type))
+                    // マルチ問い合わせのときは、配列に格納しておく
+                    std::get<1>(boost::get<all_handler_type>(it->handler_)).emplace_back(ep);
 
                 timer_.expires_at(entries_.begin()->expire_);
                 timer_.async_wait(std::bind(&service_type::on_wait, this, std::placeholders::_1));
+                break;
             }
         }
     }
@@ -257,27 +281,38 @@ private:
             auto handler = std::move(it->handler_);
             entries_.erase(it);
 
-            if (handler.type() == typeid(host_handler_type)) {
-                // ホスト問い合わせのときは、タイムアウト状態のハンドラを呼ぶ
+            if (handler.type() == typeid(any_handler_type)) {
+                // エニー問い合わせのときは、タイムアウト状態のハンドラを呼ぶ
                 mutex_.unlock();
-                boost::get<host_handler_type>(handler)(make_error_code(boost::system::errc::timed_out), endpoint_type());
-                mutex_.lock();
+                boost::get<any_handler_type>(handler)(make_error_code(boost::asio::error::timed_out), endpoint_type());
             } else {
-                // マルチキャスト問い合わせのときは、応答元に応じたハンドラを呼ぶ
+                // マルチ問い合わせのときは、ハンドラを呼ぶ
                 mutex_.unlock();
-                auto & args = boost::get<multicast_handler_type>(handler);
+                auto & args = boost::get<all_handler_type>(handler);
                 boost::system::error_code ec;
-                if (!std::get<1>(args).empty())
-                    ec = make_error_code(boost::system::errc::timed_out);
+                if (std::get<1>(args).empty())
+                    ec = make_error_code(boost::asio::error::timed_out);
                 std::get<0>(args)(ec, std::move(std::get<1>(args)));
-                mutex_.lock();
             }
 
+            mutex_.lock();
             if (!entries_.empty()) {
                 timer_.expires_at(entries_.begin()->expire_);
                 timer_.async_wait(std::bind(&service_type::on_wait, this, std::placeholders::_1));
             }
         }
+    }
+
+    template <typename Handler>
+    void on_error(any_tag, boost::system::error_code const & error, Handler handler)
+    {
+        handler(error, endpoint_type());
+    }
+
+    template <typename Handler>
+    void on_error(all_tag, boost::system::error_code const & error, Handler handler)
+    {
+        handler(error, all_handler_arg1());
     }
 
 private:

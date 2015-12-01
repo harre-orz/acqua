@@ -140,7 +140,7 @@ public:
     {
         hdr->source().checksum(sum_);
         hdr->destinate().checksum(sum_);
-        sum_ += htons(size);
+        sum_ += htons(static_cast<std::uint16_t>(size));
         sum_ += static_cast<std::size_t>(hdr->protocol()
 #ifdef BOOST_ENDIAN_LITTLE_BYTE
             << 8u
