@@ -1,9 +1,11 @@
 INCLUDES += ../include/
+CXXFLAGS += -g
 
 PROGRAMS = \
 	thttpproxy \
 	interfaces \
 	ping \
+	inotify_listener \
 
 .DEFAULT: $(CXXBuild $(PROGRAMS))
 
