@@ -6,6 +6,7 @@ PROGRAMS = \
 	interfaces \
 	ping \
 	inotify_listener \
+	netlink_listener \
 
 .DEFAULT: $(CXXBuild $(PROGRAMS))
 
