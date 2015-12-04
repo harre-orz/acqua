@@ -77,7 +77,7 @@ private:
 private:
     masklen_type masklen_;
     address_type address_;
-} __attribute__((__packed__));
+};
 
 } }
 

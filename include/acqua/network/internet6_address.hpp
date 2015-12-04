@@ -128,7 +128,7 @@ public:
 
 private:
     bytes_type bytes_;
-} __attribute__((__packed__));
+};
 
 } }
 

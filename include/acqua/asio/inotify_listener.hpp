@@ -1,3 +1,11 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 extern "C" {
@@ -5,9 +13,9 @@ extern "C" {
 }
 
 #include <array>
-#include <map>
 #include <mutex>
 #include <boost/bind.hpp>
+#include <boost/container/flat_map.hpp>
 #include <boost/asio/posix/stream_descriptor.hpp>
 
 namespace acqua { namespace asio {
@@ -135,16 +143,18 @@ private:
 
     void do_notify(inotify_event const * iev)
     {
-        std::string name, in_name;
+        std::string name;
+        do {
+            std::lock_guard<decltype(mutex_)> lock(mutex_);
+            auto it = files_.find(iev->wd);
+            if (it == files_.end())
+                return;
+            name = it->second;
+            if (iev->mask & IN_IGNORED)
+                files_.erase(it);
+        } while(false);
 
-        std::lock_guard<decltype(mutex_)> lock(mutex_);
-        auto it = files_.find(iev->wd);
-        if (it == files_.end())
-            return;
-        name = it->second;
-        mutex_.unlock();
-        in_name.assign(iev->name, std::strlen(iev->name));
-
+        std::string(iev->name, std::strlen(iev->name));
         static_cast<Derived *>(this)->on_event(name);
         if (iev->mask & IN_ACCESS)
             static_cast<Derived *>(this)->on_access(name);
@@ -172,12 +182,8 @@ private:
             static_cast<Derived *>(this)->on_create_path(name, in_name);
         if (iev->mask & IN_DELETE)
             static_cast<Derived *>(this)->on_remove_path(name, in_name);
-        if (iev->mask & IN_IGNORED) {
+        if (iev->mask & IN_IGNORED)
             static_cast<Derived *>(this)->on_dispose(name);
-
-            mutex_.lock();
-            files_.erase(files_.find(iev->wd));
-        }
     }
 
 private:
@@ -195,13 +201,13 @@ private:
     void on_moved_to(std::string const &, std::string const &) {}
     void on_create_path(std::string const &, std::string const &) {}
     void on_remove_path(std::string const &, std::string const &) {}
-    void on_dispose(std::string const &) {}
+    void on_disposed(std::string const &) {}
     void on_error(boost::system::error_code const &) {}
 
 private:
     descriptor_type fd_;
     std::array<char, 4096> buffer_;
-    std::map<int, std::string> files_;
+    boost::container::flat_map<int, std::string> files_;
     std::mutex mutex_;
 };
 
