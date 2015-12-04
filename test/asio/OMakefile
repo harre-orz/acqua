@@ -3,6 +3,8 @@ PROGRAMS = \
 	test_simple_server \
 	test_internet_server \
 	test_pinger \
+	test_inotify_listener \
+	test_netlink_listener \
 
 .DEFAULT: $(CXXBuild $(PROGRAMS))
 	$(RunTest)

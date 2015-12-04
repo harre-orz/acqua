@@ -153,8 +153,8 @@ private:
             if (iev->mask & IN_IGNORED)
                 files_.erase(it);
         } while(false);
+        std::string in_name(iev->name, std::strlen(iev->name));
 
-        std::string(iev->name, std::strlen(iev->name));
         static_cast<Derived *>(this)->on_event(name);
         if (iev->mask & IN_ACCESS)
             static_cast<Derived *>(this)->on_access(name);
@@ -183,7 +183,7 @@ private:
         if (iev->mask & IN_DELETE)
             static_cast<Derived *>(this)->on_remove_path(name, in_name);
         if (iev->mask & IN_IGNORED)
-            static_cast<Derived *>(this)->on_dispose(name);
+            static_cast<Derived *>(this)->on_disposed(name);
     }
 
 private:

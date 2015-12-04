@@ -3,12 +3,12 @@
 class NetlinkListener : public acqua::asio::netlink_listener<NetlinkListener>
 {
 public:
-    class category : acqua::asio::netlink_link_tag, acqua::asio::netlink_neighor_tag {};
+    class category : acqua::asio::netlink_link_tag, acqua::asio::netlink_neighbor_tag {};
 
     explicit NetlinkListener(boost::asio::io_service & io_service)
         : NetlinkListener::base_type(io_service) {}
     
-    void on_link(std::string const & ifname, acqua::network::linklayer_address const & addr, int type, int flags)
+    void on_link(std::string const & ifname, acqua::network::linklayer_address const & addr, int type, uint flags)
     {
         std::cout << "link " << ifname  << " " << addr << " type " << type << " flags " << flags << std::endl; 
     }
@@ -30,6 +30,6 @@ int main()
     NetlinkListener netlink(io_service);
     boost::system::error_code ec;
     netlink.start(ec);
-    netlink.get_neighor_v4(ec);
+    netlink.get_neighbor_v4(ec);
     io_service.run();
 }
