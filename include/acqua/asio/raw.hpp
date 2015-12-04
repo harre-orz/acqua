@@ -211,5 +211,3 @@ private:
 };
 
 } } }
-
-#include <acqua/asio/socket_base/raw_options.hpp>

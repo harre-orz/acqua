@@ -1,3 +1,11 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 extern "C" {
@@ -11,7 +19,7 @@ extern "C" {
 
 #include <acqua/asio/raw.hpp>
 
-namespace acqua { namespace asio { namespace detail {
+namespace acqua { namespace asio { namespace socket_base {
 
 template <int Level, int Name, int Type>
 class membership
