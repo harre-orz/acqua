@@ -1,11 +1,11 @@
-#include <acqua/asio/netlink_listener.hpp>
+#include <acqua/asio/netlink/netlink_listener.hpp>
 #include <boost/test/included/unit_test.hpp>
 
 BOOST_AUTO_TEST_SUITE(netlink_listener)
 
-struct NetlinkLinkListener : acqua::asio::netlink_listener<NetlinkLinkListener>
+struct NetlinkLinkListener : acqua::asio::netlink::netlink_listener<NetlinkLinkListener>
 {
-    using category = acqua::asio::netlink_link_tag;
+    using category = acqua::asio::netlink::link_tag;
     NetlinkLinkListener(boost::asio::io_service & io_service)
         : NetlinkLinkListener::base_type(io_service) {}
 
@@ -21,9 +21,9 @@ BOOST_AUTO_TEST_CASE(netlink_link)
     link.close(ec);
 }
 
-struct NetlinkNeigh4Listener : acqua::asio::netlink_listener<NetlinkLinkListener>
+struct NetlinkNeigh4Listener : acqua::asio::netlink::netlink_listener<NetlinkLinkListener>
 {
-    using category = acqua::asio::netlink_neighbor_v4_tag;
+    using category = acqua::asio::netlink::neighbor_v4_tag;
     NetlinkNeigh4Listener(boost::asio::io_service & io_service)
         : NetlinkNeigh4Listener::base_type(io_service) {}
 
@@ -39,10 +39,9 @@ BOOST_AUTO_TEST_CASE(netlink_neighbor_v4)
     link.close(ec);
 }
 
-
-struct NetlinkNeigh6Listener : acqua::asio::netlink_listener<NetlinkLinkListener>
+struct NetlinkNeigh6Listener : acqua::asio::netlink::netlink_listener<NetlinkLinkListener>
 {
-    using category = acqua::asio::netlink_neighbor_v6_tag;
+    using category = acqua::asio::netlink::neighbor_v6_tag;
     NetlinkNeigh6Listener(boost::asio::io_service & io_service)
         : NetlinkNeigh4Listener::base_type(io_service) {}
 
