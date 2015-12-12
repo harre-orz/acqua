@@ -3,7 +3,11 @@
 #include <boost/iostreams/operations.hpp>
 #include <acqua/iostreams/newline.hpp>
 
-namespace acqua { namespace iostreams { namespace detail {
+namespace acqua { namespace iostreams {
+
+enum class newline { cr, ln, crln };
+
+namespace detail {
 
 /*!
   一定行数以上を書き込んだときに、自動的に改行を行う基底クラス.
