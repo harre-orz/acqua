@@ -1,38 +1,59 @@
-#define BOOST_TEST_MAIN
+#include <acqua/email/address.hpp>
 #include <boost/test/included/unit_test.hpp>
+#include <vector>
 
-#include <acqua/email/basic_address.hpp>
-#include <acqua/email/utils/parse_address.hpp>
+BOOST_AUTO_TEST_SUITE(address)
 
-using namespace boost::spirit;
-
-BOOST_AUTO_TEST_SUITE(email)
-
-BOOST_AUTO_TEST_CASE(parse_address)
+BOOST_AUTO_TEST_CASE(construct)
 {
-    {
-        std::string str = "foo <test@example.com>";
-        acqua::email::basic_address<std::string> addr;
-        acqua::email::utils::address_grammar<decltype(str.begin()), ascii::space_type> g;
-        BOOST_CHECK_EQUAL(qi::phrase_parse(str.begin(), str.end(), g, ascii::space, addr), true);
-        BOOST_CHECK_EQUAL(addr.addrspec, "test@example.com");
-        BOOST_CHECK_EQUAL(addr.namespec, "foo");
-    }
-    {
-        std::string str = "foo@example.com";
-        acqua::email::basic_address<std::string> addr;
-        acqua::email::utils::address_grammar<decltype(str.begin()), ascii::space_type> g;
-        BOOST_CHECK_EQUAL(qi::phrase_parse(str.begin(), str.end(), g, ascii::space, addr), true);
-        BOOST_CHECK_EQUAL(addr.addrspec, "foo@example.com");
-        BOOST_CHECK_EQUAL(addr.namespec, "");
-    }
+    acqua::email::address addr;
+    BOOST_TEST(addr.addrspec == "");
+    BOOST_TEST(addr.namespec == "");
+    BOOST_TEST((addr == acqua::email::address()));
 }
 
-BOOST_AUTO_TEST_CASE(parse_addresses)
+BOOST_AUTO_TEST_CASE(make_address)
 {
-    std::string str = "foo <test@example.com>, bar <hoge@example.co.jp>";
-    std::vector< acqua::email::basic_address<std::string> > addrs;
-    BOOST_CHECK_EQUAL(acqua::email::utils::parse_addresses(str.begin(), str.end(), addrs), true);
+    acqua::email::address addr;
+    addr = acqua::email::make_address("test@example.com");
+    BOOST_TEST(addr.namespec == "");
+    BOOST_TEST(addr.addrspec == "test@example.com");
+
+    addr = acqua::email::make_address("<example@example.com>");
+    BOOST_TEST(addr.namespec == "");
+    BOOST_TEST(addr.addrspec == "example@example.com");
+
+    addr = acqua::email::make_address(" foo bar < test@example.com > ");  // 空白はトリムされる
+    BOOST_TEST(addr.namespec == "foo bar");
+    BOOST_TEST(addr.addrspec == "test@example.com");
+
+    addr = acqua::email::make_address(" hello \r\n <test@example.com>");  // 改行もトリムされる
+    BOOST_TEST(addr.namespec == "hello");
+    BOOST_TEST(addr.addrspec == "test@example.com");
+}
+
+BOOST_AUTO_TEST_CASE(parse_to_addresses)
+{
+    std::vector<acqua::email::address> addrs;
+    std::string text = "foo@example.com, c++ <bar@example.co.jp>";
+    auto cnt = acqua::email::parse_to_addresses(text.begin(), text.end(), addrs);
+    BOOST_TEST(cnt == 2);
+    BOOST_TEST(addrs[0].namespec == "");
+    BOOST_TEST(addrs[0].addrspec == "foo@example.com");
+    BOOST_TEST(addrs[1].namespec == "c++");
+    BOOST_TEST(addrs[1].addrspec == "bar@example.co.jp");
+
+    text = "hoge fuga piyo <foo@example.com>,";  // 最後に , があっても無視される
+    cnt += acqua::email::parse_to_addresses(text.begin(), text.end(), addrs);
+    BOOST_TEST(cnt == 3);
+    BOOST_TEST(addrs[2].namespec == "hoge fuga piyo");
+    BOOST_TEST(addrs[2].addrspec == "foo@example.com");
+
+    text = ",hoge fuga piyo <foo@example.com>";  // 最初に , があっても無視される
+    cnt += acqua::email::parse_to_addresses(text.begin(), text.end(), addrs);
+    BOOST_TEST(cnt == 4);
+    BOOST_TEST(addrs[3].namespec == "hoge fuga piyo");
+    BOOST_TEST(addrs[3].addrspec == "foo@example.com");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
