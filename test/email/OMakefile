@@ -1,5 +1,7 @@
 PROGRAMS = \
 	test_address \
+	test_headers \
+	test_message \
 
 .DEFAULT: $(CXXBuild $(PROGRAMS))
 	$(RunTest)

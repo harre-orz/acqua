@@ -15,19 +15,19 @@ BOOST_AUTO_TEST_CASE(construct)
 BOOST_AUTO_TEST_CASE(make_address)
 {
     acqua::email::address addr;
-    addr = acqua::email::make_address("test@example.com");
+    addr = acqua::email::address::from_string("test@example.com");
     BOOST_TEST(addr.namespec == "");
     BOOST_TEST(addr.addrspec == "test@example.com");
 
-    addr = acqua::email::make_address("<example@example.com>");
+    addr = acqua::email::address::from_string("<example@example.com>");
     BOOST_TEST(addr.namespec == "");
     BOOST_TEST(addr.addrspec == "example@example.com");
 
-    addr = acqua::email::make_address(" foo bar < test@example.com > ");  // 空白はトリムされる
+    addr = acqua::email::address::from_string(" foo bar < test@example.com > ");  // 空白はトリムされる
     BOOST_TEST(addr.namespec == "foo bar");
     BOOST_TEST(addr.addrspec == "test@example.com");
 
-    addr = acqua::email::make_address(" hello \r\n <test@example.com>");  // 改行もトリムされる
+    addr = acqua::email::address::from_string(" hello \r\n <test@example.com>");  // 改行もトリムされる
     BOOST_TEST(addr.namespec == "hello");
     BOOST_TEST(addr.addrspec == "test@example.com");
 }

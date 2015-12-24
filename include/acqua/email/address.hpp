@@ -11,14 +11,11 @@
 #include <string>
 #include <boost/operators.hpp>
 #include <boost/system/error_code.hpp>
-#include <boost/system/system_error.hpp>
 
 namespace acqua { namespace email {
 
 /*!
   メールアドレスクラス.
-
-  メンバ変数 namespec と addrspec を直接設定するのではなく、make_address もしくは parse_to_addresses からの設定を推奨
  */
 template <typename String>
 class basic_address
@@ -38,6 +35,31 @@ public:
 
     basic_address(value_type const & name, value_type const & addr)
         : namespec(name), addrspec(addr) {}
+
+    /*!
+      addrspec が メールアドレスになっているか.
+    */
+    bool is_valid() const;
+
+     /*!
+      メールアドレス文字列から address クラスを作成する.
+
+      メールアドレス文字列の例
+      - " example.com " => namespec = "", addrspec = "example.com"
+      - " <example.com> " => namespec = "", addrspec = "example.com"
+      - " foo bar < example.com > " => namespec = "foo bar", addrspec = "example.com"
+    */
+    static basic_address from_string(String const & str);
+
+    /*!
+      メールアドレス文字列から address クラスを作成する.
+
+      メールアドレス文字列の例
+      - " example.com " => namespec = "", addrspec = "example.com"
+      - " <example.com> " => namespec = "", addrspec = "example.com"
+      - " foo bar < example.com > " => namespec = "foo bar", addrspec = "example.com"
+    */
+    static basic_address from_string(String const & str, boost::system::error_code & ec);
 
     friend bool operator==(basic_address const & lhs, basic_address const & rhs) noexcept
     {
@@ -65,55 +87,6 @@ public:
 
 using address = basic_address<std::string>;
 using waddress = basic_address<std::wstring>;
-
-/*!
-  メールアドレス文字列から address クラスを作成する.
-
-  メールアドレス文字列の例
-  - " example.com " => namespec = "", addrspec = "example.com"
-  - " <example.com> " => namespec = "", addrspec = "example.com"
-  - " foo bar < example.com > " => namespec = "foo bar", addrspec = "example.com"
- */
-template <typename String, typename It>
-basic_address<String> make_address(It beg, It end, boost::system::error_code & ec);
-
-template <typename String>
-inline basic_address<String> make_address(String const & str, boost::system::error_code & ec)
-{
-    return make_address<String>(str.begin(), str.end(), ec);
-}
-
-template <typename String>
-inline basic_address<String> make_address(String const & str)
-{
-    boost::system::error_code ec;
-    return make_address<String>(str.begin(), str.end(), ec);
-    if (ec) throw boost::system::system_error(ec, "make_address");
-}
-
-inline address make_address(char const * str, boost::system::error_code & ec)
-{
-    return make_address<std::string>(str, str + std::char_traits<char>::length(str), ec);
-}
-
-inline address make_address(char const * str)
-{
-    boost::system::error_code ec;
-    return make_address<std::string>(str, str + std::char_traits<char>::length(str), ec);
-    if (ec) throw boost::system::system_error(ec, "make_address");
-}
-
-inline waddress make_address(wchar_t const * str, boost::system::error_code & ec)
-{
-    return make_address<std::wstring>(str, str + std::char_traits<wchar_t>::length(str), ec);
-}
-
-inline waddress make_address(wchar_t const * str)
-{
-    boost::system::error_code ec;
-    return make_address<std::wstring>(str, str + std::char_traits<wchar_t>::length(str), ec);
-    if (ec) throw boost::system::system_error(ec, "make_address");
-}
 
 /*!
   メールアドレス文字列のカンマ区切りのリスト(メールヘッダーの From, To, Cc で使用される形式)から address クラスのリストを作成する.

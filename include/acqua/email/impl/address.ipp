@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <boost/system/system_error.hpp>
 #include <boost/fusion/adapted/struct/adapt_struct.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/spirit/include/qi.hpp>
@@ -11,6 +12,22 @@ namespace acqua { namespace email {
 namespace detail {
 
 namespace qi = boost::spirit::qi;
+
+template <typename Iterator, typename String, typename Skipper = boost::spirit::unused_type>
+class addrspec_grammar
+    : public qi::grammar<Iterator, String(), Skipper>
+{
+public:
+    addrspec_grammar()
+        : addrspec_grammar::base_type(rule_)
+    {
+        // TODO: マルチバイト文字のドメイン名には対応していない
+        rule_ = +(qi::char_ - '@') >> qi::char_('@') >> +(qi::char_("0-9a-zA-Z._-"));
+    }
+
+private:
+    qi::rule<Iterator, String(), Skipper> rule_;
+};
 
 template <typename Iterator, typename String, typename Skipper = boost::spirit::unused_type>
 class address_grammar
@@ -36,7 +53,6 @@ public:
     {
         space_ = qi::omit[*qi::space];
         name_ = ( *(qi::char_ - '<' - ',') )[trim()];
-        addr_ = +(qi::char_ - '@') >> qi::char_('@') >> +(qi::char_("0-9a-zA-Z._-"));  // TODO: マルチバイト文字のドメイン名には対応していない
         rule_ = (
             (name_ >> '<' >> space_ >> addr_ >> space_ >> '>')
           | ( qi::attr(String()) >> space_ >> addr_)
@@ -46,24 +62,43 @@ public:
 private:
     qi::rule<Iterator, void(), Skipper> space_;
     qi::rule<Iterator, String(), Skipper> name_;
-    qi::rule<Iterator, String(), Skipper> addr_;
+    addrspec_grammar<Iterator, String, Skipper> addr_;
     qi::rule<Iterator, basic_address<String>(), Skipper> rule_;
 };
 
 } // detail
 
-template <typename String, typename It>
-inline basic_address<String> make_address(It beg, It end, boost::system::error_code & ec)
+
+template <typename String>
+inline bool basic_address<String>::is_valid() const
+{
+    auto beg = addrspec.begin(), end = addrspec.end();
+    return (boost::spirit::qi::parse(beg, end, detail::addrspec_grammar<decltype(beg), String>()) && beg == end);
+}
+
+
+template <typename String>
+inline basic_address<String> basic_address<String>::from_string(String const & str)
+{
+    boost::system::error_code ec;
+    auto addr = basic_address<String>::from_string(str, ec);
+    if (ec) throw boost::system::system_error(ec);
+    return addr;
+}
+
+
+template <typename String>
+inline basic_address<String> basic_address<String>::from_string(String const & str, boost::system::error_code & ec)
 {
     basic_address<String> addr;
-    namespace qi = boost::spirit::qi;
-    if (!qi::parse(beg, end, detail::address_grammar<It, String>(), addr) || beg != end) {
+    auto beg = str.begin(), end = str.end();
+    if (!boost::spirit::qi::parse(beg, end, detail::address_grammar<decltype(beg), String>(), addr) || beg != end) {
         ec = make_error_code(error::not_address);
         return basic_address<String>();
     }
-    ec.clear();
     return addr;
 }
+
 
 template <typename It, typename Addresses>
 inline std::size_t parse_to_addresses(It beg, It end, Addresses & addrs)
@@ -71,12 +106,13 @@ inline std::size_t parse_to_addresses(It beg, It end, Addresses & addrs)
     using String = std::basic_string<typename std::iterator_traits<It>::value_type>;
     static_assert(std::is_same<typename Addresses::value_type, basic_address<String> >::value, "");
 
-    // 最初の空白は削除
+    // 最初の空白は飛ばす
     while(beg != end && std::isspace(*beg))
         ++beg;
-    // 最初のカンマは削除
+    // 最初のカンマは飛ばす
     if (beg != end && *beg == ',')
         ++beg;
+
     auto size = addrs.size();
     namespace qi = boost::spirit::qi;
     qi::parse(beg, end, detail::address_grammar<It, String>() % ',', addrs);

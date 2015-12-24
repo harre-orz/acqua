@@ -1,3 +1,11 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 namespace acqua { namespace container { namespace detail {
@@ -7,6 +15,7 @@ struct preordered_recursive_iterator_impl
 {
     using value_type = T;
     using stack_type = Stack;
+    using size_type = typename stack_type::size_type;
 
     preordered_recursive_iterator_impl(value_type * root);
 
