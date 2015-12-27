@@ -6,7 +6,6 @@
 #include <boost/mpl/bool.hpp>
 #include <boost/iostreams/categories.hpp>
 #include <boost/iostreams/operations.hpp>
-#include <acqua/iostreams/newline.hpp>
 #include <acqua/iostreams/detail/newline_base.hpp>
 
 namespace acqua { namespace iostreams {

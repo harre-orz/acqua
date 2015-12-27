@@ -1,7 +1,6 @@
 #pragma once
 
 #include <boost/iostreams/operations.hpp>
-#include <acqua/iostreams/newline.hpp>
 
 namespace acqua { namespace iostreams {
 

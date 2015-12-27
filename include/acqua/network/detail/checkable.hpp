@@ -60,7 +60,7 @@ public:
 private:
     std::uint8_t const * header_end() const noexcept
     {
-        return reinterpret_cast<std::uint8_t const *>(this) + static_cast<Derived const *>(this)->size();
+        return reinterpret_cast<std::uint8_t const *>(this) + static_cast<Derived const *>(this)->header_size();
     }
 };
 
