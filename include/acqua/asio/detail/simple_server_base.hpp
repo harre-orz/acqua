@@ -19,41 +19,21 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/fusion/include/vector.hpp>
 #include <boost/fusion/include/make_fused.hpp>
-#include <acqua/asio/socket_category.hpp>
+#include <acqua/asio/detail/socket_category.hpp>
 
 namespace acqua { namespace asio { namespace detail {
 
 /*!
   サーバソケットの接続数を管理するクラス.
-  \tparam Enabler Connector クラスは、std::enable_shared_from_this<Connector> を継承をチェックするSFINAE
+  \tparam Enabler Connector クラスは、std::enable_shared_from_this<Connector> を継承していること
 */
 template <
     typename Derived,
     typename Connector,
     typename Protocol,
-    typename Tag = unspecified_tag,
-    typename Enabler = void
+    typename Tag = unspecified_tag
     >
-class simple_server_base;
-
-
-/*!
-  サーバソケットの接続数を管理するクラス.
-  \tparam Enabler Connector クラスは、std::enable_shared_from_this<Connector> を継承をチェックするSFINAE
-*/
-template <
-    typename Derived,
-    typename Connector,
-    typename Protocol,
-    typename Tag
-    >
-class simple_server_base<
-    Derived,
-    Connector,
-    Protocol,
-    Tag,
-    typename std::enable_if<std::is_base_of<std::enable_shared_from_this<Connector>, Connector>::value>::type
-    > : private boost::noncopyable
+class simple_server_base
 {
 protected:
     using base_type = simple_server_base;
@@ -112,14 +92,14 @@ public:
         if (ec) return;
 
         if (reuse_addr) {
-            set_reuseaddr(Tag(), proto, ec);
+            set_reuseaddr(proto, ec);
             if (ec) return;
         }
 
         set_v6only(Tag(), proto, ec);
         if (ec) return;
 
-        static_cast<Derived *>(this)->set_option(Tag(), acceptor_, proto, ec);
+        static_cast<Derived *>(this)->set_option(acceptor_, proto, ec);
         if (ec) return;
 
         acceptor_.bind(endpoint, ec);
@@ -193,7 +173,7 @@ private:
 
     void on_disconnect(Connector * conn)
     {
-        delete conn;
+        static_cast<Derived *>(this)->destruct(conn);
         if (decl()) {
             async_accept();
         }
@@ -207,7 +187,7 @@ private:
             boost::asio::detail::throw_error(error, "on_accept");
         } else if (is_running_) {
             async_accept();
-            static_cast<Derived *>(this)->start(Tag(), conn);
+            static_cast<Derived *>(this)->start(conn);
         }
     }
 
@@ -218,13 +198,13 @@ private:
                 holder_->construct(this, acceptor_.get_io_service()),
                 std::bind(&simple_server_base::on_disconnect, this, std::placeholders::_1));
             acceptor_.async_accept(
-                static_cast<Derived *>(this)->socket(Tag(), conn),
+                static_cast<Derived *>(this)->socket(conn),
                 std::bind(&simple_server_base::on_accept, this, std::placeholders::_1, conn));
         }
     }
 
-    template <typename Tag_, typename Protocol_>
-    void set_reuseaddr(Tag_, Protocol_ const &, boost::system::error_code & ec)
+    template <typename Protocol_>
+    void set_reuseaddr(Protocol_ const &, boost::system::error_code & ec)
     {
         acceptor_.set_option(boost::asio::socket_base::reuse_address(true), ec);
     }

@@ -10,7 +10,7 @@
 #include <boost/container/flat_set.hpp>
 #include <boost/variant.hpp>
 #include <boost/function.hpp>
-#include <acqua/asio/socket_category.hpp>
+#include <acqua/asio/detail/socket_category.hpp>
 
 namespace acqua { namespace asio { namespace detail {
 

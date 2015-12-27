@@ -112,6 +112,7 @@ public:
 private:
     using traits_type::set_option;
     using traits_type::construct;
+    using traits_type::destruct;
     using traits_type::socket;
     using traits_type::start;
 

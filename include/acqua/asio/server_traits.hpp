@@ -17,12 +17,12 @@ namespace acqua { namespace asio {
 /*!
   simple_server クラス, internet_server クラスに用いる特性を記述するクラス.
  */
-template <typename T>
+template <typename T, typename LowestLayerType = typename T::lowest_layer_type>
 struct server_traits
 {
     //! サーバソケットを設定.
-    template <typename Tag, typename Socket, typename Protocol>
-    static void set_option(Tag, Socket &, Protocol const &, boost::system::error_code &)
+    template <typename Socket, typename Protocol>
+    static void set_option(Socket &, Protocol const &, boost::system::error_code &)
     {
     }
 
@@ -34,16 +34,19 @@ struct server_traits
         return new T(io_service, args...);
     }
 
+    static void destruct(T * soc)
+    {
+        delete soc;
+    }
+
     //! 接続済みソケットの最下位レイヤーを返す.
-    template <typename Tag>
-    static typename T::lowest_layer_type & socket(Tag, std::shared_ptr<T> soc)
+    static LowestLayerType & socket(std::shared_ptr<T> soc)
     {
         return soc->socket();
     }
 
     //! クライアントと接続し、接続済みソケットの処理を開始.
-    template <typename Tag>
-    static void start(Tag, std::shared_ptr<T> soc)
+    static void start(std::shared_ptr<T> soc)
     {
         soc->start();
     }

@@ -18,7 +18,7 @@ class beat_timer
 public:
     using timer_type = AsioTimer;
     using traits_type = timer_traits<AsioTimer>;
-    using time_point_type = typename traits_type::time_point_type;
+    using time_point = typename traits_type::time_point;
 
 protected:
     explicit beat_timer(boost::asio::io_service & io_service)
@@ -27,7 +27,7 @@ protected:
     ~beat_timer() {}
 
 public:
-    void async_run(time_point_type const & trigger_time = traits_type::now())
+    void async_run(time_point const & trigger_time = traits_type::now())
     {
         std::lock_guard<decltype(mutex_)> lock(mutex_);
 
@@ -54,7 +54,7 @@ private:
 
                 std::lock_guard<decltype(mutex_)> lock(mutex_);
                 auto it = set_.begin();
-                time_point_type time = *it;
+                time_point time = *it;
                 it = set_.erase(it);
                 if (it != set_.end()) {
                     if (*it <= time)
@@ -68,7 +68,7 @@ private:
 
 private:
     timer_type timer_;
-    boost::container::flat_multiset<time_point_type> set_;
+    boost::container::flat_multiset<time_point> set_;
     std::mutex mutex_;
 };
 

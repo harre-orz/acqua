@@ -8,7 +8,7 @@
 
 #pragma once
 
-namespace acqua { namespace asio {
+namespace acqua { namespace asio { namespace detail {
 
 //! どのタイプか不明なことを示すタグ
 class unspecified_tag {};
@@ -22,4 +22,4 @@ class internet_v6_tag {};
 //! UNNIX Domainソケット用であることを示すタグ
 class unix_local_tag {};
 
-} }
+} } }

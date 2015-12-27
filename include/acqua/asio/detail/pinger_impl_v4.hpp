@@ -1,6 +1,6 @@
 #pragma once
 
-#include <acqua/asio/socket_category.hpp>
+#include <acqua/asio/detail/socket_category.hpp>
 #include <acqua/network/icmp_header.hpp>
 #include <acqua/network/parse.hpp>
 

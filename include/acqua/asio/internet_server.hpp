@@ -11,7 +11,7 @@
 #include <boost/optional.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <acqua/asio/server_traits.hpp>
-#include <acqua/asio/socket_category.hpp>
+#include <acqua/asio/detail/socket_category.hpp>
 #include <acqua/asio/detail/simple_server_base.hpp>
 
 namespace acqua { namespace asio {
@@ -25,13 +25,13 @@ template <
     >
 class internet_server
     : private Traits
-    , private detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, internet_v4_tag>
-    , private detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, internet_v6_tag>
+    , private detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, detail::internet_v4_tag>
+    , private detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, detail::internet_v6_tag>
 {
-    using v4_type = detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, internet_v4_tag>;
+    using v4_type = detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, detail::internet_v4_tag>;
     friend v4_type;
 
-    using v6_type = detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, internet_v6_tag>;
+    using v6_type = detail::simple_server_base<internet_server<Connector, Traits>, Connector, boost::asio::ip::tcp, detail::internet_v6_tag>;
     friend v6_type;
 
     using atomic_size_type = typename v4_type::atomic_size_type;
@@ -199,6 +199,7 @@ public:
 private:
     using traits_type::set_option;
     using traits_type::construct;
+    using traits_type::destruct;
     using traits_type::socket;
     using traits_type::start;
 

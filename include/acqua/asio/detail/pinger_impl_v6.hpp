@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/asio.hpp>
+#include <acqua/asio/detail/socket_category.hpp>
 #include <acqua/network/icmpv6_header.hpp>
 #include <acqua/network/parse.hpp>
 
