@@ -2,7 +2,6 @@
 
 #include <boost/iostreams/categories.hpp>
 #include <boost/iostreams/operations.hpp>
-#include <acqua/iostreams/newline.hpp>
 #include <acqua/iostreams/detail/newline_base.hpp>
 
 namespace acqua { namespace iostreams {
@@ -21,7 +20,7 @@ public:
     using category = boost::iostreams::output_filter_tag;
 
 public:
-    explicit ascii_encoder(newline nl = newline::crln, std::size_t size = 77)
+    explicit ascii_encoder(newline nl = newline::none, std::size_t size = std::numeric_limits<std::size_t>::max())
         : base_type(nl, size) {}
 
     template <typename Sink>
@@ -32,7 +31,6 @@ public:
             :  base_type::put(sink, ch);
     }
 
-    // overrided by base_type
     template <typename Sink>
     bool line_break(Sink & sink)
     {

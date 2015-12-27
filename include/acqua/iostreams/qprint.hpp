@@ -3,7 +3,6 @@
 #include <boost/iostreams/categories.hpp>
 #include <boost/iostreams/operations.hpp>
 #include <boost/scope_exit.hpp>
-#include <acqua/iostreams/newline.hpp>
 #include <acqua/iostreams/detail/newline_base.hpp>
 
 namespace acqua { namespace iostreams {
@@ -18,7 +17,7 @@ public:
     struct category : boost::iostreams::output_filter_tag, boost::iostreams::closable_tag {};
     using char_type = char;
 
-    explicit qprint_encoder(newline nl = newline::crln, std::size_t size = 77)
+    explicit qprint_encoder(newline nl = newline::none, std::size_t size = std::numeric_limits<std::size_t>::max())
         : base_type(nl, size) {}
 
     template <typename Sink>

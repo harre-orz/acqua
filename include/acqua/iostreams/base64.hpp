@@ -67,7 +67,7 @@ public:
     using traits_type = Traits;
 
 public:
-    explicit basic_base64_encoder(newline nl = newline::crln, std::size_t size = 76)
+    explicit basic_base64_encoder(newline nl = newline::none, std::size_t size = std::numeric_limits<std::size_t>::max())
         : base_type(nl, size) {}
 
     template <typename Sink>

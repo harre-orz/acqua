@@ -1,10 +1,11 @@
 #pragma once
 
+#include <limits>
 #include <boost/iostreams/operations.hpp>
 
 namespace acqua { namespace iostreams {
 
-enum class newline { cr, ln, crln };
+enum class newline { none, cr, ln, crln };
 
 namespace detail {
 
@@ -24,7 +25,7 @@ protected:
       @param max 自動改行の目安となる文字数
      */
     explicit newline_base(newline nl, std::size_t max)
-        : nl_(nl), max_(max) {}
+        : nl_(nl), max_(nl == newline::none ? std::numeric_limits<std::size_t>::max() : max) {}
 
     ~newline_base() = default;
 
@@ -47,9 +48,11 @@ protected:
                 return boost::iostreams::put(sink, '\r');
             case newline::ln:
                 return boost::iostreams::put(sink, '\n');
-            default: // crln
+            case newline::crln:
                 return boost::iostreams::put(sink, '\r')
                     && boost::iostreams::put(sink, '\n');
+            case newline::none:
+                return true;
         }
     }
 
@@ -74,7 +77,7 @@ protected:
 
 public:
     //! コンストラクタで指定した改行コードを用いて、改行文字を sink に書き込む.
-    //! [継承可能] 自動改行が発生したときに、呼び出される処理
+    //! [オーバーライド可能] 自動改行が発生したときに、呼び出される処理
     template <typename Sink>
     bool line_break(Sink & sink) { return put_ln(sink); }
 
