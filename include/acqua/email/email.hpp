@@ -3,6 +3,7 @@
 #include <acqua/email/address.hpp>
 #include <acqua/email/headers.hpp>
 #include <acqua/email/message.hpp>
+#include <acqua/container/recursive_iterator.hpp>
 
 namespace acqua { namespace email {
 
@@ -18,6 +19,10 @@ public:
     using message_type = basic_message<value_type>;
     using istream_type = std::basic_istream<char_type, traits_type>;
     using ostream_type = std::basic_ostream<char_type, traits_type>;
+    using iterator = acqua::container::preordered_recursive_iterator<
+        message_type, typename message_type::iterator>;
+    using const_iterator = acqua::container::preordered_recursive_iterator<
+        message_type const, typename message_type::const_iterator>;
 
 public:
     basic_email();
@@ -27,11 +32,19 @@ public:
      */
     void dump(std::ostream & os)
     {
-        for(auto it = impl_->begin(), end = impl_->end(); it != end; ++it) {
+        for(auto it = begin(), e = end(); it != e; ++it) {
             it->headers.dump(os);
             os << it->str() << std::endl;
         }
     }
+
+    iterator begin();
+
+    const_iterator begin() const;
+
+    iterator end();
+
+    const_iterator end() const;
 
     //! ヘッダー取得.
     typename headers_type::disposition & operator[](value_type const & key)

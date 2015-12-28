@@ -166,7 +166,7 @@ public:
     template <typename Sink>
     bool put(Sink & sink, char ch)
     {
-        if (ch == '\r' || ch == '\n' || ch == '=' || (ch = traits_type::find(ch) < 0 || traits_type::npos <= ch))
+        if (ch == '\r' || ch == '\n' || ch == '=' || (ch = static_cast<char>(traits_type::find(ch))) < 0 || traits_type::npos <= ch)
             return true;
         BOOST_SCOPE_EXIT_ALL(this, ch) { prior_ = ch; };
         switch(i_++ % 4) {

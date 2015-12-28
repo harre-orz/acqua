@@ -13,7 +13,7 @@ class basic_email;
 template <typename String>
 class basic_email_parser
 {
-    class impl;
+    struct impl;
 
 public:
     using char_type = char;
@@ -24,10 +24,8 @@ public:
     std::streamsize write(char_type const * s, std::streamsize n);
 
 private:
-    boost::system::error_code error_ = {};
     std::shared_ptr<impl> impl_;
-    std::string line_;
-    char_type last_ = '\0';
+    boost::system::error_code error_;
 };
 
 using email_parser = basic_email_parser<std::string>;
