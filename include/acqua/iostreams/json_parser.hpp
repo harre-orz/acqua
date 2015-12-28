@@ -26,8 +26,8 @@ public:
     std::streamsize write(char_type const * s, std::streamsize n);
 
 private:
-    boost::system::error_code error_;
     std::shared_ptr<impl> impl_;
+    boost::system::error_code error_ = {};
 };
 
 } }

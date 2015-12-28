@@ -46,7 +46,7 @@ public:
                 impl.new_number(ch);
                 return true;
         }
-        impl.failure(this, ch);
+        impl.failured(this, ch);
         return true;
     }
 };
@@ -91,7 +91,7 @@ public:
         } else if (std::tolower(ch, std::locale::classic()) == *lit_) {
             return true;
         }
-        impl.failure(this, ch);
+        impl.failured(this, ch);
         return true;
     }
 };
@@ -171,7 +171,7 @@ public:
                 return false;
         }
 
-        impl.failure(this, ch);
+        impl.failured(this, ch);
         return true;
     }
 };
@@ -216,7 +216,7 @@ public:
                         hex_[1] = 0;
                         return true;
                     default:
-                        impl.failure(this, ch);
+                        impl.failured(this, ch);
                         return true;
                 }
                 escape_ = false;
@@ -260,7 +260,7 @@ public:
             return true;
         }
 
-        impl.failure(this, ch);
+        impl.failured(this, ch);
         return true;
     }
 
@@ -300,7 +300,7 @@ public:
     template <typename CharT>
     bool operator()(CharT const & ch, Impl & impl)
     {
-        if (data_ && data_->is_in_progress) {
+        if (data_ && data_->in_progress) {
             return data_->parse_1(ch);
         } else if (ch == ']') {
             impl.completed();
@@ -316,7 +316,7 @@ public:
         if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
             return true;
 
-        impl.failure(this, ch);
+        impl.failured(this, ch);
         return true;
     }
 };
@@ -329,11 +329,11 @@ class object_parser
     {
         explicit string_impl(Impl & parent) : parent_(parent) {}
         template <typename T>
-        void completed(T &&) { is_in_progress = false; }
+        void completed(T &&) { in_progress = false; }
         template <typename Parser, typename CharT>
-        void failure(Parser * p, CharT ch) { parent_.failure(p, ch); }
+        void failured(Parser * p, CharT ch) { parent_.failured(p, ch); }
         Impl & parent_;
-        bool is_in_progress = true;
+        bool in_progress = true;
         using string_parser<String>::str_;
     };
     std::unique_ptr<string_impl> key_ = {};
@@ -345,7 +345,7 @@ public:
     bool operator()(CharT const & ch, Impl & impl)
     {
         if (val_) {
-            if (val_->is_in_progress)
+            if (val_->in_progress)
                 return val_->parse_1(ch);
             if (ch == '}') {
                 impl.completed();
@@ -366,7 +366,7 @@ public:
                 key_.reset(new string_impl(impl));
                 return true;
             }
-        } else if (key_->is_in_progress) {
+        } else if (key_->in_progress) {
             return (*key_)(ch, *key_);
         } else if (ch == ':') {
             impl.new_child(std::move(key_->str_), val_);
@@ -374,7 +374,7 @@ public:
         }
         if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
             return true;
-        impl.failure(this, ch);
+        impl.failured(this, ch);
         return true;
     }
 };
@@ -409,9 +409,8 @@ struct parser_impl
         bool operator()(Parser & parser) const { return parser(ch_, impl_); }
     };
 
-public:
-    parser_impl(boost::system::error_code & error, Json & json)
-        : Adapt(json), error_(error) {}
+    parser_impl(Json & json, boost::system::error_code & error_)
+        : Adapt(json), error(error_) {}
 
     bool parse_1(CharT const & ch)
     {
@@ -449,13 +448,13 @@ public:
     template <typename T>
     void new_child(T && t, std::unique_ptr<parser_impl> & impl)
     {
-        impl.reset(new parser_impl(error_, static_cast<Adapt *>(this)->add_child(std::forward<T>(t))));
+        impl.reset(new parser_impl(static_cast<Adapt *>(this)->add_child(std::forward<T>(t)), error));
     }
 
     void completed()
     {
         *static_cast<base_type *>(this) = any();
-        is_in_progress = false;
+        in_progress = false;
     }
 
     template <typename T>
@@ -466,15 +465,15 @@ public:
     }
 
     template <typename Parser>
-    void failure(Parser *, CharT)
+    void failured(Parser *, CharT)
     {
+        // TODO: エラーコード
+        error = make_error_code(boost::system::errc::bad_address);
+        in_progress = false;
     }
 
-private:
-    boost::system::error_code & error_;
-
-public:
-    bool is_in_progress = true;
+    boost::system::error_code & error;
+    bool in_progress = true;
 };
 
 }  // json
@@ -483,27 +482,32 @@ template <typename Json, typename Adapt, typename CharT>
 struct json_parser<Json, Adapt, CharT>::impl
     : json::parser_impl<Json, Adapt, CharT>
 {
-    impl(boost::system::error_code & error, Json & json)
-        : json::parser_impl<Json, Adapt, CharT>(error, json) {}
+    impl(Json & json, boost::system::error_code & error)
+        : json::parser_impl<Json, Adapt, CharT>(json, error) {}
+
+    std::streamsize write(char_type const * s, std::streamsize n)
+    {
+        if (!this->in_progress)
+            return EOF;
+
+        std::streamsize i;
+        for(i = 0; this->in_progress && i < n; ++i, ++s) {
+            while(this->in_progress && !this->parse_1(*s));
+        }
+        return i;
+    }
 };
 
 
 template <typename Json, typename Adapt, typename CharT>
 inline json_parser<Json, Adapt, CharT>::json_parser(Json & json)
-    : error_(), impl_(new impl(error_, json)) {}
+    : impl_(new impl(json, error_)) {}
 
 
 template <typename Json, typename Adapt, typename CharT>
 inline std::streamsize json_parser<Json, Adapt, CharT>::write(char_type const * s, std::streamsize n)
 {
-    if (!impl_->is_in_progress)
-        return EOF;
-
-    std::streamsize i;
-    for(i = 0; impl_->is_in_progress && i < n; ++i, ++s) {
-        while(impl_->is_in_progress && !impl_->parse_1(*s));
-    }
-    return i;
+    return impl_->write(s, n);
 }
 
 } }
