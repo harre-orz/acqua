@@ -5,6 +5,7 @@ PROGRAMS = \
 	test_pinger \
 	test_inotify_listener \
 	test_netlink_listener \
+	test_beat_timer \
 
 .DEFAULT: $(CXXBuild $(PROGRAMS))
 	$(RunTest)
