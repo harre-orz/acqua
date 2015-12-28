@@ -1,10 +1,7 @@
-#define BOOST_TEST_MAIN
+#include <acqua/mref.hpp>
 #include <boost/test/included/unit_test.hpp>
 #include <boost/utility.hpp>
 #include <memory>
-
-#include <acqua/utility/move_on_copy_wrapper.hpp>
-#include <acqua/mref.hpp>
 #include <functional>
 
 struct moveable_object
@@ -17,8 +14,8 @@ struct moveable_object
     {
         rhs.value = 0;
     }
-    explicit moveable_object(int value)
-        : value(value) {}
+    explicit moveable_object(int value_)
+        : value(value_) {}
 
     int value;
 };
@@ -32,8 +29,8 @@ BOOST_AUTO_TEST_CASE(move_on_copy_wrapper_T)
     move_on_copy_wrapper<moveable_object> wrap1(std::move(obj1));
     move_on_copy_wrapper<moveable_object> wrap2 = wrap1;
     moveable_object obj2 = wrap2;
-    BOOST_CHECK_EQUAL(obj2.value, 100);
-    BOOST_CHECK_EQUAL(obj1.value, 0);
+    BOOST_TEST(obj2.value == 100);
+    BOOST_TEST(obj1.value == 0);
 }
 
 BOOST_AUTO_TEST_CASE(move_on_copy_wrapper_std_ptr_T)
@@ -44,8 +41,8 @@ BOOST_AUTO_TEST_CASE(move_on_copy_wrapper_std_ptr_T)
     move_on_copy_wrapper<decltype(obj1)> wrap1(std::move(obj1));
     move_on_copy_wrapper<decltype(obj1)> wrap2 = wrap1;
     std::unique_ptr<int> obj2 = wrap2;
-    BOOST_CHECK_EQUAL(*obj2, 100);
-    BOOST_CHECK_EQUAL((bool)obj1, false);
+    BOOST_TEST(*obj2 == 100);
+    BOOST_TEST(!obj1);
 }
 
 BOOST_AUTO_TEST_CASE(move_on_copy_wrapper_dereference_T)
@@ -56,8 +53,8 @@ BOOST_AUTO_TEST_CASE(move_on_copy_wrapper_dereference_T)
     move_on_copy_wrapper<decltype(obj1)> wrap1(std::move(obj1));
     move_on_copy_wrapper<decltype(obj1)> wrap2 = wrap1;
     int * obj2 = wrap2;
-    BOOST_CHECK_EQUAL(*obj2, 100);
-    //BOOST_CHECK_EQUAL((bool)obj1, false);  // dereference のときは移動元を nullptr に初期化しないので、チェックしない
+    BOOST_TEST(*obj2 == 100);
+    //BOOST_TEST(!obj1);  // dereference のときは移動元を nullptr に初期化しないので、チェックしない
 }
 
 

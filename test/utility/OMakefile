@@ -1,5 +1,11 @@
-.DEFAULT: $(CXXProgram test_move_on_copy_wrapper, test_move_on_copy_wrapper) \
-          $(CXXProgram test_string_cast, test_string_cast)
+PROGRAMS = \
+	test_move_on_copy_wrapper \
+	test_string_cast \
+	test_backtrace \
+	test_hexdump \
+
+.DEFAULT: $(CXXBuild $(PROGRAMS))
+	$(RunTest)
 
 clean:
         rm -rf $(filter-proper-targets $(ls R, .)) *.omc

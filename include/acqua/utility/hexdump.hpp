@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <iostream>
 #include <iomanip>
 #include <type_traits>
@@ -56,7 +57,7 @@ private:
     bool put_endline(std::ostream & os, It it, int carry, SizeT) const
     {
         auto pos = std::distance(beg_, it);
-        if (static_cast<std::ptrdiff_t>(pos % SizeT::value) != 0)
+        if ((pos % static_cast<std::ptrdiff_t>(SizeT::value)) != 0)
             return false;
 
         put_canon(os, pos, it, canonical_type());
@@ -74,7 +75,7 @@ private:
     {
         pos %= length_type::value;
         if (pos > 0)
-            os << std::setfill(' ') << std::setw(static_cast<int>((length_type::value - pos) * 3)) << ' ';
+            os << std::setfill(' ') << std::setw(static_cast<int>((static_cast<std::ptrdiff_t>(length_type::value) - pos) * 3)) << ' ';
         else
             pos = length_type::value;
 
@@ -122,8 +123,7 @@ inline utility::hexdump<It, Canonical, Length> hexdump(It beg, It end)
 template <bool Canonical = true, std::size_t Length = 16>
 inline utility::hexdump<char const *, Canonical, Length> hexdump(char const * str)
 {
-    return utility::hexdump<char const *, Canonical, Length>(str, str + std::strlen(str));
+    return utility::hexdump<char const *, Canonical, Length>(str, str + std::char_traits<char>::length(str));
 }
-
 
 }
