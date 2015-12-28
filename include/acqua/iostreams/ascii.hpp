@@ -20,7 +20,7 @@ public:
     using category = boost::iostreams::output_filter_tag;
 
 public:
-    explicit ascii_encoder(newline nl = newline::none, std::size_t size = std::numeric_limits<std::size_t>::max())
+    explicit ascii_encoder(newline nl = newline::crln, std::size_t size = 77)
         : base_type(nl, size) {}
 
     template <typename Sink>
@@ -40,12 +40,13 @@ public:
 
 /*!
   メールの 7bit foramt_flowed 指定におけるデコードを行うクラス.
+  input_filter と output_filter の両方を指定できるが、１つのインスタンスに対してどちらか片方しか使用してはいけない
  */
 class ascii_decoder
 {
 public:
     using char_type = char;
-    using category = boost::iostreams::input_filter_tag;
+    struct category : boost::iostreams::filter_tag, boost::iostreams::input, boost::iostreams::output {};
 
 public:
     template <typename Source>
@@ -74,6 +75,24 @@ public:
         }
 
         return ch;
+    }
+
+    template <typename Sink>
+    bool put(Sink & sink, char ch)
+    {
+        if (prior_ == ' ' && ch == '\r') {
+            prior_ = '\r';
+            return true;
+        }
+
+        if (prior_ == '\r' && ch == '\n') {
+            prior_ = '\0';
+            return true;
+        }
+
+        if (ch == ' ' || ch == '\t')
+            prior_ = ' ';
+        return boost::iostreams::put(sink, ch);
     }
 
 private:

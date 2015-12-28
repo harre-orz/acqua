@@ -76,11 +76,15 @@ private:
 };
 
 
+/*!
+  quoted-printable のデコーダ.
+  input_filter と output_filter の両方を指定できるが、１つのインスタンスに対してどちらか片方しか使用してはいけない
+*/
 class qprint_decoder
 {
 public:
     using char_type = char;
-    using category = boost::iostreams::input_filter_tag;
+    struct category : boost::iostreams::filter_tag, boost::iostreams::input, boost::iostreams::output {};
 
     template <typename Source>
     int get(Source & src) const
@@ -104,6 +108,28 @@ public:
         return ch;
     }
 
+    template <typename Sink>
+    bool put(Sink & sink, char ch)
+    {
+        if (tmp[1]) {
+            int hex = unescape(tmp[1], ch);
+            tmp[0] = tmp[1] = 0;
+            return hex < 0 ? false : boost::iostreams::put(sink, static_cast<char>(hex));
+        }
+
+        if (tmp[0]) {
+            tmp[1] = ch;
+            return true;
+        }
+
+        if (ch == '=') {
+            tmp[0] = '=';
+            return true;
+        }
+
+        return boost::iostreams::put(sink, ch);
+    }
+
 private:
     int unescape(int upper, int lower) const
     {
@@ -119,6 +145,9 @@ private:
         else    return -1;
         return hex;
     }
+
+private:
+    char tmp[2] = { 0, 0 };
 };
 
 } }

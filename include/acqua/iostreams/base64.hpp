@@ -129,14 +129,17 @@ private:
     char prior_ = {};
 };
 
-
+/*!
+  base64 デコーダ.
+  input_filter と output_filter の両方を指定できるが、１つのインスタンスに対してどちらか片方しか使用してはいけない
+*/
 template <typename Traits = base64_traits>
 class basic_base64_decoder
     : private Traits
 {
 public:
-    using category = boost::iostreams::input_filter_tag;
     using char_type = char;
+    struct category : boost::iostreams::filter_tag, boost::iostreams::input, boost::iostreams::output {};
     using traits_type = Traits;
 
 public:
@@ -158,6 +161,23 @@ public:
             }
         }
         return ch;
+    }
+
+    template <typename Sink>
+    bool put(Sink & sink, char ch)
+    {
+        if (ch == '\r' || ch == '\n' || ch == '=' || (ch = traits_type::find(ch) < 0 || traits_type::npos <= ch))
+            return true;
+        BOOST_SCOPE_EXIT_ALL(this, ch) { prior_ = ch; };
+        switch(i_++ % 4) {
+            case 1:
+                return boost::iostreams::put(sink, static_cast<char>((prior_ & 0x3F) << 2 | (ch & 0x30) >> 4));
+            case 2:
+                return boost::iostreams::put(sink, static_cast<char>((prior_ & 0x0F) << 4 | (ch & 0x3C) >> 2));
+            case 3:
+                return boost::iostreams::put(sink, static_cast<char>((prior_ & 0x0F) << 6 | (ch & 0x3F) >> 0));
+        }
+        return true;
     }
 
 private:

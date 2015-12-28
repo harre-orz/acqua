@@ -6,7 +6,6 @@ extern "C" {
 }
 
 #include <boost/asio/ip/tcp.hpp>
-#include <acqua/asio/socket_category.hpp>
 #include <acqua/asio/proxy_traits.hpp>
 #include <acqua/asio/socket_base/transparent_options.hpp>
 
