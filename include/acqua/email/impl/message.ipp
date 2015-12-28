@@ -60,6 +60,7 @@ basic_message<String>::operator streambuf_type *()
     return get_payload() ?: set_payload();
 }
 
+
 template <typename String>
 auto basic_message<String>::str() const -> value_type
 {
@@ -68,10 +69,10 @@ auto basic_message<String>::str() const -> value_type
     }
 
     if (auto * fbuf = dynamic_cast<filebuf_type *>(streambuf_.get())) {
-        stringbuf_type sbuf;
+        std::basic_ostringstream<char_type, traits_type, allocator_type> oss;
         fbuf->pubseekpos(0, std::ios_base::in);
-        std::basic_ostream<char_type, traits_type>(&sbuf) << fbuf;
-        return sbuf.str();
+        oss << fbuf;
+        return oss.str();
     }
 
     return value_type();
@@ -99,34 +100,6 @@ bool basic_message<String>::save_as(std::string const & filename)
 {
     boost::system::error_code ec;
     return save_as(filename, ec);
-}
-
-
-template <typename String>
-auto basic_message<String>::begin() -> iterator
-{
-    return iterator(*this);
-}
-
-
-template <typename String>
-auto basic_message<String>::begin() const -> const_iterator
-{
-    return const_iterator(*this);
-}
-
-
-template <typename String>
-auto basic_message<String>::end() -> iterator
-{
-    return iterator();
-}
-
-
-template <typename String>
-auto basic_message<String>::end() const -> const_iterator
-{
-    return const_iterator();
 }
 
 } }

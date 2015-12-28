@@ -11,7 +11,6 @@
 #include <deque>
 #include <boost/system/error_code.hpp>
 #include <acqua/email/headers.hpp>
-#include <acqua/container/recursive_iterator.hpp>
 
 namespace acqua { namespace email {
 
@@ -30,39 +29,32 @@ private:
     using stringbuf_type = std::basic_stringbuf<char_type, traits_type, allocator_type>;
     using filebuf_type = std::basic_filebuf<char_type, traits_type>;
     using subpart_type = std::deque<basic_message>;
-    using subpart_iterator = typename subpart_type::iterator;
-    using const_subpart_iterator = typename subpart_type::const_iterator;
 
 public:
-    static subpart_iterator begin(basic_message & mes)
+    using iterator = typename subpart_type::iterator;
+    using const_iterator = typename subpart_type::const_iterator;
+
+    iterator begin()
     {
-        return mes.subpart_.begin();
+        return subpart_.begin();
     }
 
-    static const_subpart_iterator begin(basic_message const & mes)
+    const_iterator begin() const
     {
-        return mes.subpart_.begin();
+        return subpart_.begin();
     }
 
-    static subpart_iterator end(basic_message & mes)
+    iterator end()
     {
-        return mes.subpart_.end();
+        return subpart_.end();
     }
 
-    static const_subpart_iterator end(basic_message const & mes)
+    const_iterator end() const
     {
-        return mes.subpart_.end();
+        return subpart_.end();
     }
-
-    using iterator = acqua::container::preordered_recursive_iterator<
-        basic_message, subpart_iterator, &basic_message::begin, &basic_message::end>;
-
-    using const_iterator = acqua::container::preordered_recursive_iterator<
-        basic_message const, const_subpart_iterator, &basic_message::begin, &basic_message::end>;
 
 public:
-    // *** ペイロード *** //
-
     /*!
       set_payload() で作成されたペイロードバッファを返す.
 
@@ -110,9 +102,10 @@ public:
 
     bool save_as(std::string const & filename);
 
-public:
-    // *** サブパート *** //
 
+    /*!
+      サブパートが存在するか.
+     */
     bool has_subpart() const
     {
         return !subpart_.empty();
@@ -127,16 +120,9 @@ public:
         return subpart_.back();
     }
 
-    iterator begin();
-
-    const_iterator begin() const;
-
-    iterator end();
-
-    const_iterator end() const;
-
-public:
-    // *** ヘッダー *** //
+    /*!
+      ヘッダー
+    */
     headers_type headers;
 
 private:
