@@ -6,13 +6,13 @@
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/xpressive/xpressive.hpp>
 #include <boost/spirit/include/qi.hpp>
-#include <acqua/email/utils/qprint_decoder.hpp>
-#include <acqua/email/utils/base64_decoder.hpp>
-#include <acqua/email/utils/qprint_encoder.hpp>
-#include <acqua/email/utils/base64_encoder.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <acqua/iostreams/qprint.hpp>
+#include <acqua/iostreams/base64.hpp>
 
 
-namespace acqua { namespace email { namespace utils {
+namespace acqua { namespace email {
 
 class mime_header
 {
@@ -71,6 +71,37 @@ public:
     }
 
 private:
+    template <typename It>
+    static std::string base64_encode(It beg, It end, std::string const & charset)
+    {
+        std::ostringstream oss;
+        do {
+            boost::iostreams::filtering_ostream out;
+            out.push(acqua::iostreams::base64_encoder());
+            out.push(oss);
+            out << boost::locale::conv::from_utf(beg, end, charset);
+        } while(false);
+        return oss.str();
+    }
+
+    template <typename String, typename OS>
+    static void base64_decode(String const & str, OS & os)
+    {
+        boost::iostreams::filtering_ostream out;
+        out.push(acqua::iostreams::base64_decoder());
+        out.push(os);
+        out << str;
+    }
+
+    template <typename String, typename OS>
+    static void qprint_decode(String const & str, OS & os)
+    {
+        boost::iostreams::filtering_ostream out;
+        out.push(acqua::iostreams::qprint_decoder());
+        out.push(os);
+        out << str;
+    }
+
     template <typename String>
     static bool is_ascii_string(String const & str, std::locale const & locale)
     {
@@ -149,19 +180,17 @@ private:
                     if (++b == val.end())
                         break;
             }
-            if ((b - a) > (std::ptrdiff_t)line_break / 2) {
+            if ((b - a) > static_cast<std::ptrdiff_t>(line_break) / 2) {
                 out += "=?ISO-2022-JP?B?";
-                acqua::email::utils::base64_encoder enc("ISO-2022-JP");
-                enc.read_one(std::string(a, b), out);
-                a = b;
+                out += base64_encode(a, b, "ISO-2022-JP");
                 out += "?=\r\n ";
+                a = b;
             }
         }
 
         if (a != val.end()) {
             out += "=?ISO-2022-JP?B?";
-            acqua::email::utils::base64_encoder enc("ISO-2022-JP");
-            enc.read_one(std::string(a, val.end()), out);
+            out += base64_encode(a, val.end(), "ISO-2022-JP");
             out += "?=";
         }
 
@@ -189,7 +218,7 @@ private:
                     if (++b == val.end())
                         break;
             }
-            if ((b - a) > (std::ptrdiff_t)line_break / 2) {
+            if ((b - a) > static_cast<std::ptrdiff_t>(line_break) / 2) {
                 out += key;
                 out += "*";
                 out += boost::lexical_cast<std::string>(++count);
@@ -238,15 +267,11 @@ private:
             charset = what->str(1);
             switch(beg[what->position(2)]) {
                 case 'B': case 'b':  {
-                    base64_decoder dec;
-                    dec.write(oss, what->str(3));
-                    dec.flush(oss);
+                    base64_decode(what->str(3), oss);
                     break;
                 }
                 case 'Q': case 'q': {
-                    qprint_decoder dec;
-                    dec.write(oss, what->str(3));
-                    dec.flush(oss);
+                    qprint_decode(what->str(3), oss);
                     break;
                 }
             }
@@ -340,7 +365,7 @@ private:
                 if (++it >= end && std::isxdigit(*it, locale))
                     return;
                 hex[1] = *it;
-                os << (char)std::strtol(hex, nullptr, 16);
+                os << static_cast<char>(std::strtol(hex, nullptr, 16));
             } else {
                 os << *it;
             }
@@ -369,4 +394,4 @@ private:
     }
 };
 
-} } }
+} }

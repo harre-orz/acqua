@@ -11,7 +11,7 @@
 #include <acqua/iostreams/ostream_codecvt.hpp>
 #include <acqua/email/email_parser.hpp>
 #include <acqua/email/message.hpp>
-
+#include <acqua/email/mime_header.hpp>
 
 
 namespace acqua { namespace email { namespace detail {
@@ -84,14 +84,11 @@ private:
     void append(basic_message<String> & mes)
     {
         if (!name_.empty() && !params_.empty()) {
-            std::cout << "header append:" << name_ << " " << params_ << std::endl;
             auto & disp = mes.headers[name_];
             if (boost::istarts_with(name_, "Content-")) {
-                // TODO: disposition のパース
-                disp = params_;
+                mime_header::decode(params_.begin(), params_.end(), disp.str(), disp);
             } else {
-                // TODO: disposition のパース
-                disp = params_;
+                mime_header::decode(params_.begin(), params_.end(), disp.str());
             }
         }
     }
@@ -297,11 +294,9 @@ struct parser_impl
         if (text_mode) {
             *static_cast<base_type *>(this) = payload_type(
                 child_boundary, boundary, static_cast<streambuf_type *>(email), enc, charset);
-            std::cout << "text-mode:" << enc << std::endl;
         } else {
             *static_cast<base_type *>(this) = payload_type(
                 child_boundary, boundary, static_cast<streambuf_type *>(email), enc);
-            std::cout << "binary-mode:" << enc << std::endl;
         }
     }
 

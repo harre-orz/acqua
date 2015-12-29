@@ -3,7 +3,9 @@
 #include <memory>
 #include <iostream>
 #include <boost/iostreams/categories.hpp>
-#include <boost/locale.hpp>
+#include <boost/locale/encoding_utf.hpp>
+#include <boost/locale/encoding.hpp>
+
 
 namespace acqua { namespace iostreams { namespace detail {
 
