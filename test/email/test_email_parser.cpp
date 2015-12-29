@@ -13,6 +13,7 @@ BOOST_AUTO_TEST_CASE(basics)
     out.push(acqua::email::email_parser(email));
     std::ifstream ifs("sample.dat");
     boost::iostreams::copy(ifs, out);
+    email.dump(std::cout);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

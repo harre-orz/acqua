@@ -8,8 +8,10 @@
 #include <acqua/iostreams/ascii.hpp>
 #include <acqua/iostreams/qprint.hpp>
 #include <acqua/iostreams/base64.hpp>
+#include <acqua/iostreams/ostream_codecvt.hpp>
 #include <acqua/email/email_parser.hpp>
 #include <acqua/email/message.hpp>
+
 
 
 namespace acqua { namespace email { namespace detail {
@@ -146,7 +148,7 @@ public:
                 out_->push(acqua::iostreams::base64_decoder());
                 break;
         }
-        out_->push(*sbuf);
+        out_->push(acqua::iostreams::ostream_code_converter<char>(sbuf, charset));
     }
 
     payload_parser(payload_parser const &) = delete;
@@ -350,14 +352,13 @@ struct basic_email_parser<String>::impl
 
         char sep[] = { '\r', '\n' };
         char const * end = beg + size;
-        char const * it;
 
         // 前回の最後が '\r' のときで 今回の最初が '\n' のときは '\n' を飛ばす
         if (last_ == '\r' && *beg == '\n')
             ++beg;
         last_ = end[-1];
 
-        for(; (it = std::find_first_of(beg, end, sep, sep+2)) != end; beg = it) {
+        for(char const * it; (it = std::find_first_of(beg, end, sep, sep+2)) != end; beg = it) {
             line_.append(beg, it);  // 改行コードは含まない
             this->parse_line(line_);
             line_.clear();
@@ -369,11 +370,13 @@ struct basic_email_parser<String>::impl
                 ++it;
             if (it == end)
                 return size;
+            // 中断
+            if (!this->in_progress)
+                return size - (end - it);
         }
 
         // TODO: line_ は RFC に則った許容量を超えたときにエラーにしたほうがいいかも
 
-        // 残り
         line_.append(beg, end);
         return size;
     }

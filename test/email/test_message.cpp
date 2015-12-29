@@ -9,8 +9,7 @@ BOOST_AUTO_TEST_CASE(basics)
     std::ostream os(mes);
     os << "This is a pen.";
     BOOST_TEST(mes.str() == "This is a pen.");
-    BOOST_TEST((mes.begin() != mes.end()));
-    BOOST_TEST((++mes.begin() == mes.end()));
+    BOOST_TEST((mes.begin() == mes.end()));
 }
 
 BOOST_AUTO_TEST_CASE(stringbuf)
