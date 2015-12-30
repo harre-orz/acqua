@@ -3,9 +3,10 @@ CXXFLAGS += -g
 
 PROGRAMS = \
 	interfaces \
-	ping \
 	inotify_listener \
 	netlink_listener \
+	fcopy_server \
+	fcopy_client \
 
 .DEFAULT: $(CXXBuild $(PROGRAMS))
 
