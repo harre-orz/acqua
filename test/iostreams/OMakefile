@@ -3,6 +3,8 @@ PROGRAMS = \
 	test_ascii_filter \
 	test_qprint_filter \
 	test_base64_filter \
+	test_md5_filter \
+	test_sha256_filter \
 
 .DEFAULT: $(CXXBuild $(PROGRAMS))
 	$(RunTest)
