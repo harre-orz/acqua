@@ -6,7 +6,7 @@
 #include <boost/mpl/bool.hpp>
 #include <boost/iostreams/categories.hpp>
 #include <boost/iostreams/operations.hpp>
-#include <acqua/iostreams/detail/newline_base.hpp>
+#include <acqua/iostreams/newline_base.hpp>
 
 namespace acqua { namespace iostreams {
 
@@ -55,7 +55,7 @@ private:
 template <typename Traits>
 class basic_base64_encoder
     : private Traits
-    , public detail::newline_base< basic_base64_encoder<Traits> >
+    , public newline_base< basic_base64_encoder<Traits> >
 {
 private:
     using base_type = typename basic_base64_encoder::base_type;
@@ -139,7 +139,7 @@ class basic_base64_decoder
 {
 public:
     using char_type = char;
-    struct category : boost::iostreams::filter_tag, boost::iostreams::input, boost::iostreams::output {};
+    using category = boost::iostreams::dual_use_filter_tag;
     using traits_type = Traits;
 
 public:

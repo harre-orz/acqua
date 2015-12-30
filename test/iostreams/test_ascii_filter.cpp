@@ -1,41 +1,41 @@
-#include <acqua/iostreams/qprint.hpp>
+#include <acqua/iostreams/ascii_filter.hpp>
 #include <boost/test/included/unit_test.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/copy.hpp>
 #include <sstream>
 
-BOOST_AUTO_TEST_SUITE(qprint)
+BOOST_AUTO_TEST_SUITE(ascii_filter)
 
 BOOST_AUTO_TEST_CASE(encoder)
 {
     do {
         std::ostringstream oss;
         boost::iostreams::filtering_ostream out;
-        out.push(acqua::iostreams::qprint_encoder(acqua::iostreams::newline::ln, 20));  // 20文字ごとに改行コード LN を挟む
+        out.push(acqua::iostreams::ascii_encoder(acqua::iostreams::newline::ln, 20));  // 20文字ごとに改行コード LN を挟む
         out.push(oss);
         out << "I don't dream at night, I dream all day; I dream for a living.";
         boost::iostreams::close(out);
-        BOOST_TEST(oss.str() == "I don't dream at nig=\nht, I dream all day;=\n I dream for a livin=\ng.");
+        BOOST_TEST(oss.str() == "I don't dream at nig \nht, I dream all day; \n I dream for a livin \ng.");
     } while(false);
 
     do {
         std::ostringstream oss;
         boost::iostreams::filtering_ostream out;
-        out.push(acqua::iostreams::qprint_encoder(acqua::iostreams::newline::cr, 20));  // 20文字ごとに改行コード CR を挟む
+        out.push(acqua::iostreams::ascii_encoder(acqua::iostreams::newline::cr, 20));  // 20文字ごとに改行コード CR を挟む
         out.push(oss);
         out << "I don't dream at night, I dream all day; I dream for a living.";
         boost::iostreams::close(out);
-        BOOST_TEST(oss.str() == "I don't dream at nig=\rht, I dream all day;=\r I dream for a livin=\rg.");
+        BOOST_TEST(oss.str() == "I don't dream at nig \rht, I dream all day; \r I dream for a livin \rg.");
     } while(false);
 
     do {
         std::ostringstream oss;
         boost::iostreams::filtering_ostream out;
-        out.push(acqua::iostreams::qprint_encoder(acqua::iostreams::newline::crln, 20));  // 20文字ごとに改行コード CRLN を挟む
+        out.push(acqua::iostreams::ascii_encoder(acqua::iostreams::newline::crln, 20));  // 20文字ごとに改行コード CRLN を挟む
         out.push(oss);
         out << "I don't dream at night, I dream all day; I dream for a living.";
         boost::iostreams::close(out);
-        BOOST_TEST(oss.str() == "I don't dream at nig=\r\nht, I dream all day;=\r\n I dream for a livin=\r\ng.");
+        BOOST_TEST(oss.str() == "I don't dream at nig \r\nht, I dream all day; \r\n I dream for a livin \r\ng.");
     } while(false);
 }
 
@@ -43,9 +43,9 @@ BOOST_AUTO_TEST_CASE(decoder)
 {
     do {
         // LN
-        std::istringstream iss("I don't dream at nig=\nht, I dream all day;=\n I dream for a livin=\ng.");
+        std::istringstream iss("I don't dream at nig \nht, I dream all day; \n I dream for a livin \ng.");
         boost::iostreams::filtering_istream in;
-        in.push(acqua::iostreams::qprint_decoder());
+        in.push(acqua::iostreams::ascii_decoder());
         in.push(iss);
         std::ostringstream oss;
         boost::iostreams::copy(in, oss);
@@ -54,9 +54,9 @@ BOOST_AUTO_TEST_CASE(decoder)
 
     do {
         // CR
-        std::istringstream iss("I don't dream at nig=\rht, I dream all day;=\r I dream for a livin=\rg.");
+        std::istringstream iss("I don't dream at nig \nht, I dream all day; \n I dream for a livin \ng.");
         boost::iostreams::filtering_istream in;
-        in.push(acqua::iostreams::qprint_decoder());
+        in.push(acqua::iostreams::ascii_decoder());
         in.push(iss);
         std::ostringstream oss;
         boost::iostreams::copy(in, oss);
@@ -64,17 +64,15 @@ BOOST_AUTO_TEST_CASE(decoder)
     } while(false);
 
     do {
-        // CRLN
-        std::istringstream iss("I don't dream at nig=\r\nht, I dream all day;=\r\n I dream for a livin=\r\ng.");
+        std::istringstream iss("I don't dream at nig \r\nht, I dream all day; \r\n I dream for a livin \r\ng.");
         boost::iostreams::filtering_istream in;
-        in.push(acqua::iostreams::qprint_decoder());
+        in.push(acqua::iostreams::ascii_decoder());
         in.push(iss);
         std::ostringstream oss;
         boost::iostreams::copy(in, oss);
         BOOST_TEST(oss.str() == "I don't dream at night, I dream all day; I dream for a living.");
     } while(false);
 }
-
 
 BOOST_AUTO_TEST_CASE(multiline)
 {
@@ -89,14 +87,14 @@ BOOST_AUTO_TEST_CASE(multiline)
     do {
         std::ostringstream oss;
         boost::iostreams::filtering_ostream out;
-        out.push(acqua::iostreams::qprint_encoder(acqua::iostreams::newline::ln, 14));
+        out.push(acqua::iostreams::ascii_encoder(acqua::iostreams::newline::ln, 14));
         out.push(oss);
         out << str;
         boost::iostreams::close(out);
 
         std::istringstream iss(oss.str());
         boost::iostreams::filtering_istream in;
-        in.push(acqua::iostreams::qprint_decoder());
+        in.push(acqua::iostreams::ascii_decoder());
         in.push(iss);
         oss.str("");
         boost::iostreams::copy(in, oss);
@@ -106,14 +104,14 @@ BOOST_AUTO_TEST_CASE(multiline)
     do {
         std::ostringstream oss;
         boost::iostreams::filtering_ostream out;
-        out.push(acqua::iostreams::qprint_encoder(acqua::iostreams::newline::cr, 47));
+        out.push(acqua::iostreams::ascii_encoder(acqua::iostreams::newline::cr, 47));
         out.push(oss);
         out << str;
         boost::iostreams::close(out);
 
         std::istringstream iss(oss.str());
         boost::iostreams::filtering_istream in;
-        in.push(acqua::iostreams::qprint_decoder());
+        in.push(acqua::iostreams::ascii_decoder());
         in.push(iss);
         oss.str("");
         boost::iostreams::copy(in, oss);
@@ -123,14 +121,14 @@ BOOST_AUTO_TEST_CASE(multiline)
     do {
         std::ostringstream oss;
         boost::iostreams::filtering_ostream out;
-        out.push(acqua::iostreams::qprint_encoder(acqua::iostreams::newline::crln, 77));
+        out.push(acqua::iostreams::ascii_encoder(acqua::iostreams::newline::crln, 77));
         out.push(oss);
         out << str;
         boost::iostreams::close(out);
 
         std::istringstream iss(oss.str());
         boost::iostreams::filtering_istream in;
-        in.push(acqua::iostreams::qprint_decoder());
+        in.push(acqua::iostreams::ascii_decoder());
         in.push(iss);
         oss.str("");
         boost::iostreams::copy(in, oss);

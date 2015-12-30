@@ -3,12 +3,12 @@
 #include <boost/iostreams/categories.hpp>
 #include <boost/iostreams/operations.hpp>
 #include <boost/scope_exit.hpp>
-#include <acqua/iostreams/detail/newline_base.hpp>
+#include <acqua/iostreams/newline_base.hpp>
 
 namespace acqua { namespace iostreams {
 
 class qprint_encoder
-    : public detail::newline_base< qprint_encoder >
+    : public newline_base< qprint_encoder >
 {
 private:
     using base_type = qprint_encoder::base_type;
@@ -84,7 +84,7 @@ class qprint_decoder
 {
 public:
     using char_type = char;
-    struct category : boost::iostreams::filter_tag, boost::iostreams::input, boost::iostreams::output {};
+    using category = boost::iostreams::dual_use_filter_tag;
 
     template <typename Source>
     int get(Source & src) const
