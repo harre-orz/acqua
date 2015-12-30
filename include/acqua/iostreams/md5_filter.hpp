@@ -11,9 +11,9 @@ class md5_context
     struct impl;
 
 public:
-    using buffer_type = std::array<unsigned char, 16>;
+    static constexpr std::size_t buffer_size = 16;
 
-    explicit md5_context(buffer_type & buffer);
+    explicit md5_context(unsigned char * buffer);
 
     void init(boost::system::error_code & ec);
 

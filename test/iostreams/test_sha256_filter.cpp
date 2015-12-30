@@ -22,7 +22,7 @@ bool check_sha256(Buf const & buf, std::string const & filename)
 
 BOOST_AUTO_TEST_CASE(input_filter)
 {
-    acqua::iostreams::sha256_filter::buffer_type buf;
+    std::array<char, 32> buf;
     do {
         std::ifstream ifs(sample_file);
         boost::iostreams::filtering_istream in;
@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(input_filter)
 
 BOOST_AUTO_TEST_CASE(output_filter)
 {
-    acqua::iostreams::sha256_filter::buffer_type buf;
+    char buf[32];
     do {
         std::ostringstream oss;
         boost::iostreams::filtering_ostream out;

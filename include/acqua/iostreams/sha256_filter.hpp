@@ -11,9 +11,9 @@ class sha256_context
     struct impl;
 
 public:
-    using buffer_type = std::array<unsigned char, 32>;
+    static constexpr std::size_t buffer_size = 32;
 
-    explicit sha256_context(buffer_type & buffer);
+    explicit sha256_context(unsigned char * buffer);
 
     void init(boost::system::error_code & ec);
 
