@@ -4,6 +4,7 @@ PROGRAMS = \
 	test_message \
 	test_email \
 	test_email_parser \
+	test_email_generator \
 
 .DEFAULT: $(CXXBuild $(PROGRAMS))
 	$(RunTest)

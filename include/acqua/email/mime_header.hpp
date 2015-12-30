@@ -8,8 +8,8 @@
 #include <boost/spirit/include/qi.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
-#include <acqua/iostreams/qprint.hpp>
-#include <acqua/iostreams/base64.hpp>
+#include <acqua/iostreams/qprint_filter.hpp>
+#include <acqua/iostreams/base64_filter.hpp>
 
 
 namespace acqua { namespace email {
@@ -161,7 +161,7 @@ private:
     }
 
     template <typename In, typename Out>
-    static std::size_t append_rfc2047_value(In const & val, Out & out, std::locale const & locale, std::size_t line_break = 78)
+    static std::size_t append_rfc2047_value(In const & val, Out & out, std::locale const &, std::size_t line_break = 78)
     {
         using utf = boost::locale::utf::utf_traits<typename In::value_type>;
         auto a = val.begin();

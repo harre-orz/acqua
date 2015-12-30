@@ -25,31 +25,22 @@ inline md5_context::md5_context(buffer_type & buffer)
 inline void md5_context::init(boost::system::error_code & ec)
 {
     impl_->buffer.fill(0);
-    int rc = MD5_Init(&impl_->context);
-    if (rc != 1) {
-        // TODO;
+    if (MD5_Init(&impl_->context) != 1)
         ec = make_error_code(boost::system::errc::bad_address);
-    }
 }
 
 
 inline void md5_context::update(char const * s, std::size_t n, boost::system::error_code & ec)
 {
-    int rc = MD5_Update(&impl_->context, s, n);
-    if (rc != 1) {
-        // TODO:
+    if (MD5_Update(&impl_->context, s, n) != 1)
         ec = make_error_code(boost::system::errc::bad_address);
-    }
 }
 
 
 inline void md5_context::finish(boost::system::error_code & ec)
 {
-    int rc = MD5_Final(static_cast<unsigned char *>(impl_->buffer.begin()), &impl_->context);
-    if (rc != 1) {
-        // TODO:
+    if (MD5_Final(impl_->buffer.begin(), &impl_->context) != 1)
         ec = make_error_code(boost::system::errc::bad_address);
-    }
 }
 
 } }

@@ -5,9 +5,9 @@
 #include <boost/utility/in_place_factory.hpp>
 #include <boost/variant.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
-#include <acqua/iostreams/ascii.hpp>
-#include <acqua/iostreams/qprint.hpp>
-#include <acqua/iostreams/base64.hpp>
+#include <acqua/iostreams/ascii_filter.hpp>
+#include <acqua/iostreams/qprint_filter.hpp>
+#include <acqua/iostreams/base64_filter.hpp>
 #include <acqua/iostreams/ostream_codecvt.hpp>
 #include <acqua/email/email_parser.hpp>
 #include <acqua/email/message.hpp>
@@ -125,7 +125,7 @@ public:
                 out_->push(acqua::iostreams::base64_decoder());
                 break;
         }
-        out_->push(*sbuf);
+        out_->push(acqua::iostreams::ostream_code_converter<char_type>(sbuf));
     }
 
     // 文字コード変換をする
@@ -145,7 +145,7 @@ public:
                 out_->push(acqua::iostreams::base64_decoder());
                 break;
         }
-        out_->push(acqua::iostreams::ostream_code_converter<char>(sbuf, charset));
+        out_->push(acqua::iostreams::ostream_code_converter<char_type>(sbuf, charset));
     }
 
     payload_parser(payload_parser const &) = delete;
