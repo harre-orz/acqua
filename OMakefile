@@ -29,10 +29,10 @@ LDFLAGS += -lstdc++ -lpthread -lm -lcrypto -lssl
 LIBS +=
 if $(Mac)
 	INCLUDES += /opt/local/include
-	LDFLAGS += -L/opt/local/lib -lboost_system-mt -lboost_thread-mt -lboost_locale-mt -lboost_date_time-mt -lboost_iostreams-mt
+	LDFLAGS += -L/opt/local/lib -lboost_system-mt -lboost_thread-mt -lboost_locale-mt -lboost_date_time-mt -lboost_iostreams-mt -lboost_filesytem-mt
 	export
 else
-	LDFLAGS += -lboost_system -lboost_thread -lboost_locale -lboost_date_time -lboost_iostreams
+	LDFLAGS += -lboost_system -lboost_thread -lboost_locale -lboost_date_time -lboost_iostreams -lboost_filesystem
 	export
 
 .PHONY: build clean doc

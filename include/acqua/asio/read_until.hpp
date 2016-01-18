@@ -27,7 +27,7 @@ public:
     template <typename Iterator>
     std::pair<Iterator, bool> operator()(Iterator it, Iterator end)
     {
-        std::size_t d = std::distance(it, end);
+        std::size_t d = static_cast<std::size_t>(std::distance(it, end));
         if (size_ <= d) {
             std::advance(it, size_);
             return std::make_pair(it, true);
