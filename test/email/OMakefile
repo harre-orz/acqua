@@ -3,6 +3,7 @@ PROGRAMS = \
 	test_headers \
 	test_message \
 	test_email \
+	test_decode_mimeheader \
 	test_email_parser \
 	test_email_generator \
 
