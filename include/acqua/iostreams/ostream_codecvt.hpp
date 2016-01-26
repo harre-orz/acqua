@@ -1,13 +1,13 @@
 #pragma once
 
-#include <memory>
-#include <iostream>
-#include <boost/iostreams/categories.hpp>
-#include <boost/locale/encoding_utf.hpp>
 #include <boost/locale/encoding.hpp>
+#include <boost/locale/encoding_utf.hpp>
+#include <boost/iostreams/categories.hpp>
+#include <iostream>
+#include <memory>
+#include <algorithm>
 
-
-namespace acqua { namespace iostreams { namespace detail {
+namespace acqua { namespace iostreams {
 
 template <typename Char, typename CharT, typename Traits, typename Enabler = void>
 class basic_ostream_codecvt
@@ -107,28 +107,25 @@ private:
     char_type last_ = '\0';
 };
 
-}  // detail
-
 
 /*!
-  char <=> wchar_t を変換しながら sbuf に書き込むアダプター。
+  char <=> wchar_t を変換しながら sbuf に書き込むアダプター.
   変換する必要がない場合は、特殊化された無変換のアダプターが使われる
  */
-
 template <typename Char, typename CharT, typename Traits>
-detail::basic_ostream_codecvt<Char, CharT, Traits> ostream_code_converter(std::basic_streambuf<CharT, Traits> * sbuf)
+inline basic_ostream_codecvt<Char, CharT, Traits> ostream_code_converter(std::basic_streambuf<CharT, Traits> * sbuf)
 {
-    return detail::basic_ostream_codecvt<Char, CharT, Traits>(sbuf);
+    return basic_ostream_codecvt<Char, CharT, Traits>(sbuf);
 }
 
 
 /*!
-  文字コード・改行コードを変換しながら sbuf に書き込むアダプター
+  ostream に指定する文字コードを charset として、文字コードと改行コードを変換しながら sbuf に書き込むアダプター.
  */
 template <typename Char, typename CharT, typename Traits>
-detail::basic_ostream_locale_codecvt<Char, CharT, Traits> ostream_code_converter(std::basic_streambuf<CharT, Traits> * sbuf, std::string const & charset)
+inline basic_ostream_locale_codecvt<Char, CharT, Traits> ostream_code_converter(std::basic_streambuf<CharT, Traits> * sbuf, std::string const & charset)
 {
-    return detail::basic_ostream_locale_codecvt<Char, CharT, Traits>(sbuf, charset);
+    return basic_ostream_locale_codecvt<Char, CharT, Traits>(sbuf, charset);
 }
 
 } }
