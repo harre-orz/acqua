@@ -15,7 +15,7 @@ bool check_sha256(Buf const & buf, std::string const & filename)
     std::ostringstream oss;
     oss << "echo "<< std::hex;
     for(auto && ch : buf)
-        oss << std::setw(2) << std::setfill('0') << static_cast<int>(ch);
+        oss << std::setw(2) << std::setfill('0') << (static_cast<int>(ch) & 0xff);
     oss << std::dec << "  " << filename << " | sha256sum -c > /dev/null";
     return (std::system(oss.str().c_str()) == 0);
 }
