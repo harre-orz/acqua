@@ -1,9 +1,17 @@
+/*!
+  acqua library
+
+  Copyright (c) 2016 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
-#include <array>
-#include <boost/system/error_code.hpp>
-#include <boost/iostreams/categories.hpp>
 #include <boost/iostreams/operations.hpp>
+#include <boost/iostreams/categories.hpp>
+#include <boost/system/error_code.hpp>
+#include <array>
 
 namespace acqua { namespace iostreams {
 

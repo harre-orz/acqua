@@ -6,6 +6,7 @@
 
 BOOST_AUTO_TEST_SUITE(ascii_filter)
 
+
 BOOST_AUTO_TEST_CASE(encoder)
 {
     do {

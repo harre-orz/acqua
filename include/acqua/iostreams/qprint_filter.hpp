@@ -1,14 +1,22 @@
+/*!
+  acqua library
+
+  Copyright (c) 2016 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
+#include <acqua/iostreams/newline_category.hpp>
 #include <boost/iostreams/categories.hpp>
 #include <boost/iostreams/operations.hpp>
 #include <boost/scope_exit.hpp>
-#include <acqua/iostreams/newline_base.hpp>
 
 namespace acqua { namespace iostreams {
 
 class qprint_encoder
-    : public newline_base< qprint_encoder >
+    : public detail::newline_base< qprint_encoder >
 {
 private:
     using base_type = qprint_encoder::base_type;

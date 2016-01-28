@@ -1,11 +1,21 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
-#include <limits>
 #include <boost/iostreams/operations.hpp>
+#include <limits>
 
 namespace acqua { namespace iostreams {
 
 enum class newline { none, cr, ln, crln };
+
+namespace detail {
 
 /*!
   一定行数以上を書き込んだときに、自動的に改行を行う基底クラス.
@@ -80,9 +90,11 @@ public:
     bool line_break(Sink & sink) { return put_ln(sink); }
 
 private:
-    newline  nl_;
+    newline nl_;
     std::size_t max_;
     std::size_t cnt_ = 0;
 };
+
+}  // detail
 
 } }

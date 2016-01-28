@@ -1,12 +1,20 @@
+/*!
+  acqua library
+
+  Copyright (c) 2016 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
-#include <iostream>
-#include <algorithm>
+#include <acqua/iostreams/newline_category.hpp>
+#include <boost/iostreams/operations.hpp>
+#include <boost/iostreams/categories.hpp>
 #include <boost/scope_exit.hpp>
 #include <boost/mpl/bool.hpp>
-#include <boost/iostreams/categories.hpp>
-#include <boost/iostreams/operations.hpp>
-#include <acqua/iostreams/newline_base.hpp>
+#include <iostream>
+#include <algorithm>
 
 namespace acqua { namespace iostreams {
 
@@ -55,7 +63,7 @@ private:
 template <typename Traits>
 class basic_base64_encoder
     : private Traits
-    , public newline_base< basic_base64_encoder<Traits> >
+    , public detail::newline_base< basic_base64_encoder<Traits> >
 {
 private:
     using base_type = typename basic_base64_encoder::base_type;

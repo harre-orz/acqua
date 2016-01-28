@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <boost/property_tree/ptree.hpp>
 #include <acqua/iostreams/json_adapt.hpp>
+#include <boost/property_tree/ptree.hpp>
 
 namespace acqua { namespace iostreams {
 

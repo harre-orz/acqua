@@ -1,8 +1,16 @@
+/*!
+  acqua library
+
+  Copyright (c) 2016 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
-#include <boost/iostreams/categories.hpp>
+#include <acqua/iostreams/newline_category.hpp>
 #include <boost/iostreams/operations.hpp>
-#include <acqua/iostreams/newline_base.hpp>
+#include <boost/iostreams/categories.hpp>
 
 namespace acqua { namespace iostreams {
 
@@ -10,7 +18,7 @@ namespace acqua { namespace iostreams {
   メールの 7bit foramt_flowed 指定におけるエンコードを行うクラス.
  */
 class ascii_encoder
-    : public newline_base< ascii_encoder >
+    : public detail::newline_base< ascii_encoder >
 {
 private:
     using base_type = ascii_encoder::base_type;

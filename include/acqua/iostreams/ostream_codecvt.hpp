@@ -1,22 +1,32 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 #include <boost/locale/encoding.hpp>
 #include <boost/locale/encoding_utf.hpp>
 #include <boost/iostreams/categories.hpp>
 #include <iostream>
-#include <memory>
 #include <algorithm>
+#include <memory>
 
 namespace acqua { namespace iostreams {
 
 template <typename Char, typename CharT, typename Traits, typename Enabler = void>
 class basic_ostream_codecvt
 {
+    using streambuf_type = std::basic_streambuf<CharT, Traits>;
+
 public:
     using char_type = Char;
     using category = boost::iostreams::sink_tag;
 
-    explicit basic_ostream_codecvt(std::basic_streambuf<CharT, Traits> * sbuf)
+    explicit basic_ostream_codecvt(streambuf_type * sbuf)
         : sbuf_(sbuf) {}
 
     std::streamsize write(char_type const * s, std::streamsize n) const
@@ -27,18 +37,20 @@ public:
     }
 
 private:
-    std::basic_streambuf<CharT, Traits> * sbuf_;
+    streambuf_type * sbuf_;
 };
 
 
 template <typename Char, typename CharT, typename Traits>
 class basic_ostream_codecvt<Char, CharT, Traits, typename std::enable_if<std::is_same<Char, CharT>::value>::type>
 {
+    using streambuf_type = std::basic_streambuf<CharT, Traits>;
+
 public:
     using char_type = Char;
     using category = boost::iostreams::sink_tag;
 
-    explicit basic_ostream_codecvt(std::basic_streambuf<CharT, Traits> * sbuf)
+    explicit basic_ostream_codecvt(streambuf_type * sbuf)
         : sbuf_(sbuf) {}
 
     std::streamsize write(char_type const * s, std::streamsize n) const
@@ -47,19 +59,22 @@ public:
     }
 
 private:
-    std::basic_streambuf<CharT, Traits> * sbuf_;
+    streambuf_type * sbuf_;
 };
 
 
-template <typename Char, typename CharT, typename Traits>
+template <typename CharT, typename Traits>
 class basic_ostream_locale_codecvt
 {
+    using streambuf_type = std::basic_streambuf<CharT, Traits>;
+    using ostream_type = std::basic_ostream<CharT, Traits>;
+
 public:
-    using char_type = Char;
+    using char_type = char;
     struct category : boost::iostreams::sink_tag, boost::iostreams::closable_tag {};
 
-    explicit basic_ostream_locale_codecvt(std::basic_streambuf<CharT, Traits> * sbuf, std::string const & charset)
-        : os_(new std::basic_ostream<CharT, Traits>(sbuf)), charset_(charset) {}
+    explicit basic_ostream_locale_codecvt(streambuf_type * sbuf, std::string const & charset)
+        : os_(new ostream_type(sbuf)), charset_(charset) {}
 
     std::streamsize write(char_type const * beg, std::streamsize size)
     {
@@ -76,7 +91,7 @@ public:
 
         for(char_type const * it; (it = std::find_first_of(beg, end, sep, sep+2)) != end; beg = it) {
             line_.append(beg, it);  // 改行コードは含まない
-            *os_ << boost::locale::conv::to_utf<CharT>(line_, charset_) << std::endl;
+            *os_ << boost::locale::conv::to_utf<CharT>(line_, charset_) << '\n';
             line_.clear();
             if (*it == '\r')
                 ++it;
@@ -101,7 +116,7 @@ public:
     }
 
 private:
-    std::shared_ptr< std::basic_ostream<CharT, Traits> > os_;
+    std::shared_ptr<ostream_type> os_;
     std::string charset_;
     std::basic_string<char_type> line_ = {};
     char_type last_ = '\0';
@@ -122,10 +137,10 @@ inline basic_ostream_codecvt<Char, CharT, Traits> ostream_code_converter(std::ba
 /*!
   ostream に指定する文字コードを charset として、文字コードと改行コードを変換しながら sbuf に書き込むアダプター.
  */
-template <typename Char, typename CharT, typename Traits>
-inline basic_ostream_locale_codecvt<Char, CharT, Traits> ostream_code_converter(std::basic_streambuf<CharT, Traits> * sbuf, std::string const & charset)
+template <typename CharT, typename Traits>
+inline basic_ostream_locale_codecvt<CharT, Traits> ostream_code_converter(std::basic_streambuf<CharT, Traits> * sbuf, std::string const & charset)
 {
-    return basic_ostream_locale_codecvt<Char, CharT, Traits>(sbuf, charset);
+    return basic_ostream_locale_codecvt<CharT, Traits>(sbuf, charset);
 }
 
 } }

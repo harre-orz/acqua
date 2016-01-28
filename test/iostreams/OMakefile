@@ -6,6 +6,7 @@ PROGRAMS = \
 	test_md5_filter \
 	test_sha256_filter \
 	test_ostream_codecvt \
+	test_istream_codecvt \
 
 .DEFAULT: $(CXXBuild $(PROGRAMS))
 	$(RunTest)
