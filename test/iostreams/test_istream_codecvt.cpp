@@ -1,6 +1,7 @@
 #include <acqua/iostreams/istream_codecvt.hpp>
 #include <boost/test/included/unit_test.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/copy.hpp>
 
 BOOST_AUTO_TEST_SUITE(istream_code_converter)
 
@@ -101,6 +102,29 @@ BOOST_AUTO_TEST_CASE(istream_codecvt_utf8_sjis)
         boost::iostreams::filtering_istream(acqua::iostreams::istream_code_converter(wiss.rdbuf(), charset))
             >> dst;
         BOOST_TEST(str_sjis == dst);
+    } while(false);
+}
+
+
+BOOST_AUTO_TEST_CASE(istream_codecvt_utf8_sjis_multiline)
+{
+    std::string str_sjis = "\x93\xfa\x96\x7b\x8c\xea\n\n\x93\xfa\x96\x7b\x8c\xea";
+    std::string charset = "Shift_JIS";
+
+    do {
+        std::istringstream iss("日本語\n\n日本語");
+        boost::iostreams::filtering_istream in(acqua::iostreams::istream_code_converter(iss.rdbuf(), charset));
+        std::ostringstream oss;
+        boost::iostreams::copy(in, oss);
+        BOOST_TEST(str_sjis == oss.str());
+    } while(false);
+
+    do {
+        std::wistringstream wiss(L"日本語\n\n日本語");
+        boost::iostreams::filtering_istream in(acqua::iostreams::istream_code_converter(wiss.rdbuf(), charset));
+        std::ostringstream oss;
+        boost::iostreams::copy(in, oss);
+        BOOST_TEST(str_sjis == oss.str());
     } while(false);
 }
 

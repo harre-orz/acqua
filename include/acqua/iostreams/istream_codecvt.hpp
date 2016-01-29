@@ -1,3 +1,11 @@
+/*!
+  acqua library
+
+  Copyright (c) 2015 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 #include <boost/iostreams/categories.hpp>
@@ -8,6 +16,7 @@
 #include <array>
 #include <type_traits>
 #include <cstring>
+#include <acqua/string_cast.hpp>
 
 namespace acqua { namespace iostreams {
 
@@ -22,9 +31,7 @@ public:
     using category = boost::iostreams::source_tag;
 
     explicit basic_istream_codecvt(streambuf_type * sbuf)
-        : sbuf_(sbuf)
-    {
-    }
+        : sbuf_(sbuf) {}
 
     std::streamsize read(char_type * s, std::streamsize n)
     {
@@ -97,23 +104,31 @@ public:
     std::streamsize read(char_type * s, std::streamsize n)
     {
         std::streamsize i = n;
-        if (!line_.empty()) {
-            std::size_t wl = std::min<std::size_t>(line_.size(), static_cast<std::size_t>(i));
-            line_.erase(0, wl);
-            s += wl;
-            i -= wl;
+        if (line_.size() > 1) {
+            std::size_t width = std::min<std::size_t>(line_.size(), static_cast<std::size_t>(i));
+            line_.erase(0, width);
+            s += width;
+            i -= width;
+            if (i > 0) {
+                line_.push_back('\n');
+            }
         }
 
         std::basic_string<CharT, Traits> line;
         while(i > 0 && std::getline(*os_, line)) {
             trim_crln(line);
-            line_ = boost::locale::conv::from_utf(line, charset_);
-            std::size_t width = std::min<std::size_t>(line_.size(), static_cast<std::size_t>(i));
-            std::memcpy(s, line_.c_str(), width);
-            line_.erase(0, width);
-            s += width;
-            i -= width;
+            if (!line.empty()) {
+                line_ += boost::locale::conv::from_utf(line, charset_);
+                std::size_t width = std::min<std::size_t>(line_.size(), static_cast<std::size_t>(i));
+                std::memcpy(s, line_.c_str(), width);
+                line_.erase(0, width);
+                s += width;
+                i -= width;
+            }
+            if (i > 0)
+                line_.push_back('\n');
         }
+
         return (i == n) ? EOF : (n - i);
     }
 

@@ -77,4 +77,24 @@ BOOST_AUTO_TEST_CASE(ostream_codecvt_utf8_sjis)
 }
 
 
+
+BOOST_AUTO_TEST_CASE(ostream_codecvt_utf8_sjis_multiline)
+{
+    std::string str = "日本語\n\n日本語";
+    std::wstring wstr = L"日本語\n\n日本語";
+    std::string str_sjis = "\x93\xfa\x96\x7b\x8c\xea\n\n\x93\xfa\x96\x7b\x8c\xea";
+    std::string charset = "Shift_JIS";
+
+    std::ostringstream oss;
+    boost::iostreams::filtering_ostream(acqua::iostreams::ostream_code_converter(oss.rdbuf(), charset))
+        << str_sjis;
+    BOOST_TEST(oss.str() == str); // char => char
+
+    std::wostringstream woss;
+    boost::iostreams::filtering_ostream(acqua::iostreams::ostream_code_converter(woss.rdbuf(), charset))
+        << str_sjis;
+    BOOST_TEST(woss.str() == wstr); // char => wchar_t
+}
+
+
 BOOST_AUTO_TEST_SUITE_END()
