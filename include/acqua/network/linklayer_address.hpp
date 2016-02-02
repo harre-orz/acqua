@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include <iostream>
-#include <boost/array.hpp>
-#include <boost/operators.hpp>
 #include <boost/system/error_code.hpp>
+#include <boost/operators.hpp>
+#include <boost/array.hpp>
+#include <iostream>
 
 namespace acqua { namespace network {
 

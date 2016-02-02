@@ -117,7 +117,8 @@ inline std::uint32_t linklayer_address::to_oui() const noexcept
 
 inline std::string linklayer_address::to_string() const
 {
-    char buf[12];
+    char buf[18];
+    detail::address_impl<linklayer_address>::to_string(bytes_, buf);
     return buf;
 }
 
