@@ -1,8 +1,17 @@
+/*!
+  acqua library
+
+  Copyright (c) 2016 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
-#include <boost/variant.hpp>
-#include <boost/locale/encoding_utf.hpp>
 #include <acqua/iostreams/json_parser.hpp>
+#include <acqua/iostreams/error.hpp>
+#include <boost/locale/encoding_utf.hpp>
+#include <boost/variant.hpp>
 
 namespace acqua { namespace iostreams {
 
@@ -40,13 +49,12 @@ public:
             case '{':
                 impl.new_object();
                 return true;
-            // case '-': case '+':
-            // case '0' ... '9':
-            default:
+            case '-': case '+':
+            case '0' ... '9':
                 impl.new_number(ch);
                 return true;
         }
-        impl.failured(this, ch);
+        impl.failured(error::illegal_state);
         return true;
     }
 };
@@ -91,7 +99,7 @@ public:
         } else if (std::tolower(ch, std::locale::classic()) == *lit_) {
             return true;
         }
-        impl.failured(this, ch);
+        impl.failured(error::bad_boolean);
         return true;
     }
 };
@@ -171,7 +179,7 @@ public:
                 return false;
         }
 
-        impl.failured(this, ch);
+        impl.failured(error::bad_number);
         return true;
     }
 };
@@ -216,7 +224,7 @@ public:
                         hex_[1] = 0;
                         return true;
                     default:
-                        impl.failured(this, ch);
+                        impl.failured(error::bad_string);
                         return true;
                 }
                 escape_ = false;
@@ -260,7 +268,7 @@ public:
             return true;
         }
 
-        impl.failured(this, ch);
+        impl.failured(error::bad_string);
         return true;
     }
 
@@ -316,7 +324,7 @@ public:
         if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
             return true;
 
-        impl.failured(this, ch);
+        impl.failured(error::bad_array);
         return true;
     }
 };
@@ -330,8 +338,7 @@ class object_parser
         explicit string_impl(Impl & parent) : parent_(parent) {}
         template <typename T>
         void completed(T &&) { in_progress = false; }
-        template <typename Parser, typename CharT>
-        void failured(Parser * p, CharT ch) { parent_.failured(p, ch); }
+        void failured(error::json_errors ev) { parent_.failured(ev); }
         Impl & parent_;
         bool in_progress = true;
         using string_parser<String>::str_;
@@ -374,7 +381,7 @@ public:
         }
         if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
             return true;
-        impl.failured(this, ch);
+        impl.failured(error::bad_object);
         return true;
     }
 };
@@ -464,11 +471,9 @@ struct parser_impl
         completed();
     }
 
-    template <typename Parser>
-    void failured(Parser *, CharT)
+    void failured(error::json_errors ev)
     {
-        // TODO: エラーコード
-        error = make_error_code(boost::system::errc::bad_address);
+        error = make_error_code(ev);
         in_progress = false;
     }
 
