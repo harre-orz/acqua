@@ -53,7 +53,7 @@ protected:
 private:
     struct placeholder
     {
-        virtual Connector * construct(simple_server_base * this_, boost::asio::io_service & io_service) = 0;
+        virtual std::shared_ptr<Connector> construct(simple_server_base * this_, boost::asio::io_service & io_service) = 0;
         virtual ~placeholder() = default;
     };
 
@@ -66,7 +66,7 @@ private:
         {
         }
 
-        virtual Connector * construct(simple_server_base * this_, boost::asio::io_service & io_service)
+        virtual std::shared_ptr<Connector> construct(simple_server_base * this_, boost::asio::io_service & io_service)
         {
             return boost::fusion::make_fused(&simple_server_base::construct_impl<Args...>)(
                 boost::fusion::push_front(boost::fusion::push_front(args_, std::ref(io_service)), this_));
@@ -140,15 +140,17 @@ protected:
     }
 
 private:
-    Connector * construct(boost::asio::io_service & io_service)
+    std::shared_ptr<Connector> construct(boost::asio::io_service & io_service)
     {
         return holder_->construct(this, io_service);
     }
 
     template <typename... Args>
-    static Connector * construct_impl(simple_server_base * this_, boost::asio::io_service & io_service, Args&&... args)
+    static std::shared_ptr<Connector> construct_impl(simple_server_base * this_, boost::asio::io_service & io_service, Args&&... args)
     {
-        return static_cast<Derived *>(this_)->construct(io_service, args...);
+        return static_cast<Derived *>(this_)->construct(
+            std::bind(&simple_server_base::on_disconnect, this_, std::placeholders::_1),
+            io_service, args...);
     }
 
     //! true のときは async_accept() を行う
@@ -194,9 +196,7 @@ private:
     void async_accept()
     {
         if (incr()) {
-            std::shared_ptr<Connector> conn(
-                holder_->construct(this, acceptor_.get_io_service()),
-                std::bind(&simple_server_base::on_disconnect, this, std::placeholders::_1));
+            std::shared_ptr<Connector> conn(holder_->construct(this, acceptor_.get_io_service()));
             acceptor_.async_accept(
                 static_cast<Derived *>(this)->socket(conn),
                 std::bind(&simple_server_base::on_accept, this, std::placeholders::_1, conn));

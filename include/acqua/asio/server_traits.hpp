@@ -28,10 +28,10 @@ struct server_traits
 
     //! 接続済みソケットのコンテキストを作成.
     //! 第二引数以降は、サーバサービスのコンストラクタ第二引数以降に対応している
-    template <typename... Args>
-    static T * construct( boost::asio::io_service & io_service, Args&&... args)
+    template <typename Deleter, typename ... Args>
+    static std::shared_ptr<T> construct(Deleter deleter, boost::asio::io_service & io_service, Args&&... args)
     {
-        return new T(io_service, args...);
+        return std::shared_ptr<T>(new T(io_service, args...), deleter);
     }
 
     static void destruct(T * soc)
