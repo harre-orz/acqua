@@ -1,13 +1,22 @@
+/*!
+  acqua library
+
+  Copyright (c) 2016 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
+
+#include <acqua/asio/socket_base/transparent_options.hpp>
+#include <acqua/asio/proxy_traits.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <memory>
 
 extern "C" {
 #include <sys/types.h>
 #include <sys/socket.h>
 }
-
-#include <boost/asio/ip/tcp.hpp>
-#include <acqua/asio/proxy_traits.hpp>
-#include <acqua/asio/socket_base/transparent_options.hpp>
 
 namespace acqua { namespace asio {
 
@@ -28,7 +37,7 @@ struct transparent_proxy_traits
             soc.set_option(socket_base::transparent_v6(true), ec);
     }
 
-    static void start(std::shared_ptr<T> soc)
+    static void start(std::shared_ptr<T> & soc)
     {
         auto & sv = soc->server_socket();
         auto & cl = soc->client_socket();

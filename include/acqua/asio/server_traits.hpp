@@ -1,16 +1,16 @@
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
 
 #pragma once
 
-#include <memory>
-#include <boost/system/error_code.hpp>
 #include <boost/asio/io_service.hpp>
+#include <boost/system/error_code.hpp>
+#include <memory>
 
 namespace acqua { namespace asio {
 
@@ -34,19 +34,19 @@ struct server_traits
         return std::shared_ptr<T>(new T(io_service, args...), deleter);
     }
 
-    static void destruct(T * soc)
+    static void destruct(T * soc) noexcept
     {
         delete soc;
     }
 
     //! 接続済みソケットの最下位レイヤーを返す.
-    static LowestLayerType & socket(std::shared_ptr<T> soc)
+    static LowestLayerType & socket(std::shared_ptr<T> & soc)
     {
         return soc->socket();
     }
 
     //! クライアントと接続し、接続済みソケットの処理を開始.
-    static void start(std::shared_ptr<T> soc)
+    static void start(std::shared_ptr<T> & soc)
     {
         soc->start();
     }

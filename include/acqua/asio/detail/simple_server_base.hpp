@@ -175,6 +175,7 @@ private:
 
     void on_disconnect(Connector * conn)
     {
+        static_assert(noexcept(static_cast<Derived *>(this)->destruct(conn)), "must be noexcept");
         static_cast<Derived *>(this)->destruct(conn);
         if (decl()) {
             async_accept();
