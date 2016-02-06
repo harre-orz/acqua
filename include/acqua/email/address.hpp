@@ -1,16 +1,16 @@
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
 
 #pragma once
 
-#include <string>
-#include <boost/operators.hpp>
 #include <boost/system/error_code.hpp>
+#include <boost/operators.hpp>
+#include <string>
 
 namespace acqua { namespace email {
 
@@ -45,9 +45,9 @@ public:
       メールアドレス文字列から address クラスを作成する.
 
       メールアドレス文字列の例
-      - " example.com " => namespec = "", addrspec = "example.com"
-      - " <example.com> " => namespec = "", addrspec = "example.com"
-      - " foo bar < example.com > " => namespec = "foo bar", addrspec = "example.com"
+      - " hoge@example.com " => namespec = "", addrspec = "hoge@example.com"
+      - " <hoge@example.com> " => namespec = "", addrspec = "hoge@example.com"
+      - " foo bar < hoge@example.com > " => namespec = "foo bar", addrspec = "hoge@example.com"
     */
     static basic_address from_string(String const & str);
 
@@ -55,9 +55,9 @@ public:
       メールアドレス文字列から address クラスを作成する.
 
       メールアドレス文字列の例
-      - " example.com " => namespec = "", addrspec = "example.com"
-      - " <example.com> " => namespec = "", addrspec = "example.com"
-      - " foo bar < example.com > " => namespec = "foo bar", addrspec = "example.com"
+      - " hoge@example.com " => namespec = "", addrspec = "hoge@example.com"
+      - " <hoge@example.com> " => namespec = "", addrspec = "hoge@example.com"
+      - " foo bar < hoge@example.com > " => namespec = "foo bar", addrspec = "hoge@example.com"
     */
     static basic_address from_string(String const & str, boost::system::error_code & ec);
 

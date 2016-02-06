@@ -1,16 +1,16 @@
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
 
 #pragma once
 
-#include <deque>
-#include <boost/system/error_code.hpp>
 #include <acqua/email/headers.hpp>
+#include <boost/system/error_code.hpp>
+#include <deque>
 
 namespace acqua { namespace email {
 

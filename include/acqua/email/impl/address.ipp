@@ -1,11 +1,20 @@
+/*!
+  acqua library
+
+  Copyright (c) 2016 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
-#include <type_traits>
-#include <boost/system/system_error.hpp>
-#include <boost/fusion/adapted/struct/adapt_struct.hpp>
-#include <boost/algorithm/string/trim.hpp>
-#include <boost/spirit/include/qi.hpp>
+#include <acqua/email/address.hpp>
 #include <acqua/email/error.hpp>
+#include <boost/fusion/adapted/struct/adapt_struct.hpp>
+#include <boost/spirit/include/qi.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/system/system_error.hpp>
+#include <type_traits>
 
 namespace acqua { namespace email {
 
@@ -28,6 +37,7 @@ public:
 private:
     qi::rule<Iterator, String(), Skipper> rule_;
 };
+
 
 template <typename Iterator, typename String, typename Skipper = boost::spirit::unused_type>
 class address_grammar

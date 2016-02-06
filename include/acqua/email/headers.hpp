@@ -1,16 +1,16 @@
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
 
 #pragma once
 
-#include <boost/operators.hpp>
-#include <boost/algorithm/string/predicate.hpp>
 #include <acqua/container/sequenced_map.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/operators.hpp>
 
 namespace acqua { namespace email {
 

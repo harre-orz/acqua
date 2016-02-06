@@ -1,22 +1,28 @@
+/*!
+  acqua library
+
+  Copyright (c) 2016 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
-#include <iostream>
-#include <algorithm>
-#include <boost/utility/in_place_factory.hpp>
-#include <boost/scope_exit.hpp>
-#include <boost/variant.hpp>
-#include <boost/xpressive/xpressive.hpp>
-#include <boost/spirit/include/qi.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/iostreams/device/back_inserter.hpp>
-#include <acqua/string_cast.hpp>
+#include <acqua/email/email_parser.hpp>
+#include <acqua/email/detail/decode_mimeheader.hpp>
+#include <acqua/email/message.hpp>
+#include <acqua/iostreams/ostream_codecvt.hpp>
 #include <acqua/iostreams/ascii_filter.hpp>
 #include <acqua/iostreams/qprint_filter.hpp>
 #include <acqua/iostreams/base64_filter.hpp>
-#include <acqua/iostreams/ostream_codecvt.hpp>
-#include <acqua/email/email_parser.hpp>
-#include <acqua/email/message.hpp>
-#include <acqua/email/detail/decode_mimeheader.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/spirit/include/qi.hpp>
+#include <boost/xpressive/xpressive.hpp>
+#include <boost/variant.hpp>
+#include <boost/utility/in_place_factory.hpp>
+#include <boost/scope_exit.hpp>
+#include <iostream>
+#include <algorithm>
 
 namespace acqua { namespace email { namespace detail {
 

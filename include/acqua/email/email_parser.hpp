@@ -21,6 +21,11 @@ public:
 
     explicit basic_email_parser(basic_email<String> & email);
 
+    explicit operator bool() const
+    {
+        return !error_;
+    }
+
     std::streamsize write(char_type const * s, std::streamsize n);
 
 private:

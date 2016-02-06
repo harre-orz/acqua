@@ -1,3 +1,11 @@
+/*!
+  acqua library
+
+  Copyright (c) 2016 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #pragma once
 
 #include <acqua/email/error.hpp>
@@ -18,7 +26,7 @@ public:
     std::string message(int ev) const override
     {
         switch(static_cast<enum address_errors>(ev)) {
-            case error::not_address:
+            case not_address:
                 return "Not address";
             default:
                 return "error";
