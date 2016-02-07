@@ -42,7 +42,7 @@ public:
 
 public:
     template <typename... Args>
-    explicit simple_server(boost::asio::io_service & io_service, Args&&... args)
+    explicit simple_server(boost::asio::io_service & io_service, Args... args)
         : base_type(io_service, args...)
         , use_count_(0)
     {

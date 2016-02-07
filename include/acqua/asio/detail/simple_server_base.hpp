@@ -77,7 +77,7 @@ private:
 
 public:
     template <typename... Args>
-    explicit simple_server_base(boost::asio::io_service & io_service, Args&&... args)
+    explicit simple_server_base(boost::asio::io_service & io_service, Args... args)
         : acceptor_(io_service)
         , holder_(std::make_unique< holder<Args...> >(args...))
         , is_running_(false)
@@ -146,7 +146,7 @@ private:
     }
 
     template <typename... Args>
-    static std::shared_ptr<Connector> construct_impl(simple_server_base * this_, boost::asio::io_service & io_service, Args&&... args)
+    static std::shared_ptr<Connector> construct_impl(simple_server_base * this_, boost::asio::io_service & io_service, Args... args)
     {
         return static_cast<Derived *>(this_)->construct(
             std::bind(&simple_server_base::on_disconnect, this_, std::placeholders::_1),
@@ -177,8 +177,13 @@ private:
     {
         static_assert(noexcept(static_cast<Derived *>(this)->destruct(conn)), "must be noexcept");
         static_cast<Derived *>(this)->destruct(conn);
-        if (decl()) {
-            async_accept();
+        try {
+            if (decl()) {
+                async_accept();
+            }
+        } catch(...) {
+            is_running_ = false;
+            is_waiting_ = false;
         }
     }
 

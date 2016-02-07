@@ -45,7 +45,7 @@ public:
 
 public:
     template <typename... Args>
-    explicit internet_server(boost::asio::io_service & io_service, Args&&... args)
+    explicit internet_server(boost::asio::io_service & io_service, Args... args)
         : v4_type(io_service, args...)
         , v6_type(io_service, args...)
         , use_count_(0)
