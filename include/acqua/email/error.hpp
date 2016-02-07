@@ -12,22 +12,24 @@
 
 namespace acqua { namespace email { namespace error {
 
-enum address_errors {
+enum conversion_errors {
     not_address,
+    parse_aborted,
+    invalid_charset,
 };
 
-inline boost::system::error_category const & get_address_category();
+inline boost::system::error_category const & get_conversion_category();
 
-boost::system::error_code make_error_code(address_errors e)
+boost::system::error_code make_error_code(conversion_errors e)
 {
-    return boost::system::error_code(static_cast<int>(e), get_address_category());
+    return boost::system::error_code(static_cast<int>(e), get_conversion_category());
 }
 
 } } }
 
 namespace boost { namespace system {
 
-template <> struct is_error_code_enum<acqua::email::error::address_errors>
+template <> struct is_error_code_enum<acqua::email::error::conversion_errors>
 {
     static bool const value = true;
 };

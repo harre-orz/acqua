@@ -1,13 +1,14 @@
-#include <acqua/email/detail/decode_mimeheader.hpp>
+#include <acqua/email/decode_mimeheader.hpp>
 #include <boost/test/included/unit_test.hpp>
 #include <map>
+
 
 BOOST_AUTO_TEST_SUITE(test_decode_mimeheader)
 
 std::string decode_mimeheader(std::string const & in)
 {
     std::string out;
-    acqua::email::detail::decode_mimeheader(in.begin(), in.end(), out);
+    acqua::email::decode_mimeheader(in.begin(), in.end(), out);
     return out;
 }
 
@@ -15,14 +16,14 @@ std::string decode_mimeheader(std::string const & in, std::map<std::string, std:
 {
     std::string out;
     params.clear();
-    acqua::email::detail::decode_mimeheader(in.begin(), in.end(), out, params);
+    acqua::email::decode_mimeheader(in.begin(), in.end(), out, params);
     return out;
 }
 
 std::wstring decode_mimeheader(std::wstring const & in)
 {
     std::wstring out;
-    acqua::email::detail::decode_mimeheader(in.begin(), in.end(), out);
+    acqua::email::decode_mimeheader(in.begin(), in.end(), out);
     return out;
 }
 
@@ -30,7 +31,7 @@ std::wstring decode_mimeheader(std::wstring const & in)
 // {
 //     std::wstring out;
 //     params.clear();
-//     acqua::email::detail::decode_mimeheader(in.begin(), in.end(), out, params);
+//     acqua::email::decode_mimeheader(in.begin(), in.end(), out, params);
 //     return out;
 // }
 
@@ -78,7 +79,7 @@ BOOST_AUTO_TEST_CASE(rfc2231)
     std::map<std::string, std::string> params;
     BOOST_TEST(decode_mimeheader(
                    "attach;"
-                   " filename*='ISO-2022-JP''%E3%81%82%E3%81%84%E3%81%86%E3%81%88%E3%81%8A.txt"
+                   " filename*='UTF-8''%E3%81%82%E3%81%84%E3%81%86%E3%81%88%E3%81%8A.txt"
                    , params) == "attach");
     BOOST_TEST(params.size() == 1);
     BOOST_TEST(params["filename"] == "あいうえお.txt");
@@ -89,7 +90,7 @@ BOOST_AUTO_TEST_CASE(rfc2231_multiline)
     std::map<std::string, std::string> params;
     BOOST_TEST(decode_mimeheader(
                    "attach;"
-                   " filename*1*='ISO-2022-JP''%E3%81%82%E3%81%84%E3%81%86%E3%81%88%E3%81%8A"
+                   " filename*1*='UTF-8''%E3%81%82%E3%81%84%E3%81%86%E3%81%88%E3%81%8A"
                    " filename*2*=%E3%81%82%E3%81%84%E3%81%86%E3%81%88%E3%81%8A"
                    " filename*3*=.txt"
                    , params) == "attach");

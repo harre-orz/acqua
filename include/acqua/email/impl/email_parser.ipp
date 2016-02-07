@@ -9,7 +9,7 @@
 #pragma once
 
 #include <acqua/email/email_parser.hpp>
-#include <acqua/email/detail/decode_mimeheader.hpp>
+#include <acqua/email/decode_mimeheader.hpp>
 #include <acqua/email/message.hpp>
 #include <acqua/iostreams/ostream_codecvt.hpp>
 #include <acqua/iostreams/ascii_filter.hpp>
