@@ -9,9 +9,9 @@
 #pragma once
 
 #include <acqua/iostreams/json_parser.hpp>
-#include <acqua/iostreams/error.hpp>
 #include <boost/locale/encoding_utf.hpp>
 #include <boost/variant.hpp>
+#include <boost/exception/exception.hpp>
 
 namespace acqua { namespace iostreams {
 
@@ -19,6 +19,8 @@ namespace json {
 
 enum class literal { l_null, l_true, l_false };
 enum class sign { plus, minus };
+
+struct syntax_error : virtual std::exception, virtual boost::exception {};
 
 class any_parser
 {
@@ -54,8 +56,7 @@ public:
                 impl.new_number(ch);
                 return true;
         }
-        impl.failured(error::illegal_state);
-        return true;
+        BOOST_THROW_EXCEPTION( syntax_error() );
     }
 };
 
@@ -86,20 +87,20 @@ public:
         if (*++lit_ == '\0') {
             switch(l_) {
                 case literal::l_null:
-                    impl.completed(nullptr);
+                    impl.complete(nullptr);
                     break;
                 case literal::l_true:
-                    impl.completed(true);
+                    impl.complete(true);
                     break;
                 case literal::l_false:
-                    impl.completed(false);
+                    impl.complete(false);
                     break;
             }
             return false;
         } else if (std::tolower(ch, std::locale::classic()) == *lit_) {
             return true;
         }
-        impl.failured(error::bad_boolean);
+        BOOST_THROW_EXCEPTION( syntax_error() );
         return true;
     }
 };
@@ -137,7 +138,7 @@ public:
                 }
 
                 if (sign_ == sign::minus) decimal_ *= -1;
-                impl.completed(decimal_);
+                impl.complete(decimal_);
                 return false;
             case n_type::fraction:
                 if (ch == 'e' || ch == 'E') {
@@ -152,7 +153,7 @@ public:
                 }
 
                 if (sign_ == sign::minus) decimal_ *= -1;
-                impl.completed(static_cast<double>(decimal_) / static_cast<double>(fraction_));
+                impl.complete(static_cast<double>(decimal_) / static_cast<double>(fraction_));
                 return false;
             case n_type::exp:
                 switch(ch) {
@@ -175,12 +176,11 @@ public:
                     return true;
                 }
                 if (sign_ == sign::minus) exponent_ *= -1;
-                impl.completed(static_cast<double>(decimal_) * std::pow(10, exponent_) / static_cast<double>(fraction_));
+                impl.complete(static_cast<double>(decimal_) * std::pow(10, exponent_) / static_cast<double>(fraction_));
                 return false;
         }
 
-        impl.failured(error::bad_number);
-        return true;
+        BOOST_THROW_EXCEPTION( syntax_error() );
     }
 };
 
@@ -224,8 +224,7 @@ public:
                         hex_[1] = 0;
                         return true;
                     default:
-                        impl.failured(error::bad_string);
-                        return true;
+                        BOOST_THROW_EXCEPTION( syntax_error() );
                 }
                 escape_ = false;
                 return true;
@@ -257,7 +256,7 @@ public:
                 }
             }
         } else if (ch == '"') {
-            impl.completed(std::move(str_));
+            impl.complete(std::move(str_));
             return true;
         } else if (ch == '\\') {
             escape_ = true;
@@ -268,8 +267,7 @@ public:
             return true;
         }
 
-        impl.failured(error::bad_string);
-        return true;
+        BOOST_THROW_EXCEPTION(syntax_error());
     }
 
 private:
@@ -311,7 +309,7 @@ public:
         if (data_ && data_->in_progress) {
             return data_->parse_1(ch);
         } else if (ch == ']') {
-            impl.completed();
+            impl.complete();
             return true;
         } else if (!data_) {
             impl.new_child(index_++, data_);
@@ -324,8 +322,7 @@ public:
         if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
             return true;
 
-        impl.failured(error::bad_array);
-        return true;
+        BOOST_THROW_EXCEPTION(syntax_error());
     }
 };
 
@@ -337,8 +334,7 @@ class object_parser
     {
         explicit string_impl(Impl & parent) : parent_(parent) {}
         template <typename T>
-        void completed(T &&) { in_progress = false; }
-        void failured(error::json_errors ev) { parent_.failured(ev); }
+        void complete(T &&) { in_progress = false; }
         Impl & parent_;
         bool in_progress = true;
         using string_parser<String>::str_;
@@ -355,7 +351,7 @@ public:
             if (val_->in_progress)
                 return val_->parse_1(ch);
             if (ch == '}') {
-                impl.completed();
+                impl.complete();
                 return true;
             }
             if (ch == ',') {
@@ -365,7 +361,7 @@ public:
             }
         } else if (!key_) {
             if (first_ && ch == '}') {
-                impl.completed();
+                impl.complete();
                 return true;
             }
             if (ch == '"') {
@@ -381,8 +377,7 @@ public:
         }
         if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
             return true;
-        impl.failured(error::bad_object);
-        return true;
+        BOOST_THROW_EXCEPTION( syntax_error() );
     }
 };
 
@@ -416,8 +411,8 @@ struct parser_impl
         bool operator()(Parser & parser) const { return parser(ch_, impl_); }
     };
 
-    parser_impl(Json & json, boost::system::error_code & error_)
-        : Adapt(json), error(error_) {}
+    parser_impl(Json & json)
+        : Adapt(json) {}
 
     bool parse_1(CharT const & ch)
     {
@@ -455,29 +450,22 @@ struct parser_impl
     template <typename T>
     void new_child(T && t, std::unique_ptr<parser_impl> & impl)
     {
-        impl.reset(new parser_impl(static_cast<Adapt *>(this)->add_child(std::forward<T>(t)), error));
+        impl.reset(new parser_impl(static_cast<Adapt *>(this)->add_child(std::forward<T>(t))));
     }
 
-    void completed()
+    void complete()
     {
         *static_cast<base_type *>(this) = any();
         in_progress = false;
     }
 
     template <typename T>
-    void completed(T && t)
+    void complete(T && t)
     {
         static_cast<Adapt *>(this)->data(std::forward<T>(t));
-        completed();
+        complete();
     }
 
-    void failured(error::json_errors ev)
-    {
-        error = make_error_code(ev);
-        in_progress = false;
-    }
-
-    boost::system::error_code & error;
     bool in_progress = true;
 };
 
@@ -487,8 +475,8 @@ template <typename Json, typename Adapt, typename CharT>
 struct json_parser<Json, Adapt, CharT>::impl
     : json::parser_impl<Json, Adapt, CharT>
 {
-    impl(Json & json, boost::system::error_code & error)
-        : json::parser_impl<Json, Adapt, CharT>(json, error) {}
+    impl(Json & json)
+        : json::parser_impl<Json, Adapt, CharT>(json) {}
 
     std::streamsize write(char_type const * s, std::streamsize n)
     {
@@ -506,13 +494,20 @@ struct json_parser<Json, Adapt, CharT>::impl
 
 template <typename Json, typename Adapt, typename CharT>
 inline json_parser<Json, Adapt, CharT>::json_parser(Json & json)
-    : impl_(new impl(json, error_)) {}
+    : impl_(new impl(json)) {}
 
 
 template <typename Json, typename Adapt, typename CharT>
 inline std::streamsize json_parser<Json, Adapt, CharT>::write(char_type const * s, std::streamsize n)
 {
     return impl_->write(s, n);
+}
+
+
+template <typename Json, typename Adapt, typename CharT>
+inline json_parser<Json, Adapt, CharT>::operator bool() const noexcept
+{
+    return impl_->in_progress;
 }
 
 } }

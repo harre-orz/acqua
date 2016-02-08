@@ -10,7 +10,6 @@
 
 #include <acqua/iostreams/json_adapt.hpp>
 #include <boost/iostreams/categories.hpp>
-#include <boost/system/error_code.hpp>
 #include <memory>
 
 namespace acqua { namespace iostreams {
@@ -33,19 +32,10 @@ public:
 
     std::streamsize write(char_type const * s, std::streamsize n);
 
-    explicit operator bool() const
-    {
-        return !error_;
-    }
-
-    boost::system::error_code const & get_error_code() const
-    {
-        return error_;
-    }
+    explicit operator bool() const noexcept;
 
 private:
     std::shared_ptr<impl> impl_;
-    boost::system::error_code error_ = {};
 };
 
 } }
