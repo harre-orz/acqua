@@ -14,7 +14,7 @@ namespace acqua { namespace email { namespace error {
 
 namespace detail {
 
-class conversion_category
+class address_category
     : public boost::system::error_category
 {
 public:
@@ -25,22 +25,18 @@ public:
 
     std::string message(int ev) const override
     {
-        switch(static_cast<enum conversion_errors>(ev)) {
+        switch(static_cast<enum address_errors>(ev)) {
             case not_address:
                 return "Not address";
-            case parse_aborted:
-                return "Parse aborted";
-            case invalid_charset:
-                return "Invalid charset";
         }
     }
 };
 
 } // detail
 
-inline boost::system::error_category const & get_conversion_category()
+inline boost::system::error_category const & get_address_category()
 {
-    static detail::conversion_category instance;
+    static detail::address_category instance;
     return instance;
 }
 

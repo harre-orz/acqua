@@ -18,229 +18,199 @@
 #include <boost/spirit/include/qi.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/device/back_inserter.hpp>
-#include <boost/asio/detail/throw_error.hpp>
-#include <boost/variant.hpp>
 #include <boost/optional.hpp>
-#include <boost/scope_exit.hpp>
 #include <iostream>
-
 
 namespace acqua { namespace email { namespace detail {
 
-template <typename CharT>
-inline std::basic_string<CharT> write_utf(std::string & str, std::string & charset, boost::system::error_code & ec)
+template <typename It, typename CharT>
+class decode_mimeheader_impl
 {
-    BOOST_SCOPE_EXIT_ALL(&str, &charset) { str.clear(); charset.clear(); };
+public:
+    using string_type = std::basic_string<CharT>;
 
-    if (!charset.empty()) {
-        try {
-            return boost::locale::conv::to_utf<CharT>(str, charset);
-        } catch(boost::locale::conv::conversion_error &) {
-            ec = make_error_code(error::parse_aborted);
-        } catch(boost::locale::conv::invalid_charset_error &) {
-            ec = make_error_code(error::invalid_charset);
-        }
+private:
+    using string_iter = typename string_type::const_iterator;
+    using regex_type = boost::xpressive::basic_regex<string_iter>;
+    using regex_iter = boost::xpressive::regex_iterator<string_iter>;
+    using filtering_ostream_type = typename std::conditional<
+        std::is_same<CharT, char>::value,
+        boost::iostreams::filtering_ostream,
+        boost::iostreams::filtering_wostream
+        >::type;
+
+public:
+    explicit decode_mimeheader_impl(string_type & str)
+        : sink_(boost::iostreams::back_inserter(str))
+        , s1(1), s2(2), s3(3)
+        , regex(boost::xpressive::as_xpr('=') >> '?' >>
+                (s1= +(boost::xpressive::alnum|'_'|'='|'-') ) >> '?' >>
+                (s2= (boost::xpressive::as_xpr('B')|'b'|'Q'|'q')) >> '?' >>
+                (s3= (*(boost::xpressive::alnum|'+'|'_'|'/'|'-') >> -*boost::xpressive::as_xpr('=')))
+                >> '?' >> '=') {}
+
+    decode_mimeheader_impl & operator()(It beg, It end)
+    {
+        rfc2047_decode(sink_, beg, end);
+        return *this;
     }
-    return std::basic_string<CharT>();
-}
 
-
-template <typename It, typename CharT, typename Traits = std::char_traits<CharT>, typename String = std::basic_string<CharT, Traits>, typename Regex = boost::xpressive::basic_regex<String> >
-inline void rfc2047_decode(It beg, It end, std::basic_ostream<CharT, Traits> & os, boost::system::error_code & ec, Regex const & regex)
-{
-    using xp_iter = boost::xpressive::regex_iterator<typename String::const_iterator>;
-
-    std::locale const & loc = std::locale::classic();
-    std::string encoded;
-    std::string charset;
-
-    auto a = beg;
-    for(auto what = xp_iter(beg, end, regex); what != xp_iter(); ++what) {
-        auto b = a;
-        auto c = beg + what->position();
-        while(b < c && std::isspace(*b, loc))
-            ++b;
-        if (b < c) {
-            // 古いバッファをカキコ
-            os << write_utf<CharT>(encoded, charset, ec);
-            if (ec) return;
-            std::copy(a, c, std::ostreambuf_iterator<CharT>(os));
-        }
-
-        charset = acqua::string_cast<std::string>(what->str(1));
-        boost::iostreams::filtering_ostream out;
-        switch(beg[what->position(2)]) {
-            case 'B': case 'b':
-                out.push(acqua::iostreams::base64_decoder());
-                break;
-            case 'Q': case 'q':
-                out.push(acqua::iostreams::qprint_decoder());
-                break;
-        }
-        out.push(boost::iostreams::back_inserter(encoded));
-        out << acqua::string_cast<std::string>(what->str(3));
-        a = beg + what->position() + what->length();
+    template <typename Params>
+    decode_mimeheader_impl & operator()(It beg, It end, Params & params)
+    {
+        It it = std::find_if(beg, end, [](CharT ch) { return ch == ';' || ch == ' ' || ch == '\t'; });
+        rfc2047_decode(sink_, beg, it);
+        if (it != end)
+            rfc2231_decode(++it, end, params);
+        return *this;
     }
-    // 古いバッファをカキコ
-    os << write_utf<CharT>(encoded, charset, ec);
-    if (ec) return;
-    std::copy(a, end, std::ostreambuf_iterator<CharT>(os));
-}
 
+private:
+    static void write_utf(string_type & str, std::string & encoded, std::string & charset)
+    {
+        str = boost::locale::conv::to_utf<CharT>(encoded, charset);
+        encoded.clear();
+        charset.clear();
+    }
 
-template <typename IIt, typename OIt>
-inline void percent_decode(IIt it, IIt end, OIt out, boost::system::error_code & ec, std::locale const & loc)
-{
-    for(; it != end; ++it) {
-        if (*it == '%') {
-            char hex[] = {0,0,0};
-            if (++it >= end && std::isxdigit(*it, loc)) {
-                ec = make_error_code(error::parse_aborted);
-                return;
+    template <typename Sink>
+    static void write_utf(Sink & sink, std::string & encoded, std::string & charset)
+    {
+        sink << boost::locale::conv::to_utf<CharT>(encoded, charset);
+        encoded.clear();
+        charset.clear();
+    }
+
+    template <typename Sink>
+    static void write_raw(Sink & sink, string_iter beg, string_iter end)
+    {
+        std::copy(beg, end, std::ostreambuf_iterator<CharT>(sink));
+    }
+
+    template <typename Sink>
+    void rfc2047_decode(Sink & sink, It beg, It end)
+    {
+        std::string encoded;
+        std::string charset;
+
+        auto a = beg;
+        for(auto what = regex_iter(beg, end, regex); what != regex_iter(); ++what) {
+            auto b = a;
+            auto c = beg + what->position();
+            while(b < c && std::isspace(*b, loc))
+                ++b;
+            if (b < c) {
+                // 古いバッファをカキコ
+                write_utf(sink, encoded, charset);
+                write_raw(sink, a, c);
             }
-            hex[0] = *it;
-            if (++it >= end && std::isxdigit(*it, loc)) {
-                ec = make_error_code(error::parse_aborted);
-                return;
+
+            charset = acqua::string_cast<std::string>(what->str(1));
+            boost::iostreams::filtering_ostream out;
+            switch(beg[what->position(2)]) {
+                case 'B': case 'b':
+                    out.push(acqua::iostreams::base64_decoder());
+                    break;
+                case 'Q': case 'q':
+                    out.push(acqua::iostreams::qprint_decoder());
+                    break;
             }
-            hex[1] = *it;
-            *out++ = static_cast<char>(std::strtol(hex, nullptr, 16));
-        } else {
-            *out++ = *it;
+            out.push(boost::iostreams::back_inserter(encoded));
+            out << acqua::string_cast(what->str(3));
+            a = beg + what->position() + what->length();
         }
-    }
-}
-
-
-// val の文字コードを取り出して charset に格納し、val から文字コードを消す
-template <typename String>
-inline void rfc2231_parse_charset(String & val, std::string & charset)
-{
-    auto end = val.end();
-    auto a = std::find(val.begin(), end, '\'');
-    if (a != end) {
-        auto b = std::find(++a, end, '\'');
-        if (b != end) {
-            auto c = std::find(b+1, end, '\'');
-            if (c != end) {
-                charset.assign(a, b);
-                val.erase(val.begin(), ++c);
-                return;
-            }
-        }
-    }
-    charset = "US-ASCII";
-}
-
-
-template <typename CharT, typename It, typename Params, typename Regex>
-inline void rfc2231_decode(It beg, It end, Params & params, boost::system::error_code & ec, Regex const & regex)
-{
-    std::locale const & loc = std::locale::classic();
-    std::string oldkey;
-    std::string encoded;
-    std::string charset;
-
-    while(beg != end) {
-        if (std::isspace(*beg, loc) || *beg == ';') {
-            ++beg;
-            continue;
-        }
-
-        std::string newkey, val;
-        boost::optional<boost::fusion::vector<boost::optional<int> > > idx;
-        namespace qi = boost::spirit::qi;
-        if (qi::parse(beg, end, +(qi::char_ - '*' - '=') >> -('*' >> -(qi::int_ >> '*')) >> '='
-                      >> ('"' >> *(qi::char_ - '"') >> '"' | +(qi::char_ - qi::space)), newkey, idx, val)) {
-            if (!idx) {
-                if (!oldkey.empty()) {
-                    // 古いバッファをカキコ
-                    boost::iostreams::filtering_ostream out(boost::iostreams::back_inserter(params[oldkey]));
-                    out << write_utf<CharT>(encoded, charset, ec);
-                    if (ec) return;
-                }
-
-                // RFC2231 ではなく、プレーンテキストもしくはRFC2047エンコードされたテキスト
-                boost::iostreams::filtering_ostream out(boost::iostreams::back_inserter(params[newkey]));
-                rfc2047_decode(val.begin(), val.end(), out, ec, regex);
-            } else {
-                if (oldkey != newkey) {
-                    if (!oldkey.empty()) {
-                        // 古いバッファをカキコ
-                        boost::iostreams::filtering_ostream out(boost::iostreams::back_inserter(params[oldkey]));
-                        out << write_utf<CharT>(encoded, charset, ec);
-                        if (ec) return;
-                    }
-
-                    oldkey = newkey;
-                    if (charset.empty())
-                        rfc2231_parse_charset(val, charset);
-                }
-                percent_decode(val.begin(), val.end(), std::back_inserter(encoded), ec, loc);
-            }
-        }
-    }
-
-    if (!oldkey.empty()) {
         // 古いバッファをカキコ
-        boost::iostreams::filtering_ostream out(boost::iostreams::back_inserter(params[oldkey]));
-        out << write_utf<CharT>(encoded, charset, ec);
+        write_utf(sink, encoded, charset);
+        write_raw(sink, a, end);
     }
-}
 
+    void percent_decode(string_iter it, string_iter end, std::string & out) const
+    {
+        for(; it != end; ++it) {
+            if (*it == '%') {
+                char hex[] = {0,0,0};
+                if (++it >= end && std::isxdigit(*it, loc))
+                    BOOST_THROW_EXCEPTION( syntax_error() );
+                hex[0] = static_cast<char>(*it);
+                if (++it >= end && std::isxdigit(*it, loc))
+                    BOOST_THROW_EXCEPTION( syntax_error() );
+                hex[1] = static_cast<char>(*it);
+                out.push_back( static_cast<char>(std::strtol(hex, nullptr, 16)) );
+            } else {
+                out.push_back( static_cast<char>(*it) );
+            }
+        }
+    }
 
-template <typename It>
-inline void decode_mimeheader_impl(It beg, It end, std::string & str, boost::system::error_code & ec)
-{
+    template <typename Params>
+    void rfc2231_decode(It beg, It end, Params & params)
+    {
+        string_type oldkey;
+        std::string encoded, charset;
 
-    namespace xp = boost::xpressive;
-    xp::mark_tag s1(1), s2(2), s3(3);
-    xp::sregex regex = xp::as_xpr('=') >> '?' >> (s1= +(xp::alnum|'_'|'='|'-') ) >> '?' >> (s2= (xp::as_xpr('B')|'b'|'Q'|'q')) >> '?' >> (s3= (*(xp::alnum|'+'|'_'|'/'|'-') >> -*xp::as_xpr('='))) >> '?' >> '=';
-    boost::iostreams::filtering_ostream out(boost::iostreams::back_inserter(str));
-    rfc2047_decode(beg, end, out, ec, regex);
-}
+        while(beg != end) {
+            if (std::isspace(*beg, loc) || *beg == ';') {
+                ++beg;
+                continue;
+            }
 
+            string_type newkey, val;
+            boost::optional<boost::fusion::vector<boost::optional<int> > > idx;
+            namespace qi = boost::spirit::qi;
+            if (qi::parse(beg, end, +(qi::char_ - '*' - '=') >> -('*' >> -(qi::int_ >> '*')) >> '='
+                          >> ('"' >> *(qi::char_ - '"') >> '"' | +(qi::char_ - qi::space)), newkey, idx, val)) {
+                if (!idx) {
+                    // 古いバッファをカキコ
+                    if (!oldkey.empty())
+                        write_utf(params[oldkey], encoded, charset);
 
-template <typename It, typename Params>
-inline void decode_mimeheader_impl(It beg, It end, std::string & str, Params & params, boost::system::error_code & ec)
-{
-    namespace xp = boost::xpressive;
-    xp::mark_tag s1(1), s2(2), s3(3);
-    xp::sregex regex = xp::as_xpr('=') >> '?' >> (s1= +(xp::alnum|'_'|'='|'-') ) >> '?' >> (s2= (xp::as_xpr('B')|'b'|'Q'|'q')) >> '?' >> (s3= (*(xp::alnum|'+'|'_'|'/'|'-') >> -*xp::as_xpr('='))) >> '?' >> '=';
+                    // RFC2231 ではなく、プレーンテキストもしくはRFC2047エンコードされたテキスト
+                    filtering_ostream_type sink(boost::iostreams::back_inserter(params[newkey]));
+                    rfc2047_decode(sink, val.begin(), val.end());
+                } else {
+                    if (oldkey != newkey) {
+                        // 古いバッファをカキコ
+                        if (!oldkey.empty())
+                            write_utf(params[oldkey], encoded, charset);
+                        oldkey = newkey;
+                        if (charset.empty())
+                            rfc2231_parse_charset(val, charset);
+                    }
+                    percent_decode(val.begin(), val.end(), encoded);
+                }
+            }
+        }
 
-    boost::iostreams::filtering_ostream out(boost::iostreams::back_inserter(str));
-    auto it = std::find_if(beg, end, [](char v) { return v == ';' || v == ' ' || v == '\t'; });
-    rfc2047_decode(beg, it, out, ec, regex);
-    if (it != end)
-        rfc2231_decode<char>(++it, end, params, ec, regex);
-}
+        // 古いバッファをカキコ
+        if (!oldkey.empty())
+            write_utf(params[oldkey], encoded, charset);
+    }
 
+    // val の文字コードを取り出して charset に格納し、val から文字コードを消す
+    static void rfc2231_parse_charset(string_type & val, std::string & charset)
+    {
+        auto end = val.end();
+        auto a = std::find(val.begin(), end, '\'');
+        if (a != end) {
+            auto b = std::find(++a, end, '\'');
+            if (b != end) {
+                auto c = std::find(b+1, end, '\'');
+                if (c != end) {
+                    charset.assign(a, b);
+                    val.erase(val.begin(), ++c);
+                    return;
+                }
+            }
+        }
+        charset = "US-ASCII";
+    }
 
-template <typename It>
-inline void decode_mimeheader_impl(It beg, It end, std::wstring & str, boost::system::error_code & ec)
-{
-    namespace xp = boost::xpressive;
-    xp::mark_tag s1(1), s2(2), s3(3);
-    xp::wsregex regex = xp::as_xpr('=') >> '?' >> (s1= +(xp::alnum|'_'|'='|'-') ) >> '?' >> (s2= (xp::as_xpr('B')|'b'|'Q'|'q')) >> '?' >> (s3= (*(xp::alnum|'+'|'_'|'/'|'-') >> -*xp::as_xpr('='))) >> '?' >> '=';
-
-    boost::iostreams::filtering_wostream out(boost::iostreams::back_inserter(str));
-    rfc2047_decode(beg, end, out, ec, regex);
-}
-
-
-template <typename It, typename Params>
-inline void decode_mimeheader_impl(It beg, It end, std::wstring & str, Params & params, boost::system::error_code & ec)
-{
-    namespace xp = boost::xpressive;
-    xp::mark_tag s1(1), s2(2), s3(3);
-    xp::wsregex regex = xp::as_xpr('=') >> '?' >> (s1= +(xp::alnum|'_'|'='|'-') ) >> '?' >> (s2= (xp::as_xpr('B')|'b'|'Q'|'q')) >> '?' >> (s3= (*(xp::alnum|'+'|'_'|'/'|'-') >> -*xp::as_xpr('='))) >> '?' >> '=';
-
-    boost::iostreams::filtering_wostream out(boost::iostreams::back_inserter(str));
-    auto it = std::find_if(beg, end, [](wchar_t v) { return v == ';' || v == ' ' || v == '\t'; });
-    rfc2047_decode(beg, it, out, ec, regex);
-    if (it != end)
-        rfc2231_decode<wchar_t>(++it, end, params, ec, regex);
-}
+private:
+    filtering_ostream_type sink_;
+    boost::xpressive::mark_tag s1, s2, s3;
+    const regex_type regex;
+    std::locale const & loc = std::locale::classic();
+};
 
 } // detail
 
@@ -248,32 +218,16 @@ inline void decode_mimeheader_impl(It beg, It end, std::wstring & str, Params & 
 template <typename It, typename CharT>
 inline void decode_mimeheader(It beg, It end, std::basic_string<CharT> & str)
 {
-    boost::system::error_code ec;
-    detail::decode_mimeheader_impl(beg, end, str, ec);
-    boost::asio::detail::throw_error(ec);
-}
-
-
-template <typename It, typename CharT>
-inline void decode_mimeheader(It beg, It end, std::basic_string<CharT> & str, boost::system::error_code & ec)
-{
-    detail::decode_mimeheader_impl(beg, end, str, ec);
+    detail::decode_mimeheader_impl<It, CharT> dec(str);
+    dec(beg, end);
 }
 
 
 template <typename It, typename CharT, typename Params>
 inline void decode_mimeheader(It beg, It end, std::basic_string<CharT> & str, Params & params)
 {
-    boost::system::error_code ec;
-    detail::decode_mimeheader_impl(beg, end, str, params, ec);
-    boost::asio::detail::throw_error(ec);
-}
-
-
-template <typename It, typename CharT, typename Params>
-inline void decode_mimeheader(It beg, It end, std::basic_string<CharT> & str, Params & params, boost::system::error_code & ec)
-{
-    detail::decode_mimeheader_impl(beg, end, str, params, ec);
+    detail::decode_mimeheader_impl<It, CharT> dec(str);
+    dec(beg, end, params);
 }
 
 } }

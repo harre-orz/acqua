@@ -27,13 +27,13 @@ std::wstring decode_mimeheader(std::wstring const & in)
     return out;
 }
 
-// std::wstring decode_mimeheader(std::wstring const & in, std::map<std::wstring, std::wstring> & params)
-// {
-//     std::wstring out;
-//     params.clear();
-//     acqua::email::decode_mimeheader(in.begin(), in.end(), out, params);
-//     return out;
-// }
+std::wstring decode_mimeheader(std::wstring const & in, std::map<std::wstring, std::wstring> & params)
+{
+    std::wstring out;
+    params.clear();
+    acqua::email::decode_mimeheader(in.begin(), in.end(), out, params);
+    return out;
+}
 
 BOOST_AUTO_TEST_CASE(basics)
 {
