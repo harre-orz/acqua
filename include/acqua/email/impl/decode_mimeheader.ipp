@@ -33,6 +33,7 @@ private:
     using string_iter = typename string_type::const_iterator;
     using regex_type = boost::xpressive::basic_regex<string_iter>;
     using regex_iter = boost::xpressive::regex_iterator<string_iter>;
+    using ostream_type = std::basic_ostream<CharT>;
     using filtering_ostream_type = typename std::conditional<
         std::is_same<CharT, char>::value,
         boost::iostreams::filtering_ostream,
@@ -41,7 +42,7 @@ private:
 
 public:
     explicit decode_mimeheader_impl(string_type & str)
-        : sink_(boost::iostreams::back_inserter(str))
+        : out_(boost::iostreams::back_inserter(str))
         , s1(1), s2(2), s3(3)
         , regex(boost::xpressive::as_xpr('=') >> '?' >>
                 (s1= +(boost::xpressive::alnum|'_'|'='|'-') ) >> '?' >>
@@ -51,7 +52,7 @@ public:
 
     decode_mimeheader_impl & operator()(It beg, It end)
     {
-        rfc2047_decode(sink_, beg, end);
+        rfc2047_decode(out_, beg, end);
         return *this;
     }
 
@@ -59,7 +60,7 @@ public:
     decode_mimeheader_impl & operator()(It beg, It end, Params & params)
     {
         It it = std::find_if(beg, end, [](CharT ch) { return ch == ';' || ch == ' ' || ch == '\t'; });
-        rfc2047_decode(sink_, beg, it);
+        rfc2047_decode(out_, beg, it);
         if (it != end)
             rfc2231_decode(++it, end, params);
         return *this;
@@ -73,22 +74,19 @@ private:
         charset.clear();
     }
 
-    template <typename Sink>
-    static void write_utf(Sink & sink, std::string & encoded, std::string & charset)
+    static void write_utf(ostream_type & os, std::string & encoded, std::string & charset)
     {
-        sink << boost::locale::conv::to_utf<CharT>(encoded, charset);
+        os << boost::locale::conv::to_utf<CharT>(encoded, charset);
         encoded.clear();
         charset.clear();
     }
 
-    template <typename Sink>
-    static void write_raw(Sink & sink, string_iter beg, string_iter end)
+    static void write_raw(ostream_type & os, string_iter beg, string_iter end)
     {
-        std::copy(beg, end, std::ostreambuf_iterator<CharT>(sink));
+        std::copy(beg, end, std::ostreambuf_iterator<CharT>(os));
     }
 
-    template <typename Sink>
-    void rfc2047_decode(Sink & sink, It beg, It end)
+    void rfc2047_decode(ostream_type & os, It beg, It end)
     {
         std::string encoded;
         std::string charset;
@@ -101,8 +99,8 @@ private:
                 ++b;
             if (b < c) {
                 // 古いバッファをカキコ
-                write_utf(sink, encoded, charset);
-                write_raw(sink, a, c);
+                write_utf(os, encoded, charset);
+                write_raw(os, a, c);
             }
 
             charset = acqua::string_cast<std::string>(what->str(1));
@@ -120,8 +118,8 @@ private:
             a = beg + what->position() + what->length();
         }
         // 古いバッファをカキコ
-        write_utf(sink, encoded, charset);
-        write_raw(sink, a, end);
+        write_utf(os, encoded, charset);
+        write_raw(os, a, end);
     }
 
     void percent_decode(string_iter it, string_iter end, std::string & out) const
@@ -165,8 +163,8 @@ private:
                         write_utf(params[oldkey], encoded, charset);
 
                     // RFC2231 ではなく、プレーンテキストもしくはRFC2047エンコードされたテキスト
-                    filtering_ostream_type sink(boost::iostreams::back_inserter(params[newkey]));
-                    rfc2047_decode(sink, val.begin(), val.end());
+                    filtering_ostream_type out(boost::iostreams::back_inserter(params[newkey]));
+                    rfc2047_decode(out, val.begin(), val.end());
                 } else {
                     if (oldkey != newkey) {
                         // 古いバッファをカキコ
@@ -206,7 +204,7 @@ private:
     }
 
 private:
-    filtering_ostream_type sink_;
+    filtering_ostream_type out_;
     boost::xpressive::mark_tag s1, s2, s3;
     const regex_type regex;
     std::locale const & loc = std::locale::classic();
