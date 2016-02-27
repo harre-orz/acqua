@@ -1,5 +1,13 @@
 #pragma once
 
+/*!
+  acqua library
+
+  Copyright (c) 2016 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #include <cmath>
 #include <iostream>
 #include <iomanip>
@@ -27,7 +35,6 @@ public:
 
     friend std::ostream & operator<<(std::ostream & os, hexdump const & rhs)
     {
-        boost::io::ios_flags_saver ifs(os);
         rhs.puts(os);
         return os;
     }
@@ -106,18 +113,18 @@ private:
     It end_;
 };
 
-}  // namespace utility
-
-template <bool Canonical = true, std::size_t Length = 16, typename T, typename It = typename T::const_iterator>
-inline utility::hexdump<It, Canonical, Length> hexdump(T const & t)
-{
-    return utility::hexdump<It, Canonical, Length>(t.begin(), t.end());
-}
+}  // utility
 
 template <bool Canonical = true, std::size_t Length = 16, typename It>
 inline utility::hexdump<It, Canonical, Length> hexdump(It beg, It end)
 {
     return utility::hexdump<It, Canonical, Length>(beg, end);
+}
+
+template <bool Canonical = true, std::size_t Length = 16, typename T, typename It = typename T::const_iterator>
+inline utility::hexdump<It, Canonical, Length> hexdump(T const & t)
+{
+    return utility::hexdump<It, Canonical, Length>(t.begin(), t.end());
 }
 
 template <bool Canonical = true, std::size_t Length = 16>

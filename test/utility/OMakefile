@@ -1,8 +1,9 @@
 PROGRAMS = \
-	test_move_on_copy_wrapper \
+	test_mref \
 	test_string_cast \
 	test_backtrace \
 	test_hexdump \
+	test_hexstring \
 
 .DEFAULT: $(CXXBuild $(PROGRAMS))
 	$(RunTest)

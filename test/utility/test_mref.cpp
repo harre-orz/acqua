@@ -1,4 +1,4 @@
-#include <acqua/mref.hpp>
+#include <acqua/utility/mref.hpp>
 #include <boost/test/included/unit_test.hpp>
 #include <boost/utility.hpp>
 #include <memory>
