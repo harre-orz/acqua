@@ -13,10 +13,13 @@
 namespace acqua { namespace iostreams {
 
 namespace cryptographic {
+
 class sha256_context;
+using sha256_filter = basic_hash_filter<sha256_context, 32>;
+
 } // cryptographic
 
-using sha256_filter = basic_hash_filter<cryptographic::sha256_context, 32>;
+using sha256_filter = cryptographic::sha256_filter;
 
 } }
 

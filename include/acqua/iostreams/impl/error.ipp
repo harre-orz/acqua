@@ -27,6 +27,14 @@ public:
                 return "MD5 error";
             case sha256_error:
                 return "SHA256 error";
+            case hmac_md5_error:
+                return "HMAC-MD5 error";
+            case hmac_sha1_error:
+                return "HMAC-SHA1 error";
+            case hmac_sha256_error:
+                return "HMAC-SHA256 error";
+            case hmac_sha512_error:
+                return "HMAC-SHA512 error";
         }
 
         return "error";

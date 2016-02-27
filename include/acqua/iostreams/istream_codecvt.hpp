@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <acqua/utility/string_cast.hpp>
 #include <boost/iostreams/categories.hpp>
 #include <boost/locale/encoding_utf.hpp>
 #include <boost/locale/encoding.hpp>
@@ -16,7 +17,6 @@
 #include <array>
 #include <type_traits>
 #include <cstring>
-#include <acqua/string_cast.hpp>
 
 namespace acqua { namespace iostreams {
 

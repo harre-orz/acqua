@@ -12,6 +12,10 @@ namespace acqua { namespace iostreams { namespace error {
 enum cryptographic_errors {
     md5_error,
     sha256_error,
+    hmac_md5_error,
+    hmac_sha1_error,
+    hmac_sha256_error,
+    hmac_sha512_error,
 };
 
 inline boost::system::error_category const & get_cryptographic_category();

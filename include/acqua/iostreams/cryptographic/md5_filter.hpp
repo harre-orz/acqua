@@ -13,10 +13,13 @@
 namespace acqua { namespace iostreams {
 
 namespace cryptographic {
+
 class md5_context;
+using md5_filter = basic_hash_filter<md5_context, 16>; // 16 = MD5_DIGEST_LENGTH
+
 }  // cryptographic
 
-using md5_filter = basic_hash_filter<cryptographic::md5_context, 16>; // 16 = MD5_DIGEST_LENGTH
+using md5_filter = cryptographic::md5_filter;
 
 } }
 

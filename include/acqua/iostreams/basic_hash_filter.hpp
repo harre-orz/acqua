@@ -26,7 +26,7 @@ public:
     struct category : boost::iostreams::multichar_dual_use_filter_tag, boost::iostreams::closable_tag {};
     static constexpr std::size_t buffer_size = BufferSize;
 
-private:
+public:
     explicit basic_hash_filter(unsigned char * buffer)
         : impl_(new Context{})
         , buffer_(buffer)
@@ -36,7 +36,15 @@ private:
         if (ec) throw boost::system::system_error(ec, "init");
     }
 
-public:
+    explicit basic_hash_filter(unsigned char * buffer, void const * key, std::size_t keylen)
+        : impl_(new Context{})
+        , buffer_(buffer)
+    {
+        boost::system::error_code ec;
+        impl_->init(key, keylen, ec);
+        if (ec) throw boost::system::system_error(ec, "init");
+    }
+
     template <typename CharT, std::size_t N>
     explicit basic_hash_filter(std::array<CharT, N> & buffer)
         : basic_hash_filter(reinterpret_cast<unsigned char *>(buffer.data()))
@@ -48,6 +56,22 @@ public:
     template <typename CharT, std::size_t N>
     explicit basic_hash_filter(CharT (&buffer)[N])
         : basic_hash_filter(reinterpret_cast<unsigned char *>(buffer))
+    {
+        static_assert(sizeof(CharT) == 1, "CharT must be 1byte.");
+        static_assert(N >= buffer_size, "N must be longer buffer_size.");
+    }
+
+    template <typename CharT, std::size_t N>
+    explicit basic_hash_filter(std::array<CharT, N> & buffer, void const * key, std::size_t keylen)
+        : basic_hash_filter(reinterpret_cast<unsigned char *>(buffer.data()), key, keylen)
+    {
+        static_assert(sizeof(CharT) == 1, "CharT must be 1byte.");
+        static_assert(N >= buffer_size, "N must be longer buffer_size.");
+    }
+
+    template <typename CharT, std::size_t N>
+    explicit basic_hash_filter(CharT (&buffer)[N], void const * key, std::size_t keylen)
+        : basic_hash_filter(reinterpret_cast<unsigned char *>(buffer), key, keylen)
     {
         static_assert(sizeof(CharT) == 1, "CharT must be 1byte.");
         static_assert(N >= buffer_size, "N must be longer buffer_size.");

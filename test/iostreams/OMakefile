@@ -5,6 +5,7 @@ PROGRAMS = \
 	test_base64_filter \
 	test_md5_filter \
 	test_sha256_filter \
+	test_hmac_filter \
 	test_ostream_codecvt \
 	test_istream_codecvt \
 
