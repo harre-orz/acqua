@@ -2,6 +2,7 @@
 #include <boost/test/included/unit_test.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/device/null.hpp>
+#include <boost/lexical_cast.hpp>
 #include <acqua/utility/hexstring.hpp>
 #include <sstream>
 
@@ -17,7 +18,7 @@ BOOST_AUTO_TEST_CASE(hmac_md5_input_filter)
         in.push(acqua::iostreams::hmac_md5_filter(buf, "", 0));
         in.push(boost::iostreams::null_source());
     } while(0);
-    BOOST_TEST(acqua::hexstring(buf).string() == "74e6f7298a9c2d168935f58c001bad88");
+    BOOST_TEST(boost::lexical_cast<std::string>(acqua::hexstring(buf)) == "74e6f7298a9c2d168935f58c001bad88");
 }
 
 BOOST_AUTO_TEST_CASE(hmac_md5_output_filter)
@@ -29,7 +30,7 @@ BOOST_AUTO_TEST_CASE(hmac_md5_output_filter)
         out.push(boost::iostreams::null_sink());
         out << "The quick brown fox jumps over the lazy dog";
     } while(0);
-    BOOST_TEST(acqua::hexstring(buf).string() == "80070713463e7749b90c2dc24911e275");
+    BOOST_TEST(boost::lexical_cast<std::string>(acqua::hexstring(buf)) == "80070713463e7749b90c2dc24911e275");
 }
 
 BOOST_AUTO_TEST_CASE(hmac_sha1_input_filter)
@@ -40,7 +41,7 @@ BOOST_AUTO_TEST_CASE(hmac_sha1_input_filter)
         in.push(acqua::iostreams::hmac_sha1_filter(buf, "", 0));
         in.push(boost::iostreams::null_source());
     } while(0);
-    BOOST_TEST(acqua::hexstring(buf).string() == "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d");
+    BOOST_TEST(boost::lexical_cast<std::string>(acqua::hexstring(buf)) == "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d");
 }
 
 BOOST_AUTO_TEST_CASE(hmac_sha1_output_filter)
@@ -52,7 +53,7 @@ BOOST_AUTO_TEST_CASE(hmac_sha1_output_filter)
         out.push(boost::iostreams::null_sink());
         out << "The quick brown fox jumps over the lazy dog";
     } while(0);
-    BOOST_TEST(acqua::hexstring(buf).string() == "de7c9b85b8b78aa6bc8a7a36f70a90701c9db4d9");
+    BOOST_TEST(boost::lexical_cast<std::string>(acqua::hexstring(buf)) == "de7c9b85b8b78aa6bc8a7a36f70a90701c9db4d9");
 }
 
 BOOST_AUTO_TEST_CASE(hmac_sha256_input_filter)
@@ -63,7 +64,7 @@ BOOST_AUTO_TEST_CASE(hmac_sha256_input_filter)
         in.push(acqua::iostreams::hmac_sha256_filter(buf, "", 0));
         in.push(boost::iostreams::null_source());
     } while(0);
-    BOOST_TEST(acqua::hexstring(buf).string() == "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad");
+    BOOST_TEST(boost::lexical_cast<std::string>(acqua::hexstring(buf)) == "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad");
 }
 
 BOOST_AUTO_TEST_CASE(hmac_sha256_output_filter)
@@ -75,7 +76,19 @@ BOOST_AUTO_TEST_CASE(hmac_sha256_output_filter)
         out.push(boost::iostreams::null_sink());
         out << "The quick brown fox jumps over the lazy dog";
     } while(0);
-    BOOST_TEST(acqua::hexstring(buf).string() == "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8");
+    BOOST_TEST(boost::lexical_cast<std::string>(acqua::hexstring(buf)) == "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8");
+}
+
+BOOST_AUTO_TEST_CASE(hmac_md5_output_filter2)
+{
+    std::uint8_t buf[16];
+    do {
+        boost::iostreams::filtering_ostream out;
+        out.push(acqua::iostreams::hmac_md5_filter(buf, std::string("admin")));
+        out.push(boost::iostreams::null_sink());
+        out << "<20040228091843.BDDqPgKGAMg@maildaemon>";
+    } while(0);
+    std::cout << acqua::hexstring(buf) << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

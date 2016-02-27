@@ -12,17 +12,13 @@
 #include <iostream>
 #include <iomanip>
 #include <type_traits>
-#include <boost/io/ios_state.hpp>
 #include <boost/mpl/bool.hpp>
 #include <boost/mpl/size_t.hpp>
 
 namespace acqua { namespace utility {
 
 template <typename It, bool C = true, std::size_t L = 16, typename Enabler = void>
-class hexdump;
-
-template <typename It, bool C, std::size_t L>
-class hexdump<It, C, L, typename std::enable_if<sizeof(typename std::iterator_traits<It>::value_type) == 1>::type>
+class hexdump
 {
     using size0_type = typename boost::mpl::size_t<0>::type;
 
@@ -31,7 +27,10 @@ public:
     using length_type = typename boost::mpl::size_t<L>::type;
 
     explicit hexdump(It beg, It end)
-        : beg_(beg), end_(end) {}
+        : beg_(beg), end_(end)
+    {
+        static_assert(sizeof(typename std::iterator_traits<It>::value_type) == 1, "");
+    }
 
     friend std::ostream & operator<<(std::ostream & os, hexdump const & rhs)
     {
@@ -42,7 +41,6 @@ public:
 private:
     void puts(std::ostream & os) const
     {
-        boost::io::ios_flags_saver ifs(os);
         auto carry = static_cast<int>(std::log10(std::distance(beg_, end_)) + 1);
 
         auto it = beg_;
@@ -100,12 +98,16 @@ private:
     template <typename CharT>
     void put_hex(std::ostream & os, CharT ch) const
     {
-        os << std::setfill('0') << std::setw(2) << static_cast<uint>(ch);
+        int hex;
+        hex = (static_cast<std::uint8_t>(ch) >> 4);
+        os << static_cast<char>(hex + (hex < 10 ? '0' : 'a' - 10));
+        hex = (static_cast<std::uint8_t>(ch) & 0x0f);
+        os << static_cast<char>(hex + (hex < 10 ? '0' : 'a' - 10));
     }
 
     void put_linum(std::ostream & os, std::ptrdiff_t pos, int carry) const
     {
-        os << std::dec << std::setfill('0') << std::setw(carry+1) << pos << ' ' << '|' << ' ' << std::hex;
+        os << std::setfill('0') << std::setw(carry+1) << pos << ' ' << '|' << ' ';
     }
 
 private:

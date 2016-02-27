@@ -11,8 +11,6 @@
 #include <iostream>
 #include <iomanip>
 #include <type_traits>
-#include <boost/lexical_cast.hpp>
-#include <boost/io/ios_state.hpp>
 
 namespace acqua { namespace utility {
 
@@ -21,11 +19,9 @@ class hexstring
 {
 public:
     explicit hexstring(It beg, It end)
-        : beg_(beg), end_(end) {}
-
-    std::string string() const
+        : beg_(beg), end_(end)
     {
-        return boost::lexical_cast<std::string>(*this);
+        static_assert(sizeof(typename std::iterator_traits<It>::value_type) == 1, "");
     }
 
     friend std::ostream & operator<<(std::ostream & os, hexstring const & rhs)
@@ -37,10 +33,13 @@ public:
 private:
     void puts(std::ostream & os) const
     {
-        boost::io::ios_flags_saver ifs(os);
-        os << std::hex;
-        for(auto it = beg_; it != end_; ++it)
-            os << std::setfill('0') << std::setw(2) << static_cast<uint>(*it);
+        int hex;
+        for(auto it = beg_; it != end_; ++it) {
+            hex = (static_cast<std::uint8_t>(*it) >> 4);
+            os << static_cast<char>(hex + (hex < 10 ? '0' : 'a' - 10));
+            hex = (static_cast<std::uint8_t>(*it) & 0x0f);
+            os << static_cast<char>(hex + (hex < 10 ? '0' : 'a' - 10));
+        }
     }
 
 private:

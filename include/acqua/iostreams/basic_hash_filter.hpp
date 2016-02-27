@@ -50,7 +50,7 @@ public:
         : basic_hash_filter(reinterpret_cast<unsigned char *>(buffer.data()))
     {
         static_assert(sizeof(CharT) == 1, "CharT must be 1byte.");
-        static_assert(N >= buffer_size, "N must be longer buffer_size.");
+        static_assert(N == buffer_size, "N must be longer buffer_size.");
     }
 
     template <typename CharT, std::size_t N>
@@ -58,7 +58,7 @@ public:
         : basic_hash_filter(reinterpret_cast<unsigned char *>(buffer))
     {
         static_assert(sizeof(CharT) == 1, "CharT must be 1byte.");
-        static_assert(N >= buffer_size, "N must be longer buffer_size.");
+        static_assert(N == buffer_size, "N must be longer buffer_size.");
     }
 
     template <typename CharT, std::size_t N>
@@ -66,7 +66,7 @@ public:
         : basic_hash_filter(reinterpret_cast<unsigned char *>(buffer.data()), key, keylen)
     {
         static_assert(sizeof(CharT) == 1, "CharT must be 1byte.");
-        static_assert(N >= buffer_size, "N must be longer buffer_size.");
+        static_assert(N == buffer_size, "N must be longer buffer_size.");
     }
 
     template <typename CharT, std::size_t N>
@@ -74,7 +74,23 @@ public:
         : basic_hash_filter(reinterpret_cast<unsigned char *>(buffer), key, keylen)
     {
         static_assert(sizeof(CharT) == 1, "CharT must be 1byte.");
-        static_assert(N >= buffer_size, "N must be longer buffer_size.");
+        static_assert(N == buffer_size, "N must be longer buffer_size.");
+    }
+
+    template <typename CharT, std::size_t N, typename Key>
+    explicit basic_hash_filter(std::array<CharT, N> & buffer, Key const & key)
+        : basic_hash_filter(reinterpret_cast<unsigned char *>(buffer.data()), key.data(), key.size())
+    {
+        static_assert(sizeof(CharT) == 1, "CharT must be 1byte.");
+        static_assert(N == buffer_size, "N must be longer buffer_size.");
+    }
+
+    template <typename CharT, std::size_t N, typename Key>
+    explicit basic_hash_filter(CharT (&buffer)[N], Key const & key)
+        : basic_hash_filter(reinterpret_cast<unsigned char *>(buffer), key.data(), key.size())
+    {
+        static_assert(sizeof(CharT) == 1, "CharT must be 1byte.");
+        static_assert(N == buffer_size, "N must be longer buffer_size.");
     }
 
     template <typename Source>
