@@ -1,3 +1,5 @@
+#pragma once
+
 /*!
   acqua library
 
@@ -5,8 +7,6 @@
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
-
-#pragma once
 
 #include <boost/system/error_code.hpp>
 #include <boost/operators.hpp>
@@ -100,4 +100,4 @@ std::size_t parse_to_addresses(It beg, It end, Addresses & addrs);
 
 } }
 
-#include <acqua/email/impl/address.ipp>
+#include <acqua/email/address.ipp>

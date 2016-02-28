@@ -1,3 +1,5 @@
+#pragma once
+
 /*!
   acqua library
 
@@ -6,12 +8,10 @@
   http://opensource.org/licenses/mit-license.php
  */
 
-#pragma once
-
 #include <acqua/email/encode_mimeheader.hpp>
 #include <acqua/email/error.hpp>
 #include <acqua/iostreams/base64_filter.hpp>
-#include <acqua/string_cast.hpp>
+#include <acqua/utility/string_cast.hpp>
 #include <boost/iostreams/device/back_inserter.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/locale/encoding.hpp>
@@ -224,14 +224,12 @@ private:
 
 } // detail
 
-
 template <typename CharT>
 inline void encode_mimeheader(std::ostream & os, std::basic_string<CharT> const & key, std::basic_string<CharT> const & val, std::string const & charset)
 {
     detail::encode_mimeheader_impl<CharT> enc(os, charset);
     enc(key, val);
 }
-
 
 template <typename CharT, typename Params>
 inline void encode_mimeheader(std::ostream & os, std::basic_string<CharT> const & key, std::basic_string<CharT> const & val, Params const & params, std::string const & charset)

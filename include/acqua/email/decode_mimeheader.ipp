@@ -1,3 +1,5 @@
+#pragma once
+
 /*!
   acqua library
 
@@ -6,14 +8,12 @@
   http://opensource.org/licenses/mit-license.php
  */
 
-#pragma once
-
 #include <acqua/email/decode_mimeheader.hpp>
 #include <acqua/email/error.hpp>
 #include <acqua/iostreams/ascii_filter.hpp>
 #include <acqua/iostreams/qprint_filter.hpp>
 #include <acqua/iostreams/base64_filter.hpp>
-#include <acqua/string_cast.hpp>
+#include <acqua/utility/string_cast.hpp>
 #include <boost/xpressive/xpressive.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -212,14 +212,12 @@ private:
 
 } // detail
 
-
 template <typename It, typename CharT>
 inline void decode_mimeheader(It beg, It end, std::basic_string<CharT> & str)
 {
     detail::decode_mimeheader_impl<It, CharT> dec(str);
     dec(beg, end);
 }
-
 
 template <typename It, typename CharT, typename Params>
 inline void decode_mimeheader(It beg, It end, std::basic_string<CharT> & str, Params & params)

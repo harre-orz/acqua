@@ -1,3 +1,5 @@
+#pragma once
+
 /*!
   acqua library
 
@@ -5,8 +7,6 @@
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
-
-#pragma once
 
 #include <acqua/email/message.hpp>
 #include <acqua/email/headers.hpp>
@@ -102,4 +102,4 @@ using wemail = basic_email<std::wstring>;
 
 } }
 
-#include <acqua/email/impl/email.ipp>
+#include <acqua/email/email.ipp>

@@ -1,3 +1,5 @@
+#pragma once
+
 /*!
   acqua library
 
@@ -5,8 +7,6 @@
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
-
-#pragma once
 
 #include <acqua/email/headers.hpp>
 #include <boost/system/error_code.hpp>
@@ -135,4 +135,4 @@ using wmessage = basic_message<std::wstring>;
 
 } }
 
-#include <acqua/email/impl/message.ipp>
+#include <acqua/email/message.ipp>

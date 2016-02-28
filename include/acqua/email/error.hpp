@@ -1,3 +1,5 @@
+#pragma once
+
 /*!
   acqua library
 
@@ -5,8 +7,6 @@
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
-
-#pragma once
 
 #include <boost/system/error_code.hpp>
 #include <boost/exception/exception.hpp>
@@ -39,4 +39,4 @@ template <> struct is_error_code_enum<acqua::email::error::address_errors>
 
 } }
 
-#include <acqua/email/impl/error.ipp>
+#include <acqua/email/error.ipp>

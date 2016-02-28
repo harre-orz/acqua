@@ -1,3 +1,5 @@
+#pragma once
+
 /*!
   acqua library
 
@@ -5,8 +7,6 @@
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
-
-#pragma once
 
 #include <string>
 
@@ -29,4 +29,4 @@ void decode_mimeheader(It beg, It end, std::basic_string<CharT> & str, Params & 
 
 } }
 
-#include <acqua/email/impl/decode_mimeheader.ipp>
+#include <acqua/email/decode_mimeheader.ipp>

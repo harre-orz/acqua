@@ -8,37 +8,36 @@
   http://opensource.org/licenses/mit-license.php
  */
 
-#include <memory>
 #include <boost/iostreams/categories.hpp>
+#include <memory>
 
 namespace acqua { namespace email {
 
 template <typename String>
 class basic_email;
 
-
 template <typename String>
-class basic_email_parser
+class basic_email_generator
 {
     struct impl;
 
 public:
     using char_type = char;
-    using category = boost::iostreams::sink_tag;
+    using category = boost::iostreams::source_tag;
 
-    explicit basic_email_parser(basic_email<String> & email);
+    explicit basic_email_generator(basic_email<String> & email);
 
     explicit operator bool() const;
 
-    std::streamsize write(char_type const * s, std::streamsize n);
+    std::streamsize read(char_type * s, std::streamsize n);
 
 private:
     std::shared_ptr<impl> impl_;
 };
 
-using email_parser = basic_email_parser<std::string>;
-using wemail_parser = basic_email_parser<std::wstring>;
+using email_generator = basic_email_generator<std::string>;
+using wemaii_generator = basic_email_generator<std::wstring>;
 
 } }
 
-#include <acqua/email/email_parser.ipp>
+#include <acqua/email/email_generator.ipp>

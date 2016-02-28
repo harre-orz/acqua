@@ -1,3 +1,5 @@
+#pragma once
+
 /*!
   acqua library
 
@@ -6,11 +8,10 @@
   http://opensource.org/licenses/mit-license.php
  */
 
-#pragma once
-
 #include <acqua/email/email_parser.hpp>
 #include <acqua/email/decode_mimeheader.hpp>
 #include <acqua/email/message.hpp>
+#include <acqua/email/detail/encoding.hpp>
 #include <acqua/iostreams/ostream_codecvt.hpp>
 #include <acqua/iostreams/ascii_filter.hpp>
 #include <acqua/iostreams/qprint_filter.hpp>
@@ -25,22 +26,6 @@
 #include <algorithm>
 
 namespace acqua { namespace email { namespace detail {
-
-enum class encoding { ascii, qprint, base64 };
-
-std::ostream & operator<<(std::ostream & os, encoding enc)
-{
-    switch(enc) {
-        case encoding::ascii:
-            return os << "7bit or 8bit";
-        case encoding::qprint:
-            return os << "quoted-printable";
-        case encoding::base64:
-            return os << "base64";
-    }
-    return os;
-}
-
 
 template <typename Message>
 struct parser_impl;
@@ -57,14 +42,14 @@ public:
         if (line.empty()) {
             // ヘッダー終了
             append(impl.email);
-            impl.new_payload(boundary_);
+            impl.to_payload(boundary_);
             return true;
         }
 
         if (line.size() == 1 && line[0] == '.') {
             // メールの終了記号のときは、ヘッダーの解析を打ち切り line を本文として処理させる
             append(impl.email);
-            impl.new_payload(boundary_);
+            impl.to_payload(boundary_);
             return false;
         }
 
@@ -73,7 +58,7 @@ public:
             // 新しいヘッダー
             if ((it = std::find(it, line.end(), ':')) == line.end()) {
                 // ヘッダー名と値を分けられないときは、ヘッダーの解析を打ち切り line を本文として処理させる
-                impl.new_payload(boundary_);
+                impl.to_payload(boundary_);
                 return false;
             }
 
@@ -121,13 +106,12 @@ class payload_parser
 public:
     // 文字コード変換をしない
     explicit payload_parser(std::string const * child_boundary, std::string const * parent_boundary,
-                            streambuf_type * sbuf, encoding enc)
+                            Message & email, encoding enc)
         : child_boundary_(child_boundary), parent_boundary_(parent_boundary)
         , out_(new boost::iostreams::filtering_ostream)
     {
         switch(enc) {
             case encoding::ascii:
-                out_->push(acqua::iostreams::ascii_decoder());
                 break;
             case encoding::qprint:
                 out_->push(acqua::iostreams::qprint_decoder());
@@ -136,12 +120,12 @@ public:
                 out_->push(acqua::iostreams::base64_decoder());
                 break;
         }
-        out_->push(acqua::iostreams::ostream_code_converter<char_type>(sbuf));
+        out_->push(acqua::iostreams::ostream_code_converter<char_type>(static_cast<streambuf_type *>(email)));
     }
 
     // 文字コード変換をする
     explicit payload_parser(std::string const * child_boundary, std::string const * parent_boundary,
-                                 streambuf_type * sbuf, encoding enc, std::string const & charset)
+                                 Message & email, encoding enc, std::string const & charset)
         : child_boundary_(child_boundary), parent_boundary_(parent_boundary)
         , out_(new boost::iostreams::filtering_ostream)
     {
@@ -156,7 +140,7 @@ public:
                 out_->push(acqua::iostreams::base64_decoder());
                 break;
         }
-        out_->push(acqua::iostreams::ostream_code_converter<char_type>(sbuf, charset));
+        out_->push(acqua::iostreams::ostream_code_converter<char_type>(static_cast<streambuf_type *>(email), charset));
     }
 
     payload_parser(payload_parser const &) = delete;
@@ -190,11 +174,11 @@ public:
     bool operator()(std::string const & line, Impl & impl)
     {
         if (line.size() == 1 && line[0] == '.') {
-            impl.completed();
+            impl.complete();
         } else if (this->is_child_multipart_begin(line)) {
-            impl.completed();
+            impl.complete();
         } else if (this->is_parent_multipart_end(line)) {
-            impl.new_subpart(this->child_boundary_, subpart_);
+            impl.to_subpart(this->child_boundary_, subpart_);
         } else if (subpart_ && subpart_->in_progress) {
             subpart_->parse_line(line);
         } else {
@@ -228,10 +212,10 @@ private:
 
 template <typename Message>
 struct parser_impl
-    : public boost::variant<detail::header_parser, detail::payload_parser<Message> >
+    : public boost::variant<header_parser, payload_parser<Message> >
 {
-    using header_type = detail::header_parser;
-    using payload_type = detail::payload_parser<Message>;
+    using header_type = header_parser;
+    using payload_type = payload_parser<Message>;
     using base_type = boost::variant<header_type, payload_type>;
     using streambuf_type = std::basic_streambuf<typename Message::char_type, typename Message::traits_type>;
 
@@ -248,8 +232,8 @@ struct parser_impl
         parser_impl & impl_;
     };
 
-    explicit parser_impl(Message & email_, boost::system::error_code & error_, std::string const * boundary = nullptr)
-        : base_type(header_type(boundary)), email(email_), error(error_) {}
+    explicit parser_impl(Message & email_, std::string const * boundary = nullptr)
+        : base_type(header_type(boundary)), email(email_) {}
 
     void parse_line(std::string const & line)
     {
@@ -257,85 +241,42 @@ struct parser_impl
             ;
     }
 
-    void new_payload(std::string const * boundary)
+    void to_payload(std::string const * boundary)
     {
-        std::string const * child_boundary = nullptr;
-        std::string charset = "us-ascii";
-        bool text_mode = false; // 改行コードの変換を行うか？
-        bool is_format_flowed = false;
-        bool is_delete_space = false;
-
-        auto const & headers = email.headers;
-        auto it = headers.find("Content-Type");
-        if (it != headers.end()) {
-            auto & contenttype = it->second;
-            // バウンダリを探す
-            auto it2 = contenttype.find("boundary");
-            if (it2 != contenttype.end())
-                child_boundary = &it2->second;
-
-            // Content-Type による改行コードの自動変換
-            if ((text_mode = boost::algorithm::istarts_with(contenttype.str(), "text/"))) {
-                it2 = contenttype.find("charset");
-                if (it2 != contenttype.end())
-                    charset = it2->second;
-
-                // RFC3676 対応
-                it2 = contenttype.find("format");
-                if (it2 != contenttype.end())
-                    is_format_flowed = boost::algorithm::iequals(it2->second, "flowed");
-                it2 = contenttype.find("delsp");
-                if (it2 != contenttype.end())
-                    is_delete_space = boost::algorithm::iequals(it2->second, "yes");
-            }
-        }
-
-        encoding enc = encoding::ascii;
-        it = headers.find("Content-Transfer-Encoding");
-        if (it != headers.end()) {
-            auto & content_transfer_encoding = it->second;
-            if (boost::algorithm::iequals(content_transfer_encoding.str(), "quoted-printable")) {
-                enc = encoding::qprint;
-                text_mode = true; // バイナリモードは存在しない
-            } else if (boost::algorithm::iequals(content_transfer_encoding.str(), "base64")) {
-                enc = encoding::base64;
-            }
-        }
+        std::string charset;
+        std::string const * child_boundary;
+        encoding enc;
+        bool text_mode;
+        bool is_format_flowed;
+        bool is_delete_space;
+        get_encoding_params(email.headers, charset, child_boundary, enc, text_mode, is_format_flowed, is_delete_space);
 
         if (text_mode) {
             *static_cast<base_type *>(this) = payload_type(
-                child_boundary, boundary, static_cast<streambuf_type *>(email), enc, charset);
+                child_boundary, boundary, email, enc, charset);
         } else {
             *static_cast<base_type *>(this) = payload_type(
-                child_boundary, boundary, static_cast<streambuf_type *>(email), enc);
+                child_boundary, boundary, email, enc);
         }
     }
 
-    void new_subpart(std::string const * boundary, parser_impl *& subpart)
+    void to_subpart(std::string const * boundary, parser_impl *& subpart)
     {
         if (subpart) {
             delete subpart;
             subpart = nullptr;
         }
-        subpart = new parser_impl(email.add_subpart(), error, boundary);
+        subpart = new parser_impl(email.add_subpart(), boundary);
     }
 
-    void completed()
+    void complete()
     {
         // ヘッダーに戻るというより、payload_parser をデストラクタさせる
         *static_cast<base_type *>(this) = header_type(nullptr);
         in_progress = false;
     }
 
-    void failured()
-    {
-        // TODO: エラーコード
-        error = make_error_code(boost::system::errc::bad_address);
-        in_progress = false;
-    }
-
     Message & email;
-    boost::system::error_code & error;
     bool in_progress = true;
 };
 
@@ -345,8 +286,8 @@ template <typename String>
 struct basic_email_parser<String>::impl
     : detail::parser_impl< basic_message<String> >
 {
-    explicit impl(basic_email<String> & email, boost::system::error_code & error)
-        : detail::parser_impl< basic_message<String> >(*email, error) {}
+    explicit impl(basic_email<String> & email)
+        : detail::parser_impl< basic_message<String> >(*email) {}
 
     std::streamsize write(char const * beg, std::streamsize size)
     {
@@ -393,7 +334,13 @@ struct basic_email_parser<String>::impl
 
 template <typename String>
 inline basic_email_parser<String>::basic_email_parser(basic_email<String> & email)
-    : impl_(new impl(email, error_)) {}
+    : impl_(new impl(email)) {}
+
+template <typename String>
+inline basic_email_parser<String>::operator bool() const
+{
+    return !impl_->in_progress;
+}
 
 template <typename String>
 inline std::streamsize basic_email_parser<String>::write(char_type const * s, std::streamsize n)
