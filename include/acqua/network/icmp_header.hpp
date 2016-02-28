@@ -51,20 +51,20 @@ public:
 
     void type(message_type msg) noexcept;
 
-    uint code() const noexcept;
+    std::uint8_t code() const noexcept;
 
-    void code(uint n) noexcept;
+    void code(std::uint8_t n) noexcept;
 
 protected:
     ~icmp_header() = default;
 
-    uint id() const noexcept;
+    std::uint16_t id() const noexcept;
 
-    void id(uint n) noexcept;
+    void id(std::uint16_t n) noexcept;
 
-    uint seq() const noexcept;
+    std::uint16_t seq() const noexcept;
 
-    void seq(uint n) noexcept;
+    void seq(std::uint16_t n) noexcept;
 
 public:
     friend std::ostream & operator<<(std::ostream & os, icmp_header const & rhs);

@@ -32,7 +32,7 @@ inline void icmp_header::type(message_type msg) noexcept
 #endif
 }
 
-inline uint icmp_header::code() const noexcept
+inline std::uint8_t icmp_header::code() const noexcept
 {
 #ifdef __linux__
     return value_type::code;
@@ -41,7 +41,7 @@ inline uint icmp_header::code() const noexcept
 #endif
 }
 
-inline void icmp_header::code(uint n) noexcept
+inline void icmp_header::code(std::uint8_t n) noexcept
 {
 #ifdef __linux__
     value_type::code = static_cast<std::uint8_t>(n);
@@ -50,7 +50,7 @@ inline void icmp_header::code(uint n) noexcept
 #endif
 }
 
-inline uint icmp_header::id() const noexcept
+inline std::uint16_t icmp_header::id() const noexcept
 {
 #ifdef __linux__
     return ntohs(value_type::un.echo.id);
@@ -59,7 +59,7 @@ inline uint icmp_header::id() const noexcept
 #endif
 }
 
-inline void icmp_header::id(uint n) noexcept
+inline void icmp_header::id(std::uint16_t n) noexcept
 {
 #ifdef __linux__
     value_type::un.echo.id = htons(static_cast<std::uint16_t>(n));
@@ -68,7 +68,7 @@ inline void icmp_header::id(uint n) noexcept
 #endif
 }
 
-inline uint icmp_header::seq() const noexcept
+inline std::uint16_t icmp_header::seq() const noexcept
 {
 #ifdef __linux__
     return ntohs(value_type::un.echo.sequence);
@@ -77,7 +77,7 @@ inline uint icmp_header::seq() const noexcept
 #endif
 }
 
-inline void icmp_header::seq(uint n) noexcept
+inline void icmp_header::seq(std::uint16_t n) noexcept
 {
 #ifdef __linux__
     value_type::un.echo.sequence = htons(static_cast<std::uint16_t>(n));

@@ -8,6 +8,7 @@ PROGRAMS = \
 	fcopy_server \
 	fcopy_client \
 	smtp_client \
+	ping \
 
 .DEFAULT: $(CXXBuild $(PROGRAMS))
 

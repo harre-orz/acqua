@@ -1,16 +1,17 @@
-#include <acqua/asio/pinger_v4.hpp>
-#include <acqua/asio/pinger_v6.hpp>
+#include <acqua/asio/icmp/pinger_v4.hpp>
+#include <acqua/asio/icmp/pinger_v6.hpp>
 #include <iostream>
 #include <thread>
 #include <functional>
 #include <boost/bind.hpp>
 
+
 std::size_t cnt = 0;
 std::chrono::steady_clock::duration timeout = std::chrono::seconds(3);
 std::chrono::steady_clock::duration interval = std::chrono::seconds(1);
 
-char const * pinger_name(acqua::asio::pinger_v4 *) { return "v4"; }
-char const * pinger_name(acqua::asio::pinger_v6 *) { return "v6"; }
+char const * pinger_name(acqua::asio::icmp::pinger_v4 *) { return "v4"; }
+char const * pinger_name(acqua::asio::icmp::pinger_v6 *) { return "v6"; }
 
 template <typename Pinger>
 void on_check(boost::system::error_code const & error, boost::asio::ip::icmp::endpoint const & host, Pinger * pinger)
@@ -22,7 +23,7 @@ void on_check(boost::system::error_code const & error, boost::asio::ip::icmp::en
 
     std::cout << "check " << ++cnt << ' ' << host << std::endl;
     std::this_thread::sleep_for(interval);
-    pinger->check(host.address().to_string(), timeout, std::bind(&on_check<Pinger>, std::placeholders::_1, std::placeholders::_2, pinger));
+    pinger->async_check(host.address().to_string(), timeout, std::bind(&on_check<Pinger>, std::placeholders::_1, std::placeholders::_2, pinger));
 }
 
 template <typename Pinger>
@@ -62,17 +63,17 @@ int main(int argc, char ** argv)
         }
     }
     boost::asio::io_service io_service;
-    acqua::asio::pinger_v4 v4(io_service);
-    acqua::asio::pinger_v6 v6(io_service);
+    acqua::asio::icmp::pinger_v4 v4(io_service);
+    acqua::asio::icmp::pinger_v6 v6(io_service);
     if (use_v4) {
         v4.start();
-        v4.check(argv[optind], timeout, std::bind(&on_check<acqua::asio::pinger_v4>, std::placeholders::_1, std::placeholders::_2, &v4));
-        v4.search(argv[optind], timeout, std::bind(&on_search<acqua::asio::pinger_v4>, std::placeholders::_1, std::placeholders::_2, &v4));
+        v4.async_check(argv[optind], timeout, std::bind(&on_check<acqua::asio::icmp::pinger_v4>, std::placeholders::_1, std::placeholders::_2, &v4));
+        v4.async_search(argv[optind], timeout, std::bind(&on_search<acqua::asio::icmp::pinger_v4>, std::placeholders::_1, std::placeholders::_2, &v4));
     }
     if (use_v6) {
         v6.start();
-        v6.check(argv[optind], timeout, std::bind(&on_check<acqua::asio::pinger_v6>, std::placeholders::_1, std::placeholders::_2, &v6));
-        v6.search(argv[optind], timeout, std::bind(&on_search<acqua::asio::pinger_v6>, std::placeholders::_1, std::placeholders::_2, &v6));
+        v6.async_check(argv[optind], timeout, std::bind(&on_check<acqua::asio::icmp::pinger_v6>, std::placeholders::_1, std::placeholders::_2, &v6));
+        v6.async_search(argv[optind], timeout, std::bind(&on_search<acqua::asio::icmp::pinger_v6>, std::placeholders::_1, std::placeholders::_2, &v6));
     }
     io_service.run();
 }
