@@ -7,6 +7,7 @@ PROGRAMS = \
 	netlink_listener \
 	fcopy_server \
 	fcopy_client \
+	smtp_client \
 
 .DEFAULT: $(CXXBuild $(PROGRAMS))
 

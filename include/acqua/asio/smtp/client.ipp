@@ -10,13 +10,15 @@
 
 #include <acqua/asio/smtp/client.hpp>
 #include <acqua/iostreams/base64_filter.hpp>
-#include <acqua/iostreams/cryptographic/hmac_filter.hpp>
+#include <acqua/iostreams/crypto/hmac_filter.hpp>
 #include <acqua/utility/hexstring.hpp>
 #include <boost/asio/connect.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ip/host_name.hpp>
+#include <boost/asio/ssl/context.hpp>
+#include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -29,32 +31,29 @@ namespace acqua { namespace asio { namespace smtp {
 
 struct client::impl
 {
-    using socket_type = boost::asio::ip::tcp::socket;
-
     explicit impl(boost::asio::io_service & io_service)
-        : socket_(io_service), resolver_(io_service), timer_(io_service) {}
+        : context_(boost::asio::ssl::context::tlsv12_client), socket_(io_service, context_), resolver_(io_service), timer_(io_service) {}
 
-    template <typename Handler>
-    void connect(boost::asio::basic_yield_context<Handler> yield, std::string const & host, std::string const & serv, boost::system::error_code & ec)
+    void connect(boost::asio::yield_context yield, std::string const & host, std::string const & serv, boost::system::error_code & ec)
     {
-        boost::asio::async_connect(socket_, resolver_.resolve(boost::asio::ip::tcp::resolver::query(host, serv)), yield[ec]);
+        boost::asio::async_connect(socket_.lowest_layer(), resolver_.resolve(boost::asio::ip::tcp::resolver::query(host, serv)), yield[ec]);
         if (ec) return;
-        if (dump_) *dump_ << '!' << socket_.remote_endpoint(ec) << std::endl;
+        if (dump_) *dump_ << '!' << socket_.lowest_layer().remote_endpoint(ec) << std::endl;
     }
 
-    template <typename Handler>
-    void send_message(boost::asio::basic_yield_context<Handler> yield, std::string const & sendbuf, boost::system::error_code & ec)
+    void send_message(boost::asio::yield_context yield, std::string const & sendbuf, boost::system::error_code & ec)
     {
         if (dump_) {
             *dump_ << std::endl << '>';
             dump_->write(sendbuf.c_str(), static_cast<std::streamsize>(sendbuf.size()-2));
             *dump_ << std::endl;
         }
-        boost::asio::async_write(socket_, boost::asio::buffer(sendbuf), yield[ec]);
+        enable_tls_
+            ? boost::asio::async_write(socket_, boost::asio::buffer(sendbuf), yield[ec])
+            : boost::asio::async_write(socket_.next_layer(), boost::asio::buffer(sendbuf), yield[ec]);
     }
 
-    template <typename Handler>
-    void send_data(boost::asio::basic_yield_context<Handler> yield, std::istream & is, boost::system::error_code & ec)
+    void send_data(boost::asio::yield_context yield, std::istream & is, boost::system::error_code & ec)
     {
         if (dump_) {
             *dump_ << std::endl << '>';
@@ -70,7 +69,9 @@ struct client::impl
                     *dump_ << '.';
                 }
             }
-            boost::asio::async_write(socket_, boost::asio::buffer(mbuf, static_cast<std::size_t>(size)), yield[ec]);
+            enable_tls_
+                ? boost::asio::async_write(socket_, boost::asio::buffer(mbuf, static_cast<std::size_t>(size)), yield[ec])
+                : boost::asio::async_write(socket_.next_layer(), boost::asio::buffer(mbuf, static_cast<std::size_t>(size)), yield[ec]);
             if (ec) break;
         }
 
@@ -79,10 +80,11 @@ struct client::impl
         }
     }
 
-    template <typename Handler>
-    uint receive_code(boost::asio::basic_yield_context<Handler> yield, boost::system::error_code & ec)
+    uint receive_code(boost::asio::yield_context yield, boost::system::error_code & ec)
     {
-        std::size_t size = boost::asio::async_read_until(socket_, recvbuf_, "\r\n", yield[ec]);
+        std::size_t size = enable_tls_
+            ? boost::asio::async_read_until(socket_, recvbuf_, "\r\n", yield[ec])
+            : boost::asio::async_read_until(socket_.next_layer(), recvbuf_, "\r\n", yield[ec]);
         if (ec) return 0;
 
         char const * data = boost::asio::buffer_cast<char const *>(recvbuf_.data());
@@ -91,12 +93,13 @@ struct client::impl
         return res;
     }
 
-    template <typename Handler>
-    uint receive_base64(boost::asio::basic_yield_context<Handler> yield, std::string & message, boost::system::error_code & ec)
+    uint receive_base64(boost::asio::yield_context yield, std::string & message, boost::system::error_code & ec)
     {
         message.clear();
 
-        std::size_t size = boost::asio::async_read_until(socket_, recvbuf_, "\r\n", yield[ec]);
+        std::size_t size = enable_tls_
+            ? boost::asio::async_read_until(socket_, recvbuf_, "\r\n", yield[ec])
+            : boost::asio::async_read_until(socket_.next_layer(), recvbuf_, "\r\n", yield[ec]);
         if (ec) return 0;
 
         char const * data = boost::asio::buffer_cast<char const *>(recvbuf_.data());
@@ -111,13 +114,16 @@ struct client::impl
         return res;
     }
 
-    template <typename Handler>
-    uint receive_ehlo(boost::asio::basic_yield_context<Handler> yield, boost::system::error_code & ec)
+    uint receive_ehlo(boost::asio::yield_context yield, bool & use_starttls, boost::system::error_code & ec)
     {
+        use_starttls = false;
+
         uint res;
-        int in_progress;
+        bool in_progress;
         do {
-            std::size_t size = boost::asio::async_read_until(socket_, recvbuf_, "\r\n", yield[ec]);
+            std::size_t size = enable_tls_
+                ? boost::asio::async_read_until(socket_, recvbuf_, "\r\n", yield[ec])
+                : boost::asio::async_read_until(socket_.next_layer(), recvbuf_, "\r\n", yield[ec]);
             if (ec) return 0;
 
             char const * data = boost::asio::buffer_cast<char const *>(recvbuf_.data());
@@ -135,15 +141,16 @@ struct client::impl
                     if (boost::algorithm::ifind_first(message, "CRAM-MD5"))
                         enable_auth_cram_md5_ = true;
                 }
+                if (!enable_tls_ && starttls_ && boost::algorithm::istarts_with(message, "STARTTLS"))
+                    use_starttls = true;
             }
             recvbuf_.consume(size);
         } while(in_progress);
+
         return res;
     }
 
-    template <typename Handler>
-    uint login(boost::asio::basic_yield_context<Handler> yield,
-               std::string const & user, std::string const & pass, boost::system::error_code & ec)
+    uint login(boost::asio::yield_context yield, std::string const & user, std::string const & pass, boost::system::error_code & ec)
     {
         uint res = 0;
         if (enable_auth_cram_md5_) {
@@ -152,11 +159,11 @@ struct client::impl
         }
 
         if (plaintext_password_) {
-            if (enable_auth_login_) {
+             if (enable_auth_plain_) {
                 ec.clear();
                 res = auth_plain(yield, user, pass, ec);
                 if (!ec) return res;
-            } else if (enable_auth_plain_) {
+            } else if (enable_auth_login_) {
                 ec.clear();
                 res = auth_plain(yield, user, pass, ec);
                 if (!ec) return res;
@@ -164,6 +171,30 @@ struct client::impl
         }
 
         return res;
+    }
+
+    uint start_tls(boost::asio::yield_context yield, boost::system::error_code & ec)
+    {
+        enable_tls_ = false;
+
+        send_message(yield, "STARTTLS\r\n", ec);
+        if (ec) return 0;
+
+        uint res = receive_code(yield, ec);
+        if (ec) return res;
+
+        socket_.async_handshake(boost::asio::ssl::stream_base::client, yield[ec]);
+        if (ec) return 0;
+
+        enable_tls_ = true;
+        return res;
+    }
+
+    void disconnect()
+    {
+        boost::system::error_code ec;
+        timer_.cancel(ec);
+        socket_.lowest_layer().close(ec);
     }
 
 private:
@@ -193,8 +224,7 @@ private:
         return static_cast<uint>(res);
     }
 
-    template <typename Handler>
-    uint auth_plain(boost::asio::basic_yield_context<Handler> yield,
+    uint auth_plain(boost::asio::yield_context yield,
                     std::string const & user, std::string const & pass, boost::system::error_code & ec)
     {
         do {
@@ -212,8 +242,7 @@ private:
         return receive_code(yield, ec);
     }
 
-    template <typename Handler>
-    uint auth_login(boost::asio::basic_yield_context<Handler> yield,
+    uint auth_login(boost::asio::yield_context yield,
                     std::string const & user, std::string const & pass, boost::system::error_code & ec)
     {
         send_message(yield, "AUTH LOGIN\r\n", ec);
@@ -253,8 +282,7 @@ private:
 
     }
 
-    template <typename Handler>
-    uint auth_cram_md5(boost::asio::basic_yield_context<Handler> yield,
+    uint auth_cram_md5(boost::asio::yield_context yield,
                        std::string const & user, std::string const & pass, boost::system::error_code & ec)
     {
         send_message(yield, "AUTH CRAM-MD5\r\n", ec);
@@ -286,10 +314,12 @@ private:
     }
 
 private:
-    socket_type socket_;
+    boost::asio::ssl::context context_;
+    boost::asio::ssl::stream<boost::asio::ip::tcp::socket> socket_;
     boost::asio::ip::tcp::resolver resolver_;
     boost::asio::steady_timer timer_;
     boost::asio::streambuf recvbuf_;
+    bool enable_tls_ = false;
     bool enable_auth_plain_ = false;
     bool enable_auth_login_ = false;
     bool enable_auth_cram_md5_ = false;
@@ -297,26 +327,23 @@ private:
 public:
     std::ostream * dump_ = nullptr;
     bool verbose_ = false;
-    bool plaintext_password_ = false;
-    bool startssl_ = false;
+    bool plaintext_password_ = true;
+    bool starttls_ = true;
 };
 
 
 client::client(boost::asio::io_service & io_service)
     : impl_(new impl(io_service)) {}
 
-template <typename Handler>
-void client::connect(boost::asio::basic_yield_context<Handler> yield,
-                     std::string const & host, std::string const & serv)
+uint client::connect(boost::asio::yield_context yield, std::string const & host, std::string const & serv)
 {
     boost::system::error_code ec;
-    connect(yield, host, serv, ec);
+    uint res = connect(yield, host, serv, ec);
     boost::asio::detail::throw_error(ec, "connect");
+    return res;
 }
 
-template <typename Handler>
-uint client::connect(boost::asio::basic_yield_context<Handler> yield,
-                     std::string const & host, std::string const & serv, boost::system::error_code & ec)
+uint client::connect(boost::asio::yield_context yield, std::string const & host, std::string const & serv, boost::system::error_code & ec)
 {
     impl_->connect(yield, host, serv, ec);
     if (ec) return 0;
@@ -324,18 +351,15 @@ uint client::connect(boost::asio::basic_yield_context<Handler> yield,
     return impl_->receive_code(yield, ec);
 }
 
-template <typename Handler>
-void client::helo(boost::asio::basic_yield_context<Handler> yield,
-                  std::string const & hostname)
+uint client::helo(boost::asio::yield_context yield, std::string const & hostname)
 {
     boost::system::error_code ec;
-    helo(yield, ec, hostname);
+    uint res = helo(yield, ec, hostname);
     boost::asio::detail::throw_error(ec, "helo");
+    return res;
 }
 
-template <typename Handler>
-uint client::helo(boost::asio::basic_yield_context<Handler> yield,
-                  boost::system::error_code & ec, std::string const & hostname)
+uint client::helo(boost::asio::yield_context yield, boost::system::error_code & ec, std::string const & hostname)
 {
     do {
         std::string sendbuf{"HELO "};
@@ -348,58 +372,57 @@ uint client::helo(boost::asio::basic_yield_context<Handler> yield,
     return impl_->receive_code(yield, ec);
 }
 
-template <typename Handler>
-void client::ehlo(boost::asio::basic_yield_context<Handler> yield,
-                  std::string const & hostname)
+uint  client::ehlo(boost::asio::yield_context yield, std::string const & hostname)
 {
     boost::system::error_code ec;
-    ehlo(yield, ec, hostname);
+    uint res = ehlo(yield, ec, hostname);
     boost::asio::detail::throw_error(ec, "ehlo");
+    return res;
 }
 
-template <typename Handler>
-uint client::ehlo(boost::asio::basic_yield_context<Handler> yield,
-                  boost::system::error_code & ec, std::string const & hostname)
+uint client::ehlo(boost::asio::yield_context yield, boost::system::error_code & ec, std::string const & hostname)
 {
-    do {
-        std::string sendbuf{"EHLO "};
-        sendbuf += (hostname.empty() ? boost::asio::ip::host_name() : hostname);
-        sendbuf += '\r'; sendbuf += '\n';
+    std::string sendbuf{"EHLO "};
+    sendbuf += (hostname.empty() ? boost::asio::ip::host_name() : hostname);
+    sendbuf += '\r'; sendbuf += '\n';
+    impl_->send_message(yield, sendbuf, ec);
+    if (ec) return 0;
+
+    bool use_starttls;
+    uint res = impl_->receive_ehlo(yield, use_starttls, ec);
+    if (use_starttls) {
+        res = impl_->start_tls(yield, ec);
+        if (ec) return res;
+
         impl_->send_message(yield, sendbuf, ec);
         if (ec) return 0;
-    } while(0);
-
-    return impl_->receive_ehlo(yield, ec);
+        res = impl_->receive_ehlo(yield, use_starttls, ec);
+    }
+    return res;
 }
 
-template <typename Handler>
-void client::login(boost::asio::basic_yield_context<Handler> yield,
-                   std::string const & user, std::string const & pass)
+uint client::login(boost::asio::yield_context yield, std::string const & user, std::string const & pass)
 {
     boost::system::error_code ec;
-    login(yield, user, pass, ec);
+    uint res = login(yield, user, pass, ec);
     boost::asio::detail::throw_error(ec, "login");
+    return res;
 }
 
-template <typename Handler>
-uint client::login(boost::asio::basic_yield_context<Handler> yield,
-                   std::string const & user, std::string const & pass, boost::system::error_code & ec)
+uint client::login(boost::asio::yield_context yield, std::string const & user, std::string const & pass, boost::system::error_code & ec)
 {
     return impl_->login(yield, user, pass, ec);
 }
 
-template <typename Handler>
-void client::mail(boost::asio::basic_yield_context<Handler> yield,
-                  std::string const & address)
+uint client::mail(boost::asio::yield_context yield, std::string const & address)
 {
     boost::system::error_code ec;
-    mail(yield, address, ec);
+    uint res = mail(yield, address, ec);
     boost::asio::detail::throw_error(ec, "mail");
+    return res;
 }
 
-template <typename Handler>
-uint client::mail(boost::asio::basic_yield_context<Handler> yield,
-                  std::string const & address, boost::system::error_code & ec)
+uint client::mail(boost::asio::yield_context yield, std::string const & address, boost::system::error_code & ec)
 {
     do {
         std::string sendbuf{"MAIL FROM: "};
@@ -413,18 +436,15 @@ uint client::mail(boost::asio::basic_yield_context<Handler> yield,
     return impl_->receive_code(yield, ec);
 }
 
-template <typename Handler>
-void client::rcpt(boost::asio::basic_yield_context<Handler> yield,
-                  std::string const & address)
+uint client::rcpt(boost::asio::yield_context yield, std::string const & address)
 {
     boost::system::error_code ec;
-    rcpt(yield, address, ec);
+    uint res = rcpt(yield, address, ec);
     boost::asio::detail::throw_error(ec, "rcpt");
+    return res;
 }
 
-template <typename Handler>
-uint client::rcpt(boost::asio::basic_yield_context<Handler> yield,
-                  std::string const & address, boost::system::error_code & ec)
+uint client::rcpt(boost::asio::yield_context yield, std::string const & address, boost::system::error_code & ec)
 {
     do {
         std::string sendbuf{"RCPT TO: "};
@@ -438,18 +458,15 @@ uint client::rcpt(boost::asio::basic_yield_context<Handler> yield,
     return impl_->receive_code(yield, ec);
 }
 
-template <typename Handler>
-void client::data(boost::asio::basic_yield_context<Handler> yield,
-                  std::istream & is)
+uint client::data(boost::asio::yield_context yield, std::istream & is)
 {
     boost::system::error_code ec;
-    data(yield, is, ec);
+    uint res = data(yield, is, ec);
     boost::asio::detail::throw_error(ec, "data");
+    return res;
 }
 
-template <typename Handler>
-uint client::data(boost::asio::basic_yield_context<Handler> yield,
-                  std::istream & is, boost::system::error_code & ec)
+uint client::data(boost::asio::yield_context yield, std::istream & is, boost::system::error_code & ec)
 {
     impl_->send_message(yield, "DATA\r\n", ec);
     if (ec) return 0;
@@ -463,22 +480,22 @@ uint client::data(boost::asio::basic_yield_context<Handler> yield,
     return impl_->receive_code(yield, ec);
 }
 
-template <typename Handler>
-void client::quit(boost::asio::basic_yield_context<Handler> yield)
+uint client::quit(boost::asio::yield_context yield)
 {
     boost::system::error_code ec;
-    quit(yield, ec);
+    uint res = quit(yield, ec);
     boost::asio::detail::throw_error(ec, "quit");
+    return res;
 }
 
-template <typename Handler>
-uint client::quit(boost::asio::basic_yield_context<Handler> yield,
-                  boost::system::error_code & ec)
+uint client::quit(boost::asio::yield_context yield, boost::system::error_code & ec)
 {
     impl_->send_message(yield, "QUIT\r\n", ec);
     if (ec) return 0;
 
-    return impl_->receive_code(yield, ec);
+    uint res = impl_->receive_code(yield, ec);
+    impl_->disconnect();;
+    return res;
 }
 
 void client::dump_socketstream(std::ostream & os, bool verbose)
@@ -487,14 +504,14 @@ void client::dump_socketstream(std::ostream & os, bool verbose)
     impl_->verbose_ = verbose;
 }
 
-void client::enable_plaintext_password()
+void client::disable_plaintext_password()
 {
-    impl_->plaintext_password_ = true;
+    impl_->plaintext_password_ = false;
 }
 
-void client::enable_startssl()
+void client::disable_starttls()
 {
-    impl_->startssl_ = true;
+    impl_->starttls_ = false;
 }
 
 } } }
