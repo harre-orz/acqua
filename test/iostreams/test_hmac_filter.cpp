@@ -1,4 +1,4 @@
-#include <acqua/iostreams/cryptographic/hmac_filter.hpp>
+#include <acqua/iostreams/crypto/hmac_filter.hpp>
 #include <boost/test/included/unit_test.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/device/null.hpp>
@@ -77,18 +77,6 @@ BOOST_AUTO_TEST_CASE(hmac_sha256_output_filter)
         out << "The quick brown fox jumps over the lazy dog";
     } while(0);
     BOOST_TEST(boost::lexical_cast<std::string>(acqua::hexstring(buf)) == "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8");
-}
-
-BOOST_AUTO_TEST_CASE(hmac_md5_output_filter2)
-{
-    std::uint8_t buf[16];
-    do {
-        boost::iostreams::filtering_ostream out;
-        out.push(acqua::iostreams::hmac_md5_filter(buf, std::string("admin")));
-        out.push(boost::iostreams::null_sink());
-        out << "<20040228091843.BDDqPgKGAMg@maildaemon>";
-    } while(0);
-    std::cout << acqua::hexstring(buf) << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

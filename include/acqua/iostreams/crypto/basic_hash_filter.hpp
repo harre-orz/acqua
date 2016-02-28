@@ -16,7 +16,7 @@
 #include <memory>
 #include <cstring>
 
-namespace acqua { namespace iostreams {
+namespace acqua { namespace iostreams { namespace crypto {
 
 template <typename Context, std::size_t BufferSize>
 class basic_hash_filter
@@ -130,4 +130,4 @@ private:
     unsigned char * buffer_;
 };
 
-} }
+} } }

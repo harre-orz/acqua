@@ -8,38 +8,37 @@
   http://opensource.org/licenses/mit-license.php
  */
 
-#include <acqua/iostreams/cryptographic/sha256_filter.hpp>
+#include <acqua/iostreams/crypto/md5_filter.hpp>
 #include <acqua/iostreams/error.hpp>
 
 extern "C" {
-#include <openssl/sha.h>
+#include <openssl/md5.h>
 }
 
-namespace acqua { namespace iostreams { namespace cryptographic {
+namespace acqua { namespace iostreams { namespace crypto {
 
-class sha256_context
+class md5_context
 {
 public:
     void init(boost::system::error_code & ec) noexcept
     {
-        if (::SHA256_Init(&context) != 1)
-            ec = make_error_code(error::sha256_error);
+        if (::MD5_Init(&context) != 1)
+            ec = make_error_code(error::md5_error);
     }
 
     void update(char const * s, std::size_t n, boost::system::error_code & ec) noexcept
     {
-        if (::SHA256_Update(&context, s, n) != 1)
-            ec = make_error_code(error::sha256_error);
+        if (::MD5_Update(&context, s, n) != 1)
+            ec = make_error_code(error::md5_error);
     }
 
     void finish(unsigned char * buffer, std::size_t, boost::system::error_code & ec) noexcept
     {
-        if (::SHA256_Final(buffer, &context) != 1)
-            ec = make_error_code(error::sha256_error);
+        if (::MD5_Final(buffer, &context) != 1)
+            ec = make_error_code(error::md5_error);
     }
 
-private:
-    ::SHA256_CTX context;
+    ::MD5_CTX context;
 };
 
 } } }

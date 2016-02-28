@@ -8,36 +8,36 @@
   http://opensource.org/licenses/mit-license.php
  */
 
-#include <acqua/iostreams/cryptographic/hmac_filter.hpp>
+#include <acqua/iostreams/crypto/hmac_filter.hpp>
 #include <acqua/iostreams/error.hpp>
 
 extern "C" {
 #include <openssl/hmac.h>
 }
 
-namespace acqua { namespace iostreams { namespace cryptographic {
+namespace acqua { namespace iostreams { namespace crypto {
 
 struct hmac_md5_engine
 {
-    ::EVP_MD const * evp() const { return EVP_md5(); }
+    ::EVP_MD const * evp() const { return ::EVP_md5(); }
     static const error::cryptographic_errors errc = error::hmac_md5_error;
 };
 
 struct hmac_sha1_engine
 {
-    ::EVP_MD const * evp() const { return EVP_sha1(); }
+    ::EVP_MD const * evp() const { return ::EVP_sha1(); }
     static const error::cryptographic_errors errc = error::hmac_sha1_error;
 };
 
 struct hmac_sha256_engine
 {
-    ::EVP_MD const * evp() const { return EVP_sha256(); }
+    ::EVP_MD const * evp() const { return ::EVP_sha256(); }
     static const error::cryptographic_errors errc = error::hmac_sha256_error;
 };
 
 struct hmac_sha512_engine
 {
-    ::EVP_MD const * evp() const { return EVP_sha512(); }
+    ::EVP_MD const * evp() const { return ::EVP_sha512(); }
     static const error::cryptographic_errors errc = error::hmac_sha512_error;
 };
 
@@ -48,12 +48,12 @@ class hmac_context
 public:
     hmac_context() noexcept
     {
-        HMAC_CTX_init(&context);
+        ::HMAC_CTX_init(&context);
     }
 
     ~hmac_context() noexcept
     {
-        HMAC_CTX_cleanup(&context);
+        ::HMAC_CTX_cleanup(&context);
     }
 
     void init(void const * key, std::size_t len, boost::system::error_code & ec) noexcept

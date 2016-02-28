@@ -1,4 +1,4 @@
-#include <acqua/iostreams/cryptographic/sha256_filter.hpp>
+#include <acqua/iostreams/crypto/sha256_filter.hpp>
 #include <boost/test/included/unit_test.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/copy.hpp>

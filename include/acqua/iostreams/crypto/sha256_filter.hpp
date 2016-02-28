@@ -8,19 +8,19 @@
   http://opensource.org/licenses/mit-license.php
  */
 
-#include <acqua/iostreams/basic_hash_filter.hpp>
+#include <acqua/iostreams/crypto/basic_hash_filter.hpp>
 
 namespace acqua { namespace iostreams {
 
-namespace cryptographic {
+namespace crypto {
 
 class sha256_context;
 using sha256_filter = basic_hash_filter<sha256_context, 32>;
 
-} // cryptographic
+} // crypto
 
-using sha256_filter = cryptographic::sha256_filter;
+using sha256_filter = crypto::sha256_filter;
 
 } }
 
-#include <acqua/iostreams/cryptographic/sha256_filter.ipp>
+#include <acqua/iostreams/crypto/sha256_filter.ipp>

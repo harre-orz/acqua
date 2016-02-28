@@ -8,19 +8,19 @@
   http://opensource.org/licenses/mit-license.php
  */
 
-#include <acqua/iostreams/basic_hash_filter.hpp>
+#include <acqua/iostreams/crypto/basic_hash_filter.hpp>
 
 namespace acqua { namespace iostreams {
 
-namespace cryptographic {
+namespace crypto {
 
 class md5_context;
 using md5_filter = basic_hash_filter<md5_context, 16>; // 16 = MD5_DIGEST_LENGTH
 
-}  // cryptographic
+}  // crypto
 
-using md5_filter = cryptographic::md5_filter;
+using md5_filter = crypto::md5_filter;
 
 } }
 
-#include <acqua/iostreams/cryptographic/md5_filter.ipp>
+#include <acqua/iostreams/crypto/md5_filter.ipp>
