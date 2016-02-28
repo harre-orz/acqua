@@ -38,4 +38,4 @@ struct is_error_code_enum<acqua::iostreams::error::cryptographic_errors>
 
 } }
 
-#include <acqua/iostreams/impl/error.ipp>
+#include <acqua/iostreams/error.ipp>

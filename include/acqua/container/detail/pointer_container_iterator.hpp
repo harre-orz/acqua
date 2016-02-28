@@ -1,12 +1,12 @@
+#pragma once
+
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
 */
-
-#pragma once
 
 #include <iterator>
 
@@ -77,4 +77,4 @@ private:
 
 } } }
 
-#include <acqua/container/detail/impl/pointer_container_iterator.ipp>
+#include <acqua/container/detail/pointer_container_iterator.ipp>

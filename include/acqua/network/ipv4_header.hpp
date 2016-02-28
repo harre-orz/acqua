@@ -1,16 +1,12 @@
+#pragma once
+
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
 */
-
-#pragma once
-
-extern "C" {
-#include <netinet/ip.h>
-}
 
 #include <acqua/network/internet4_address.hpp>
 #include <acqua/network/detail/header_base.hpp>
@@ -18,17 +14,21 @@ extern "C" {
 #include <acqua/network/detail/sourceable_and_destinable.hpp>
 #include <acqua/network/detail/checkable.hpp>
 
-namespace acqua { namespace network { namespace detail {
+extern "C" {
+#include <netinet/ip.h>
+}
+
+namespace acqua { namespace network {
 
 class ipv4_header
-    : public header_base<ipv4_header>
+    : public detail::header_base<ipv4_header>
     , private ::ip
-    , public sourceable_and_destinable<ipv4_header, internet4_address, ::ip, struct in_addr, &::ip::ip_src, &::ip::ip_dst>
-    , public checkable<ipv4_header, ::ip, u_short, &::ip::ip_sum, ipv4_checksum_method>
+    , public detail::sourceable_and_destinable<ipv4_header, internet4_address, ::ip, struct in_addr, &::ip::ip_src, &::ip::ip_dst>
+    , public detail::checkable<ipv4_header, ::ip, u_short, &::ip::ip_sum, detail::ipv4_checksum_method>
 {
     friend sourceable_and_destinable;
     friend checkable;
-    friend pseudo_header<ipv4_header>;
+    friend detail::pseudo_header<ipv4_header>;
     using value_type = ::ip;
 
 public:
@@ -80,10 +80,6 @@ public:
     friend std::ostream & operator<<(std::ostream & os, ipv4_header const & rhs);
 };
 
-}  // detail
-
-using ipv4_header = detail::ipv4_header;
-
 } }
 
-#include <acqua/network/impl/ipv4_header.ipp>
+#include <acqua/network/ipv4_header.ipp>

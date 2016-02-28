@@ -6,7 +6,7 @@
 #include <acqua/network/detail/pseudo_header.hpp>
 #include <acqua/network/detail/is_match_condition.hpp>
 
-namespace acqua { namespace network { namespace detail {
+namespace acqua { namespace network {
 
 inline std::size_t ipv4_header::header_size() const
 {
@@ -131,6 +131,8 @@ inline std::ostream & operator<<(std::ostream & os, ipv4_header const & rhs)
     return os;
 }
 
+namespace detail {
+
 template <>
 class pseudo_header<ipv4_header>
 {
@@ -157,7 +159,6 @@ private:
     std::size_t sum_;
 };
 
-
 template <>
 class is_match_condition<ethernet_header, ipv4_header>
 {
@@ -168,4 +169,6 @@ public:
     }
 };
 
-} } }
+} // detail
+
+} }

@@ -1,23 +1,23 @@
+#pragma once
+
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
 */
-
-#pragma once
 
 extern "C" {
 #include <ifaddrs.h>
 }
 
-#include <iterator>
-#include <memory>
-#include <boost/system/error_code.hpp>
 #include <acqua/network/linklayer_address.hpp>
 #include <acqua/network/internet4_address.hpp>
 #include <acqua/network/internet6_address.hpp>
+#include <boost/system/error_code.hpp>
+#include <iterator>
+#include <memory>
 
 namespace acqua { namespace network {
 
@@ -172,4 +172,4 @@ public:
 
 } }
 
-#include <acqua/network/impl/interface.ipp>
+#include <acqua/network/interface.ipp>

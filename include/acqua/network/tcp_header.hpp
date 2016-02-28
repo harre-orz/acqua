@@ -1,42 +1,42 @@
+#pragma once
+
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
-
-#pragma once
-
-extern "C" {
-#include <netinet/tcp.h>
-}
 
 #include <acqua/network/detail/header_base.hpp>
 #include <acqua/network/detail/sourceable_and_destinable.hpp>
 #include <acqua/network/detail/checkable.hpp>
 
-namespace acqua { namespace network { namespace detail {
+extern "C" {
+#include <netinet/tcp.h>
+}
+
+namespace acqua { namespace network {
 
 class tcp_header
     : private ::tcphdr
-    , public header_base<tcp_header>
+    , public detail::header_base<tcp_header>
 #ifdef __linux__
-    , public sourceable_and_destinable<
+    , public detail::sourceable_and_destinable<
         tcp_header,
         std::uint16_t,
         ::tcphdr,
         ::u_int16_t,
         &::tcphdr::source,
         &::tcphdr::dest>
-    , public checkable<
+    , public detail::checkable<
         tcp_header,
         ::tcphdr, u_int16_t,
         &::tcphdr::check,
-        pseudo_checksum_method
+        detail::pseudo_checksum_method
     >
 #else  // BSD
-    , public sourceable_and_destinable<
+    , public detail::sourceable_and_destinable<
         tcp_header,
         std::uint16_t,
         ::tcphdr,
@@ -44,12 +44,12 @@ class tcp_header
         &::tcphdr::th_sport,
         &::tcphdr::th_dport
     >
-    , public checkable<
+    , public detail::checkable<
         tcp_header,
         ::tcphdr,
         u_int16_t,
         &::tcphdr::th_sum,
-        pseudo_checksum_method
+        detail::pseudo_checksum_method
     >
 #endif
 {
@@ -64,8 +64,6 @@ public:
     friend std::ostream & operator<<(std::ostream & os, tcp_header const &);
 };
 
-}  // detail
-
 } }
 
-#include <acqua/network/impl/tcp_header.ipp>
+#include <acqua/network/tcp_header.ipp>

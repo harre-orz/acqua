@@ -1,9 +1,17 @@
 #pragma once
 
+/*!
+  acqua library
+
+  Copyright (c) 2016 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+*/
+
 #include <acqua/network/ipv6_header.hpp>
 #include <acqua/network/icmpv6_header.hpp>
 
-namespace acqua { namespace network { namespace detail {
+namespace acqua { namespace network {
 
 inline auto icmpv6_header::type() const noexcept -> message_type
 {
@@ -94,6 +102,8 @@ inline std::ostream & operator<<(std::ostream & os, icmpv6_header const & rhs)
     return os;
 }
 
+namespace detail {
+
 template <>
 class is_match_condition<ipv6_header, icmpv6_echo>
 {
@@ -105,7 +115,6 @@ public:
                 || to.type() == icmpv6_header::echo_reply_message);
     }
 };
-
 
 template <>
 class is_match_condition<ipv6_header, icmpv6_neighbor>
@@ -119,4 +128,6 @@ public:
     }
 };
 
-} } }
+} // detail
+
+} }

@@ -1,12 +1,20 @@
 #pragma once
 
+/*!
+  acqua library
+
+  Copyright (c) 2016 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+ */
+
 #include <boost/predef/other/endian.h>
 #include <acqua/network/ethernet_header.hpp>
 #include <acqua/network/ipv6_header.hpp>
 #include <acqua/network/detail/pseudo_header.hpp>
 #include <acqua/network/detail/is_match_condition.hpp>
 
-namespace acqua { namespace network { namespace detail {
+namespace acqua { namespace network {
 
 template <typename It>
 inline void ipv6_header::shrink_into_end(It & it) const
@@ -37,6 +45,8 @@ inline std::ostream & operator<<(std::ostream & os, ipv6_header const & rhs)
     return os;
 }
 
+namespace detail {
+
 template <>
 class pseudo_header<ipv6_header>
 {
@@ -65,7 +75,6 @@ private:
     std::size_t sum_;
 };
 
-
 template <>
 class is_match_condition<ethernet_header, ipv6_header>
 {
@@ -76,4 +85,6 @@ public:
     }
 };
 
-} } }
+} // detail
+
+} }

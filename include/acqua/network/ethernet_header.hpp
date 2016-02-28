@@ -1,31 +1,31 @@
+#pragma once
+
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
-
-#pragma once
-
-extern "C" {
-#include <net/ethernet.h>
-}
 
 #include <acqua/network/linklayer_address.hpp>
 #include <acqua/network/detail/header_base.hpp>
 #include <acqua/network/detail/sourceable_and_destinable.hpp>
 
-namespace acqua { namespace network { namespace detail {
+extern "C" {
+#include <net/ethernet.h>
+}
+
+namespace acqua { namespace network {
 
 /*!
   イーサネットヘッダークラス.
 */
 class ethernet_header
-    : public header_base<ethernet_header>
+    : public detail::header_base<ethernet_header>
     , private ::ether_header
 #ifdef __linux__
-    , public sourceable_and_destinable<
+    , public detail::sourceable_and_destinable<
         ethernet_header,
         linklayer_address,
         ::ether_header,
@@ -34,7 +34,7 @@ class ethernet_header
         &::ether_header::ether_dhost
     >
 #else
-    , public sourceable_and_destinable<
+    , public detail::sourceable_and_destinable<
         ethernet_header,
         linklayer_address,
         ::ether_header,
@@ -64,10 +64,6 @@ public:
     friend std::ostream & operator<<(std::ostream & os, ethernet_header const & rhs);
 };
 
-}  // detail
-
-using ethernet_header = detail::ethernet_header;
-
 } }
 
-#include <acqua/network/impl/ethernet_header.ipp>
+#include <acqua/network/ethernet_header.ipp>

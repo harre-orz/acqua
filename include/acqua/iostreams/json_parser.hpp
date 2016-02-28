@@ -1,3 +1,5 @@
+#pragma once
+
 /*!
   acqua library
 
@@ -5,8 +7,6 @@
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
-
-#pragma once
 
 #include <acqua/iostreams/json_adapt.hpp>
 #include <boost/iostreams/categories.hpp>
@@ -40,4 +40,4 @@ private:
 
 } }
 
-#include <acqua/iostreams/impl/json_parser.ipp>
+#include <acqua/iostreams/json_parser.ipp>

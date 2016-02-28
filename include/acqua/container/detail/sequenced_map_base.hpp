@@ -1,16 +1,16 @@
+#pragma once
+
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
 
-#pragma once
-
+#include <boost/iterator/iterator_adaptor.hpp>
 #include <stdexcept>
 #include <algorithm>
-#include <boost/iterator/iterator_adaptor.hpp>
 
 namespace acqua { namespace container { namespace detail {
 
@@ -154,6 +154,5 @@ protected:
     const_iterator find(key_type const & key, mapped_type const &) const { return find(key); }
     data_type data_;
 };
-
 
 } } }

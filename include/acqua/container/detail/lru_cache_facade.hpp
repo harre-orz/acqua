@@ -1,19 +1,19 @@
+#pragma once
+
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
 */
 
-#pragma once
-
-#include <iostream>
 #include <boost/intrusive/list.hpp>
 #include <boost/intrusive/unordered_set.hpp>
 #include <boost/iterator_adaptors.hpp>
 #include <boost/optional.hpp>
 #include <boost/utility/in_place_factory.hpp>
+#include <iostream>
 
 namespace acqua { namespace container { namespace detail {
 
@@ -179,4 +179,4 @@ private:
 
 } } }
 
-#include <acqua/container/detail/impl/lru_cache_facade.ipp>
+#include <acqua/container/detail/lru_cache_facade.ipp>

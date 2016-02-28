@@ -1,15 +1,15 @@
+#pragma once
+
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
 */
 
-#pragma once
-
-#include <iostream>
 #include <boost/operators.hpp>
+#include <iostream>
 
 namespace acqua { namespace network {
 
@@ -81,4 +81,4 @@ private:
 
 } }
 
-#include <acqua/network/impl/basic_prefix_address.ipp>
+#include <acqua/network/basic_prefix_address.ipp>

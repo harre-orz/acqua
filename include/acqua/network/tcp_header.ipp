@@ -1,11 +1,19 @@
 #pragma once
 
+/*!
+  acqua library
+
+  Copyright (c) 2016 Haruhiko Uchida
+  The software is released under the MIT license.
+  http://opensource.org/licenses/mit-license.php
+*/
+
 #include <acqua/network/ipv4_header.hpp>
 #include <acqua/network/ipv6_header.hpp>
 #include <acqua/network/tcp_header.hpp>
 #include <acqua/network/detail/is_match_condition.hpp>
 
-namespace acqua { namespace network { namespace detail {
+namespace acqua { namespace network {
 
 inline std::ostream & operator<<(std::ostream & os, tcp_header const & rhs)
 {
@@ -15,6 +23,8 @@ inline std::ostream & operator<<(std::ostream & os, tcp_header const & rhs)
        << " check=" << std::hex << rhs.checksum() << std::dec;
     return os;
 }
+
+namespace detail {
 
 template <>
 class is_match_condition<ipv4_header, tcp_header>

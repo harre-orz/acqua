@@ -1,3 +1,5 @@
+#pragma once
+
 /*!
   acqua library
 
@@ -6,11 +8,9 @@
   http://opensource.org/licenses/mit-license.php
  */
 
-#pragma once
-
 #include <acqua/network/ethernet_header.hpp>
 
-namespace acqua { namespace network { namespace detail {
+namespace acqua { namespace network {
 
 inline auto ethernet_header::protocol() const -> protocol_type
 {
@@ -48,4 +48,4 @@ inline std::ostream & operator<<(std::ostream & os, ethernet_header const & rhs)
     return os;
 }
 
-} } }
+} }

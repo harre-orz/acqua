@@ -1,26 +1,26 @@
+#pragma once
+
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
 */
-
-#pragma once
-
-extern "C" {
-#include <netinet/icmp6.h>
-}
 
 #include <acqua/network/internet6_address.hpp>
 #include <acqua/network/detail/header_base.hpp>
 #include <acqua/network/detail/checkable.hpp>
 
-namespace acqua { namespace network { namespace detail {
+extern "C" {
+#include <netinet/icmp6.h>
+}
+
+namespace acqua { namespace network {
 
 class icmpv6_header
     : private ::icmp6_hdr
-    , public checkable<icmpv6_header, ::icmp6_hdr, u_int16_t, &icmp6_hdr::icmp6_cksum, payload_checksum_method>
+    , public detail::checkable<icmpv6_header, ::icmp6_hdr, u_int16_t, &icmp6_hdr::icmp6_cksum, detail::payload_checksum_method>
 {
     friend checkable;
     using value_type = ::icmp6_hdr;
@@ -74,21 +74,21 @@ public:
 
 class icmpv6_echo
     : public icmpv6_header
-    , public header_base<icmpv6_echo>
+    , public detail::header_base<icmpv6_echo>
 {
-    using base_type = icmpv6_header;
+    using base_type = header_base;
 
 public:
-    using base_type::id;
-    using base_type::seq;
+    using icmpv6_header::id;
+    using icmpv6_header::seq;
 };
 
 
 class icmpv6_neighbor
     : public icmpv6_header
-    , public header_base<icmpv6_neighbor>
+    , public detail::header_base<icmpv6_neighbor>
 {
-    using base_type = header_base<icmpv6_neighbor>;
+    using base_type = header_base;
 
 public:
     std::size_t header_size() const noexcept
@@ -113,11 +113,6 @@ public:
     class const_iterator;
 };
 
-} // detail;
-
-using icmpv6_header = detail::icmpv6_header;
-using icmpv6_echo = detail::icmpv6_echo;
-
 } }
 
-#include <acqua/network/impl/icmpv6_header.ipp>
+#include <acqua/network/icmpv6_header.ipp>

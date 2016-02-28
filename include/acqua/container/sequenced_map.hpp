@@ -1,17 +1,17 @@
+#pragma once
+
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
 
-#pragma once
-
+#include <acqua/container/detail/sequenced_map_base.hpp>
+#include <boost/operators.hpp>
 #include <deque>
 #include <list>
-#include <boost/operators.hpp>
-#include <acqua/container/detail/sequenced_map_base.hpp>
 
 namespace acqua { namespace container {
 
@@ -27,7 +27,7 @@ template <
     typename Alloc = std::allocator< std::pair<Key const, Value> >
     >
 class sequenced_map
-    : public acqua::container::detail::sequenced_map_base<sequenced_map<Key, Value, Pred, Alloc>, Key, Value, Pred, Alloc, std::deque>
+    : public detail::sequenced_map_base<sequenced_map<Key, Value, Pred, Alloc>, Key, Value, Pred, Alloc, std::deque>
     , private boost::totally_ordered< sequenced_map<Key, Value, Pred, Alloc> >
 {
 private:

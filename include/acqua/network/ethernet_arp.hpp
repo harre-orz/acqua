@@ -1,31 +1,31 @@
+#pragma once
+
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
 */
-
-#pragma once
-
-extern "C" {
-#include <netinet/if_ether.h>
-}
 
 #include <acqua/network/linklayer_address.hpp>
 #include <acqua/network/internet4_address.hpp>
 #include <acqua/network/detail/header_base.hpp>
 
-namespace acqua { namespace network { namespace detail {
+extern "C" {
+#include <netinet/if_ether.h>
+}
+
+namespace acqua { namespace network {
 
 /*!
   ARPクラス.
 */
 class ethernet_arp
-    : public header_base<ethernet_arp>
+    : public detail::header_base<ethernet_arp>
     , private ::ether_arp
 {
-    using base_type = header_base<ethernet_arp>;
+    using base_type = detail::header_base<ethernet_arp>;
     using value_type = ::ether_arp;
 
 public:
@@ -108,10 +108,6 @@ public:
     friend std::ostream & operator<<(std::ostream & os, ethernet_arp const & rhs);
 };
 
-}  // detail
-
-using ethernet_arp = detail::ethernet_arp;
-
 } }
 
-#include <acqua/network/impl/ethernet_arp.ipp>
+#include <acqua/network/ethernet_arp.ipp>

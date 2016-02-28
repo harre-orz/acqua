@@ -1,3 +1,5 @@
+#pragma once
+
 /*!
   acqua library
 
@@ -6,15 +8,14 @@
   http://opensource.org/licenses/mit-license.php
 */
 
-#pragma once
-
-#include <boost/asio/ip/address_v4.hpp>
-#include <boost/operators.hpp>
-#include <iostream>
 
 extern "C" {
 #include <netinet/in.h>
 }
+
+#include <boost/asio/ip/address_v4.hpp>
+#include <boost/operators.hpp>
+#include <iostream>
 
 namespace acqua { namespace network {
 
@@ -132,4 +133,4 @@ private:
 
 } }
 
-#include <acqua/network/impl/internet4_address.ipp>
+#include <acqua/network/internet4_address.ipp>

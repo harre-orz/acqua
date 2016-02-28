@@ -1,18 +1,18 @@
+#pragma once
+
 /*!
   acqua library
 
-  Copyright (c) 2015 Haruhiko Uchida
+  Copyright (c) 2016 Haruhiko Uchida
   The software is released under the MIT license.
   http://opensource.org/licenses/mit-license.php
  */
-
-#pragma once
 
 #include <acqua/network/ethernet_arp.hpp>
 #include <acqua/network/ethernet_header.hpp>
 #include <acqua/network/detail/is_match_condition.hpp>
 
-namespace acqua { namespace network { namespace detail {
+namespace acqua { namespace network {
 
 inline auto ethernet_arp::hardware() const -> hardware_type
 {
@@ -163,6 +163,8 @@ inline std::ostream & operator<<(std::ostream & os, ethernet_arp const & rhs)
     return os;
 }
 
+namespace detail {
+
 template <>
 class is_match_condition<ethernet_header, ethernet_arp>
 {
@@ -173,4 +175,6 @@ public:
     }
 };
 
-} } }
+}  // detail
+
+} }
