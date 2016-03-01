@@ -1,3 +1,5 @@
+#pragma once
+
 /*!
   acqua library
 
@@ -6,30 +8,26 @@
   http://opensource.org/licenses/mit-license.php
  */
 
-#pragma once
-
 #include <acqua/iostreams/newline_category.hpp>
 #include <boost/iostreams/operations.hpp>
 #include <boost/iostreams/categories.hpp>
 #include <boost/scope_exit.hpp>
-#include <boost/mpl/bool.hpp>
 #include <iostream>
 #include <algorithm>
 
 namespace acqua { namespace iostreams {
 
-class base64_traits
+struct base64_traits
 {
-public:
     static bool const padding = true;
     static int const npos = 64;
 
-    char at(int ch) const
+    char enc(int ch) const
     {
         return tbl[std::min<uint>(static_cast<uint>(ch), static_cast<uint>(npos))];
     }
 
-    int find(char ch) const
+    int dec(char ch) const
     {
         return static_cast<int>(std::find(tbl, tbl + npos, ch) - tbl);
     }
@@ -39,116 +37,246 @@ private:
 };
 
 
-class base64_url_traits
+struct base64_url_traits
 {
-public:
     static bool const padding = false;
     static int const npos = 64;
 
-    char at(int ch) const
+    char enc(int ch) const
     {
         return tbl[std::min<uint>(static_cast<uint>(ch), static_cast<uint>(npos))];
     }
 
-    int find(char ch) const
+    int dec(char ch) const
     {
         return static_cast<int>(std::find(tbl, tbl + npos, ch) - tbl);
     }
 
 private:
-    char const * const tbl = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    char const * const tbl = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 };
 
 
 template <typename Traits>
 class basic_base64_encoder
     : private Traits
-    , public detail::newline_base< basic_base64_encoder<Traits> >
 {
 private:
-    using base_type = typename basic_base64_encoder::base_type;
-    using padding_type = typename boost::mpl::bool_<Traits::padding>::type;
+    using Traits::enc;
+    using Traits::padding;
 
 public:
-    struct category : boost::iostreams::output_filter_tag, boost::iostreams::closable_tag {};
+    struct category : boost::iostreams::dual_use_filter_tag, boost::iostreams::closable_tag {};
     using char_type = char;
     using traits_type = Traits;
 
 public:
     explicit basic_base64_encoder(newline nl = newline::none, std::size_t size = std::numeric_limits<std::size_t>::max())
-        : base_type(nl, size) {}
+        : nl_(nl)
+    {
+        if (size < 4) {
+            size = 4;
+        } else {
+            // 改行コードを含んで、size を超えないように調整する
+            switch(nl_) {
+                case newline::none:
+                    size = std::numeric_limits<std::size_t>::max();
+                    break;
+                case newline::crln:
+                    --size;
+                    //break;
+                case newline::cr: case newline::ln:
+                    --size;
+                    break;
+            }
+            max_ = size - (size % 4);  // max_ は必ず4の倍数にする
+        }
+    }
+
+    template <typename Source>
+    int get(Source & src)
+    {
+        int res;
+        int ch;
+
+        switch(cnt_ % 4) {
+            case 0:
+                if (cnt_ >= max_)
+                    if ((ch = get_break()) != EOF)
+                        return ch;
+
+                if (prior_ == EOF) return EOF;
+                ch = boost::iostreams::get(src);
+                if (ch == EOF) {
+                    prior_ = EOF;
+                    if (cnt_ == 0) {
+                        return EOF;
+                    } else {
+                        max_ = cnt_;  // 最後に改行を入れる調整
+                        return get_break();
+                    }
+                }
+                res = enc((ch & 0xFC) >> 2);
+                prior_ = ch;
+                break;
+            case 1:
+                if (cnt_ >= max_)
+                    return get_break();
+                ch = boost::iostreams::get(src);
+                res = (ch == EOF) ? enc(((prior_ & 0x03)) << 4)
+                    : enc(((prior_ & 0x03) << 4) | ((ch & 0xF0) >> 4));
+                prior_ = ch;
+                break;
+            case 2:
+                if (prior_ == EOF) {
+                    if (padding) {
+                        res = '=';
+                    } else {
+                        max_ = cnt_;  // 最後に改行を入れる調整
+                        return get_break();
+                    }
+                } else {
+                    ch = boost::iostreams::get(src);
+                    res = (ch == EOF) ? enc((prior_ & 0x0F) << 2)
+                        : enc(((prior_ & 0x0F) << 2) | ((ch & 0xC0) >> 6));
+                    prior_ = ch;
+                }
+                break;
+            case 3:
+                if (prior_ == EOF) {
+                    if (padding) {
+                        res = '=';
+                        if (cnt_ > 0) max_ = cnt_ + 1;  // 最後に改行を入れる調整
+                    } else {
+                        max_ = cnt_;  // 最後に改行を入れる調整
+                        return get_break();
+                    }
+                } else {
+                    res = enc(prior_ & 0x3F);
+                }
+                break;
+        }
+
+        ++cnt_;
+        return res;
+    }
 
     template <typename Sink>
     bool put(Sink & sink, char ch)
     {
-        BOOST_SCOPE_EXIT_ALL(this, ch) { prior_ = ch; ++i_; };
-        switch(i_ % 3) {
+        bool res;
+
+        switch(cnt_ % 4) {
             case 0:
-                return base_type::put(sink, traits_type::at((ch & 0xFC) >> 2));
+                if (cnt_ >= max_)
+                    if (!put_break(sink))
+                        return false;
+
+                res = boost::iostreams::put(sink, enc((ch & 0xFC) >> 2));
+                break;
             case 1:
-                return base_type::put_nobreak(sink, traits_type::at(((prior_ & 0x03) << 4) | ((ch & 0xF0) >> 4)));
-            default: // 2
-                return base_type::put_nobreak(sink, traits_type::at(((prior_ & 0x0F) << 2) | ((ch & 0xC0) >> 6)))
-                    && base_type::put_nobreak(sink, traits_type::at((ch & 0x3F)));
-        }
-    }
-
-    template <typename Sink>
-    void close(Sink & sink)
-    {
-        BOOST_SCOPE_EXIT_ALL(this) { prior_ = 0; };
-        line_break(sink);
-    }
-
-    // overrided by base_type
-    template <typename Sink>
-    bool line_break(Sink & sink)
-    {
-        BOOST_SCOPE_EXIT_ALL(this) { i_ = 0; };
-        return line_break_impl(sink, padding_type())
-            && base_type::line_break(sink);
-    }
-
-private:
-    template <typename Sink>
-    bool line_break_impl(Sink & sink, boost::mpl::true_)
-    {
-        switch(i_ % 3) {
-            case 1:
-                return boost::iostreams::put(sink, traits_type::at((prior_ & 0x03) << 4))
-                    && boost::iostreams::put(sink, '=')
-                    && boost::iostreams::put(sink, '=');
+                res = boost::iostreams::put(sink, enc(((prior_ & 0x03) << 4) | ((ch & 0xF0) >> 4)));
+                break;
             case 2:
-                return boost::iostreams::put(sink, traits_type::at((prior_ & 0x0F) << 2))
-                    && boost::iostreams::put(sink, '=');
-            default:
-                return true;
+                res =  boost::iostreams::put(sink, enc(((prior_ & 0x0F) << 2) | ((ch & 0xC0) >> 6)))
+                    && boost::iostreams::put(sink, enc(ch & 0x3F));
+                ++cnt_;
+                break;
+        }
+
+        ++cnt_;
+        prior_ = ch;
+        return res;
+    }
+
+    template <typename Device>
+    void close(Device & dev, std::ios_base::openmode which)
+    {
+        if (which == std::ios_base::out && cnt_ > 0) {
+            switch(cnt_ % 4) {
+                case 1:
+                    boost::iostreams::put(dev, enc((prior_ & 0x03) << 4));
+                    if (padding) {
+                        boost::iostreams::put(dev, '=');
+                        boost::iostreams::put(dev, '=');
+                    }
+                    break;
+                case 2:
+                    boost::iostreams::put(dev, enc((prior_ & 0x0F) << 2));
+                    if (padding) {
+                        boost::iostreams::put(dev, '=');
+                    }
+                    break;
+            }
+
+            // 最後に改行を入れる
+            put_break(dev);
         }
     }
 
+private:
     template <typename Sink>
-    bool line_break_impl(Sink &, boost::mpl::false_) const
+    bool put_break(Sink & sink)
     {
-        return true;
+        cnt_ = 0;
+        switch(nl_) {
+            case newline::none:
+                return true;
+            case newline::ln:
+                return boost::iostreams::put(sink, '\n');
+            case newline::cr:
+                return boost::iostreams::put(sink, '\r');
+            case newline::crln:
+                return boost::iostreams::put(sink, '\r')
+                    && boost::iostreams::put(sink, '\n');
+        }
+    }
+
+    int get_break()
+    {
+        switch(nl_) {
+            case newline::ln:
+                cnt_ = 0;
+                return '\n';
+            case newline::cr:
+                cnt_ = 0;
+                return  '\r';
+            case newline::crln:
+                if (cnt_ == max_) {
+                    ++cnt_;  // 改行を入れる調整
+                    return '\r';
+                } else {
+                    cnt_ = 0;
+                    return '\n';
+                }
+            default:
+                cnt_ = 0;
+                return EOF;
+        }
     }
 
 private:
-    std::size_t i_ = 0;
-    char prior_ = {};
+    newline nl_;
+    std::size_t max_;
+    std::size_t cnt_ = 0;
+    int prior_ = {};
 };
+
 
 /*!
   base64 デコーダ.
-  input_filter と output_filter の両方を指定できるが、１つのインスタンスに対してどちらか片方しか使用してはいけない
 */
 template <typename Traits = base64_traits>
 class basic_base64_decoder
     : private Traits
 {
+private:
+    using Traits::dec;
+    using Traits::npos;
+
 public:
     using char_type = char;
     using category = boost::iostreams::dual_use_filter_tag;
-    using traits_type = Traits;
 
 public:
     template <typename Source>
@@ -156,10 +284,10 @@ public:
     {
         int ch;
         while((ch = boost::iostreams::get(src)) != EOF && ch != boost::iostreams::WOULD_BLOCK) {
-            if (ch == '\r' || ch == '\n' || ch == '=' || (ch = traits_type::find(static_cast<char>(ch))) < 0 || traits_type::npos <= ch)
+            if (ch == '\r' || ch == '\n' || ch == '=' || (ch = dec(static_cast<char>(ch))) < 0 || npos <= ch)
                 continue;
             BOOST_SCOPE_EXIT_ALL(this, ch) { prior_ = ch; };
-            switch(i_++ % 4) {
+            switch(cnt_++ % 4) {
                 case 1:
                     return ((prior_ & 0x3F) << 2 | (ch & 0x30) >> 4);
                 case 2:
@@ -174,10 +302,10 @@ public:
     template <typename Sink>
     bool put(Sink & sink, char ch)
     {
-        if (ch == '\r' || ch == '\n' || ch == '=' || (ch = static_cast<char>(traits_type::find(ch))) < 0 || traits_type::npos <= ch)
+        if (ch == '\r' || ch == '\n' || ch == '=' || (ch = static_cast<char>(dec(ch))) < 0 || npos <= ch)
             return true;
         BOOST_SCOPE_EXIT_ALL(this, ch) { prior_ = ch; };
-        switch(i_++ % 4) {
+        switch(cnt_++ % 4) {
             case 1:
                 return boost::iostreams::put(sink, static_cast<char>((prior_ & 0x3F) << 2 | (ch & 0x30) >> 4));
             case 2:
@@ -189,7 +317,7 @@ public:
     }
 
 private:
-    std::size_t i_ = 0;
+    std::size_t cnt_ = 0;
     int prior_ = {};
 };
 
