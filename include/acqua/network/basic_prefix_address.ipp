@@ -93,7 +93,7 @@ inline void basic_prefix_address<T>::assign(address_type const & address, maskle
 
     auto iit = address.bytes_.begin();
     auto oit = address_.bytes_.begin();
-    for(masklen = masklen_; masklen > 0; masklen -= 8)
+    for(masklen = masklen_; masklen >= 8; masklen -= 8)
         *oit++ = *iit++;
     *oit = *iit & ~static_cast<std::uint8_t>((0x01 << (8 - masklen)) - 1);
 }
